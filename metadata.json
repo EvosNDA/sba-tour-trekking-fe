@@ -1,0 +1,6 @@
+{
+  "name": "WeTrek Alpine Expeditionary Field System",
+  "description": "Find and book mountain trips with 180+ verified local guides, digital mountain gate passes, safe weather escrow payments, and expedition debriefs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

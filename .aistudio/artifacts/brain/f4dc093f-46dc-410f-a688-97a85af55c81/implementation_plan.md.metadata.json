@@ -1,0 +1,6 @@
+{
+  "summary": "Implementation plan for WeTrek / SummitTrails / Wayfarer Alpine Expeditionary Field System, implementing all 5 reference screens (Marketplace Discovery, Climber Registration with OTP, Digital E-Ticket & Mountain Gate Check-in with elevation profile, Pay Remaining Balance with VietQR and porter toggle, and Expedition Logbook Review), seamless interconnected flow, quick screen switcher, and server-side Gemini AI Mountain Dispatch Assistant.",
+  "updatedAt": "2026-10-14T18:07:12.756191089Z",
+  "requestFeedback": true,
+  "userFacing": true
+}
