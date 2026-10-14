@@ -12,14 +12,19 @@ import { NavigationSwitcher } from './components/NavigationSwitcher';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { MarketplaceScreen } from './screens/MarketplaceScreen';
+import { LoginScreen } from './screens/LoginScreen';
 import { ClimberRegistrationScreen } from './screens/ClimberRegistrationScreen';
 import { ETicketScreen } from './screens/ETicketScreen';
 import { PayBalanceScreen } from './screens/PayBalanceScreen';
 import { TourReviewScreen } from './screens/TourReviewScreen';
+import { PartnerCertificatesScreen } from './screens/PartnerCertificatesScreen';
+import { PartnerBankPayoutsScreen } from './screens/PartnerBankPayoutsScreen';
+import { PartnerFinalReviewScreen } from './screens/PartnerFinalReviewScreen';
+import { OpsModerationConsoleScreen } from './screens/OpsModerationConsoleScreen';
 import { AIRangerModal } from './components/AIRangerModal';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<ScreenId>('marketplace');
+  const [currentScreen, setCurrentScreen] = useState<ScreenId>('login');
   const [searchTerm, setSearchTerm] = useState('');
   const [isAIRangerOpen, setIsAIRangerOpen] = useState(false);
 
@@ -89,7 +94,6 @@ export default function App() {
       paymentStatus: 'DEPOSIT_PAID',
     }));
 
-    // Seamlessly navigate to registration or ticket
     setCurrentScreen('eticket');
   };
 
@@ -104,9 +108,24 @@ export default function App() {
     setCurrentScreen('eticket');
   };
 
+  const handleLoginSuccess = (userEmail: string) => {
+    const derivedName = userEmail.includes('@')
+      ? userEmail.split('@')[0].replace('.', ' ').replace(/(^\w|\s\w)/g, (m) => m.toUpperCase())
+      : 'Eleanor Vance';
+
+    setBooking((prev) => ({
+      ...prev,
+      mainTraveler: derivedName,
+      travelers: prev.travelers.map((t, idx) =>
+        idx === 0 ? { ...t, name: derivedName } : t
+      ),
+    }));
+    setCurrentScreen('eticket');
+  };
+
   return (
     <div className="min-h-screen bg-[#FDFBF7] flex flex-col font-sans selection:bg-[#C2410C]/20 selection:text-[#C2410C]">
-      {/* 1. Global Navigation Switcher for instant access to all 5 screens */}
+      {/* 1. Global Navigation Switcher for instant access to all screens */}
       <NavigationSwitcher
         currentScreen={currentScreen}
         onSelectScreen={(screen) => setCurrentScreen(screen)}
@@ -115,13 +134,15 @@ export default function App() {
         reviewSubmitted={review.isSubmitted}
       />
 
-      {/* 2. Top Header matching respective reference style */}
-      <Header
-        currentScreen={currentScreen}
-        onNavigate={(screen) => setCurrentScreen(screen)}
-        searchTerm={searchTerm}
-        onSearch={(term) => setSearchTerm(term)}
-      />
+      {/* 2. Top Header (only on screens other than login & partner/ops screens which have their own dedicated headers) */}
+      {!['login', 'partner_certificates', 'partner_bank_payouts', 'partner_final_review', 'ops_moderation'].includes(currentScreen) && (
+        <Header
+          currentScreen={currentScreen}
+          onNavigate={(screen) => setCurrentScreen(screen)}
+          searchTerm={searchTerm}
+          onSearch={(term) => setSearchTerm(term)}
+        />
+      )}
 
       {/* 3. Screen Body */}
       <main className="flex-1">
@@ -132,6 +153,13 @@ export default function App() {
             destinations={POPULAR_DESTINATIONS}
             tours={EXPLORE_TOURS}
             onBookTour={handleBookTour}
+            onNavigate={(screen) => setCurrentScreen(screen)}
+          />
+        )}
+
+        {currentScreen === 'login' && (
+          <LoginScreen
+            onLoginSuccess={handleLoginSuccess}
             onNavigate={(screen) => setCurrentScreen(screen)}
           />
         )}
@@ -168,10 +196,26 @@ export default function App() {
             onNavigate={(screen) => setCurrentScreen(screen)}
           />
         )}
+
+        {currentScreen === 'partner_certificates' && (
+          <PartnerCertificatesScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+        )}
+
+        {currentScreen === 'partner_bank_payouts' && (
+          <PartnerBankPayoutsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+        )}
+
+        {currentScreen === 'partner_final_review' && (
+          <PartnerFinalReviewScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+        )}
+
+        {currentScreen === 'ops_moderation' && (
+          <OpsModerationConsoleScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+        )}
       </main>
 
-      {/* 4. Editorial Alpine Footer */}
-      <Footer />
+      {/* 4. Editorial Alpine Footer (on screens other than login & ops console which have their own footers) */}
+      {!['login', 'ops_moderation'].includes(currentScreen) && <Footer />}
 
       {/* 5. Interactive Gemini AI Alpine Dispatch & Trail Ranger Assistant */}
       <AIRangerModal

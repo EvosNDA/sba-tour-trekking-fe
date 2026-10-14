@@ -281,16 +281,23 @@ export const Header: React.FC<Props> = ({
           </div>
 
           <button
-            onClick={() => onNavigate('registration')}
-            className="text-xs font-medium text-[#1C2526] hover:text-[#C2410C] transition-colors cursor-pointer whitespace-nowrap px-2"
+            onClick={() => onNavigate('login')}
+            className="text-xs font-semibold text-[#1F4E43] hover:text-[#C2410C] transition-colors cursor-pointer whitespace-nowrap px-2"
+          >
+            Sign In
+          </button>
+
+          <button
+            onClick={() => onNavigate('partner_certificates')}
+            className="text-xs font-medium text-[#1C2526] hover:text-[#C2410C] transition-colors cursor-pointer whitespace-nowrap px-2 hidden sm:inline-block"
           >
             Join as a Tour Guide
           </button>
 
           <button
-            onClick={() => onNavigate('registration')}
+            onClick={() => onNavigate('login')}
             className="w-8 h-8 rounded-full bg-[#1F4E43] text-white flex items-center justify-center text-xs font-medium cursor-pointer"
-            title="Climber Account"
+            title="Climber Account Sign In"
           >
             <User className="w-4 h-4" />
           </button>

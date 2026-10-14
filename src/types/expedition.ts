@@ -1,4 +1,14 @@
-export type ScreenId = 'marketplace' | 'registration' | 'eticket' | 'paybalance' | 'review';
+export type ScreenId =
+  | 'marketplace'
+  | 'login'
+  | 'registration'
+  | 'eticket'
+  | 'paybalance'
+  | 'review'
+  | 'partner_certificates'
+  | 'partner_bank_payouts'
+  | 'partner_final_review'
+  | 'ops_moderation';
 
 export interface TourCompany {
   id: string;

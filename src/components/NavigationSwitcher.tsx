@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScreenId } from '../types/expedition';
-import { Compass, UserCheck, Ticket, CreditCard, Award, RotateCcw } from 'lucide-react';
+import { Compass, UserCheck, Ticket, CreditCard, Award, RotateCcw, LogIn } from 'lucide-react';
 
 interface Props {
   currentScreen: ScreenId;
@@ -25,31 +25,62 @@ export const NavigationSwitcher: React.FC<Props> = ({
       icon: <Compass className="w-4 h-4" />,
     },
     {
+      id: 'login',
+      label: '2. Login',
+      sub: 'Climber Portal',
+      icon: <LogIn className="w-4 h-4" />,
+    },
+    {
       id: 'registration',
-      label: '2. Registration',
+      label: '3. Registration',
       sub: 'SummitTrails Climber ID',
       icon: <UserCheck className="w-4 h-4" />,
     },
     {
       id: 'eticket',
-      label: '3. Digital E-Ticket',
+      label: '4. Digital E-Ticket',
       sub: 'Mountain Gate Check-in',
       icon: <Ticket className="w-4 h-4" />,
       badge: bookingStatus === 'FULLY_SETTLED' ? 'Settled' : 'Deposit Paid',
     },
     {
       id: 'paybalance',
-      label: '4. Pay Balance',
+      label: '5. Pay Balance',
       sub: 'VietQR / Settlement Ledger',
       icon: <CreditCard className="w-4 h-4" />,
       badge: bookingStatus === 'FULLY_SETTLED' ? 'Paid In Full' : 'Pending',
     },
     {
       id: 'review',
-      label: '5. Tour Review',
+      label: '6. Tour Review',
       sub: 'Wayfarer Logbook',
       icon: <Award className="w-4 h-4" />,
       badge: reviewSubmitted ? '+250 pts' : undefined,
+    },
+    {
+      id: 'partner_certificates',
+      label: '7. Partner: Step 2',
+      sub: 'Certificates & Safety',
+      icon: <UserCheck className="w-4 h-4" />,
+    },
+    {
+      id: 'partner_bank_payouts',
+      label: '8. Partner: Step 3',
+      sub: 'Bank Payouts',
+      icon: <CreditCard className="w-4 h-4" />,
+    },
+    {
+      id: 'partner_final_review',
+      label: '9. Partner: Step 4',
+      sub: 'Review & Sign',
+      icon: <Award className="w-4 h-4" />,
+    },
+    {
+      id: 'ops_moderation',
+      label: '10. Ops Console',
+      sub: 'Staff Moderation Desk',
+      icon: <Compass className="w-4 h-4" />,
+      badge: '7 Pending',
     },
   ];
 

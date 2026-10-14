@@ -427,7 +427,7 @@ export const ClimberRegistrationScreen: React.FC<Props> = ({ onSuccess, onNaviga
             <div className="flex items-center justify-between text-xs text-[#64748B] pt-2">
               <button
                 type="button"
-                onClick={() => onNavigate('eticket')}
+                onClick={() => onNavigate('login')}
                 className="hover:text-[#1C2526] cursor-pointer"
               >
                 Already a climber? <strong className="text-[#1C2526] underline">Sign In here</strong>
