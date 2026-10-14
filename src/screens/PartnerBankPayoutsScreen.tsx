@@ -61,7 +61,11 @@ export const PartnerBankPayoutsScreen: React.FC<Props> = ({ onNavigate }) => {
         <div className="max-w-7xl mx-auto px-6 lg:px-12 py-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
             {/* Step 1 Completed */}
-            <div className="flex items-center gap-3.5 p-3 rounded-lg bg-[#ecf5f6]">
+            <button
+              type="button"
+              onClick={() => onNavigate('partner_company_info')}
+              className="flex items-center gap-3.5 p-3 rounded-lg bg-[#ecf5f6] hover:bg-[#e0eaeb] transition-colors text-left cursor-pointer"
+            >
               <div className="w-8 h-8 rounded-full bg-[#39675b] text-white flex items-center justify-center shrink-0 shadow-xs text-xs">
                 ✓
               </div>
@@ -73,7 +77,7 @@ export const PartnerBankPayoutsScreen: React.FC<Props> = ({ onNavigate }) => {
                   Company Info
                 </span>
               </div>
-            </div>
+            </button>
 
             {/* Step 2 Completed */}
             <button

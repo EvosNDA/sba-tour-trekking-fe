@@ -75,7 +75,11 @@ export const PartnerFinalReviewScreen: React.FC<Props> = ({ onNavigate }) => {
         <div className="max-w-7xl mx-auto px-6 lg:px-12">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {/* Step 1: Company Info */}
-            <div className="flex items-center gap-3.5 p-3 rounded-lg bg-[#ecf5f6]">
+            <button
+              type="button"
+              onClick={() => onNavigate('partner_company_info')}
+              className="flex items-center gap-3.5 p-3 rounded-lg bg-[#ecf5f6] hover:bg-[#e0eaeb] transition-colors text-left cursor-pointer"
+            >
               <div className="w-8 h-8 rounded-full bg-[#39675b] text-white flex items-center justify-center shrink-0 shadow-xs text-xs">
                 ✓
               </div>
@@ -83,7 +87,7 @@ export const PartnerFinalReviewScreen: React.FC<Props> = ({ onNavigate }) => {
                 <p className="font-mono text-[11px] text-[#39675b] uppercase tracking-wider">Step 01</p>
                 <p className="text-xs font-semibold text-[#141d1e] truncate">Company Info</p>
               </div>
-            </div>
+            </button>
 
             {/* Step 2: Certificates */}
             <button
@@ -165,7 +169,7 @@ export const PartnerFinalReviewScreen: React.FC<Props> = ({ onNavigate }) => {
                 </div>
                 <button
                   type="button"
-                  onClick={() => onNavigate('partner_certificates')}
+                  onClick={() => onNavigate('partner_company_info')}
                   className="inline-flex items-center gap-1 text-xs font-bold text-[#9b2f00] hover:text-[#c2410c] transition-colors bg-[#ecf5f6] px-3 py-1.5 rounded-lg border border-[#dbe4e5] cursor-pointer"
                 >
                   Edit Step 1

@@ -17,10 +17,13 @@ import { ClimberRegistrationScreen } from './screens/ClimberRegistrationScreen';
 import { ETicketScreen } from './screens/ETicketScreen';
 import { PayBalanceScreen } from './screens/PayBalanceScreen';
 import { TourReviewScreen } from './screens/TourReviewScreen';
+import { PartnerCompanyInfoScreen } from './screens/PartnerCompanyInfoScreen';
 import { PartnerCertificatesScreen } from './screens/PartnerCertificatesScreen';
 import { PartnerBankPayoutsScreen } from './screens/PartnerBankPayoutsScreen';
 import { PartnerFinalReviewScreen } from './screens/PartnerFinalReviewScreen';
 import { OpsModerationConsoleScreen } from './screens/OpsModerationConsoleScreen';
+import { StaffEscalationsChatScreen } from './screens/StaffEscalationsChatScreen';
+import { PlatformAnalyticsScreen } from './screens/PlatformAnalyticsScreen';
 import { AIRangerModal } from './components/AIRangerModal';
 
 export default function App() {
@@ -135,7 +138,7 @@ export default function App() {
       />
 
       {/* 2. Top Header (only on screens other than login & partner/ops screens which have their own dedicated headers) */}
-      {!['login', 'partner_certificates', 'partner_bank_payouts', 'partner_final_review', 'ops_moderation'].includes(currentScreen) && (
+      {!['login', 'partner_company_info', 'partner_certificates', 'partner_bank_payouts', 'partner_final_review', 'ops_moderation', 'staff_escalations', 'platform_analytics'].includes(currentScreen) && (
         <Header
           currentScreen={currentScreen}
           onNavigate={(screen) => setCurrentScreen(screen)}
@@ -197,6 +200,10 @@ export default function App() {
           />
         )}
 
+        {currentScreen === 'partner_company_info' && (
+          <PartnerCompanyInfoScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+        )}
+
         {currentScreen === 'partner_certificates' && (
           <PartnerCertificatesScreen onNavigate={(screen) => setCurrentScreen(screen)} />
         )}
@@ -212,10 +219,18 @@ export default function App() {
         {currentScreen === 'ops_moderation' && (
           <OpsModerationConsoleScreen onNavigate={(screen) => setCurrentScreen(screen)} />
         )}
+
+        {currentScreen === 'staff_escalations' && (
+          <StaffEscalationsChatScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+        )}
+
+        {currentScreen === 'platform_analytics' && (
+          <PlatformAnalyticsScreen onNavigate={(screen) => setCurrentScreen(screen)} />
+        )}
       </main>
 
-      {/* 4. Editorial Alpine Footer (on screens other than login & ops console which have their own footers) */}
-      {!['login', 'ops_moderation'].includes(currentScreen) && <Footer />}
+      {/* 4. Editorial Alpine Footer (on screens other than login & ops consoles which have their own footers) */}
+      {!['login', 'ops_moderation', 'staff_escalations', 'platform_analytics'].includes(currentScreen) && <Footer />}
 
       {/* 5. Interactive Gemini AI Alpine Dispatch & Trail Ranger Assistant */}
       <AIRangerModal

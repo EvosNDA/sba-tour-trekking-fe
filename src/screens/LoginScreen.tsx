@@ -555,7 +555,7 @@ void main() {
                 <br />
                 <button
                   type="button"
-                  onClick={() => onNavigate('partner_certificates')}
+                  onClick={() => onNavigate('partner_company_info')}
                   className="text-xs font-medium text-[#1F4E43] hover:underline underline-offset-4 cursor-pointer mt-0.5"
                 >
                   Partner Sign In &amp; Verification

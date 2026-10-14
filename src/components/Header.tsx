@@ -288,7 +288,7 @@ export const Header: React.FC<Props> = ({
           </button>
 
           <button
-            onClick={() => onNavigate('partner_certificates')}
+            onClick={() => onNavigate('partner_company_info')}
             className="text-xs font-medium text-[#1C2526] hover:text-[#C2410C] transition-colors cursor-pointer whitespace-nowrap px-2 hidden sm:inline-block"
           >
             Join as a Tour Guide

@@ -69,7 +69,11 @@ export const PartnerCertificatesScreen: React.FC<Props> = ({ onNavigate }) => {
             {/* Steps Breadcrumb */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full md:w-auto">
               {/* Step 1 Done */}
-              <div className="flex items-center gap-2.5 bg-[#e6f0f1] px-3.5 py-2 rounded-xl">
+              <button
+                type="button"
+                onClick={() => onNavigate('partner_company_info')}
+                className="flex items-center gap-2.5 bg-[#e6f0f1] hover:bg-[#e0eaeb] px-3.5 py-2 rounded-xl transition-colors text-left cursor-pointer"
+              >
                 <span className="w-6 h-6 rounded-full bg-[#39675b] text-white flex items-center justify-center text-xs">
                   ✓
                 </span>
@@ -77,7 +81,7 @@ export const PartnerCertificatesScreen: React.FC<Props> = ({ onNavigate }) => {
                   <span className="text-[11px] font-bold text-[#39675b] uppercase">Step 1</span>
                   <span className="text-xs text-[#141d1e] font-semibold">Company Info</span>
                 </div>
-              </div>
+              </button>
               {/* Step 2 Active */}
               <div className="flex items-center gap-2.5 bg-[#c2410c] text-white px-3.5 py-2 rounded-xl shadow-sm">
                 <span className="w-6 h-6 rounded-full bg-[#9b2f00] text-white flex items-center justify-center text-xs font-bold">
@@ -535,7 +539,14 @@ export const PartnerCertificatesScreen: React.FC<Props> = ({ onNavigate }) => {
 
               {/* Form Actions */}
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('partner_company_info')}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-[#ecf5f6] text-[#141d1e] text-xs font-bold hover:bg-[#e0eaeb] transition-colors border border-[#dbe4e5] cursor-pointer"
+                  >
+                    <span>← Back to Step 1</span>
+                  </button>
                   <button
                     type="submit"
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-3.5 bg-[#9b2f00] hover:bg-[#c2410c] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"

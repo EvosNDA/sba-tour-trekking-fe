@@ -5,10 +5,13 @@ export type ScreenId =
   | 'eticket'
   | 'paybalance'
   | 'review'
+  | 'partner_company_info'
   | 'partner_certificates'
   | 'partner_bank_payouts'
   | 'partner_final_review'
-  | 'ops_moderation';
+  | 'ops_moderation'
+  | 'staff_escalations'
+  | 'platform_analytics';
 
 export interface TourCompany {
   id: string;
