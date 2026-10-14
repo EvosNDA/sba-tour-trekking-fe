@@ -72,6 +72,7 @@ export const AIRangerModal: React.FC<Props> = ({
           history: messages.slice(-5),
         }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const replyText = data.reply || data.error || 'Basecamp radio acknowledged. Keep emergency channel 147.425 MHz open.';
 
@@ -85,12 +86,18 @@ export const AIRangerModal: React.FC<Props> = ({
         },
       ]);
     } catch {
+      const fallbackResponses = [
+        'Ranger A Pao here: Tram Ton Pass basecamp is reporting 14°C, dropping to 4°C above 2,800m. Be sure your warm sleeping bag and waterproof shell jacket are in your dry-bag.',
+        'Dispatch Notice: Expedition meeting point is at Tram Ton Gate (1,900m MSL) at 06:30 AM sharp. Ensure your trekking pass QR is ready.',
+        'Radio Advisory: Hoang Lien Son park regulations require 1 certified guide per 4 climbers. VHF Emergency channel 147.425 MHz is active.',
+      ];
+      const randomReply = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
       setMessages((prev) => [
         ...prev,
         {
           id: `a-${Date.now()}`,
           role: 'assistant',
-          text: 'Dispatch Radio Update: Sapa weather is holding at 14°C at base, dropping to 4°C above 2,800m. Be sure your warm sleeping bag and waterproof shell jacket are in your dry-bag.',
+          text: randomReply,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
