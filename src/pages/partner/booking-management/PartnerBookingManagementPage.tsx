@@ -30,7 +30,10 @@ export const PartnerBookingManagementPage: React.FC<PartnerBookingManagementPage
   };
 
   const handleContinue = () => {
-    showToast('Bank Routing Saved', 'Moving to Step 4: Final Review & Sign-off.');
+    showToast(
+      'Local draft only',
+      'Bank details are kept in this frontend. Partner payout setup is reviewed by the operations team and is not submitted here.',
+    );
     setTimeout(() => {
       onNavigate('partner_final_review');
     }, 800);
@@ -503,7 +506,7 @@ export const PartnerBookingManagementPage: React.FC<PartnerBookingManagementPage
                   </button>
                   <button
                     type="button"
-                    onClick={() => showToast('Draft Saved', 'Your bank preferences have been recorded.')}
+                    onClick={() => showToast('Local draft only', 'Not submitted to the operations team.')}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white text-[#59413a] text-xs font-semibold hover:text-[#141d1e] hover:bg-[#ecf5f6] transition-colors shadow-xs border border-[#dbe4e5] cursor-pointer"
                   >
                     <span>Save Draft</span>

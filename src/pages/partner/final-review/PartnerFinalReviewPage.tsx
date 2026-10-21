@@ -32,15 +32,10 @@ export const PartnerFinalReviewPage: React.FC<PartnerFinalReviewPageProps> = ({
       return;
     }
 
-    setIsSigning(true);
-    setTimeout(() => {
-      setIsSigning(false);
-      setIsSigned(true);
-      showToast(
-        'Expedition Contract Dispatched',
-        'Ref #ST-VN-8842 sent to Safety Desk. Mai Nguyen will reach out within 24 hours.'
-      );
-    }, 1400);
+    showToast(
+      'Not submitted to server',
+      'Partner applications are reviewed by the operations team offline. This frontend does not submit partner contracts.',
+    );
   };
 
   return (

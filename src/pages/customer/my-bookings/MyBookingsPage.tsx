@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Booking, ScreenId, Traveler } from '../../../types/expedition';
 import { INITIAL_BOOKING } from '../../../data/mockData';
-import { Download, Copy, Check, ShieldCheck } from 'lucide-react';
+import { Download, Copy, Check, ShieldCheck, AlertCircle } from 'lucide-react';
 import { TicketPassCard } from './components/TicketPassCard';
 import { TravelerCheckinList } from './components/TravelerCheckinList';
 import { ElevationProfileCard } from './components/ElevationProfileCard';
@@ -23,7 +23,8 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = ({
   onOpenAIRanger = () => {},
 }) => {
   const [copiedBooking, setCopiedBooking] = useState(false);
-  const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [checkInNotice, setCheckInNotice] = useState<string | null>(null);
+  const [downloadNotice, setDownloadNotice] = useState<string | null>(null);
 
   const handleCopyBooking = () => {
     navigator.clipboard.writeText(booking.id);
@@ -31,28 +32,18 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = ({
     setTimeout(() => setCopiedBooking(false), 2000);
   };
 
+  // Gate check-in is recorded by the ranger at Tram Ton Pass. This frontend has
+  // no check-in backend, so toggling would only pretend to change server state.
   const handleToggleCheckIn = (travelerId: string) => {
-    const updatedTravelers = booking.travelers.map((t: Traveler) => {
-      if (t.id === travelerId) {
-        const isCheckedIn = t.checkInStatus === 'Checked In';
-        return {
-          ...t,
-          checkInStatus: (isCheckedIn ? 'Waiting at Gate' : 'Checked In') as Booking['travelers'][0]['checkInStatus'],
-          checkInTime: isCheckedIn ? undefined : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-      }
-      return t;
-    });
-
-    onUpdateBooking({
-      ...booking,
-      travelers: updatedTravelers,
-    });
+    setCheckInNotice('Gate check-in is recorded by your ranger at Tram Ton Pass. It cannot be changed from this screen.');
+    setTimeout(() => setCheckInNotice(null), 5000);
   };
 
+  // Ticket file download is produced by the tour operator. This frontend has no
+  // ticket-download backend, so the button only shows the pass already on screen.
   const handleDownloadTicket = () => {
-    setDownloadSuccess(true);
-    setTimeout(() => setDownloadSuccess(false), 3000);
+    setDownloadNotice('Ticket download is handled by your operator. The QR pass above works offline and does not require a server download.');
+    setTimeout(() => setDownloadNotice(null), 5000);
   };
 
   return (
@@ -81,10 +72,10 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = ({
             </button>
             <button
               onClick={handleDownloadTicket}
-              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#1F4E43] hover:bg-[#15372F] rounded flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#1F4E43] hover:bg-[#9B2F00] rounded flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>{downloadSuccess ? 'Ticket Saved to Wallet!' : 'Download Ticket / Save to Phone'}</span>
+              <span>{downloadNotice || 'Download Ticket / Save to Phone'}</span>
             </button>
           </div>
         </div>
@@ -100,6 +91,13 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = ({
             <span>National Park Pass #{booking.nationalParkPass}</span>
           </div>
         </div>
+
+        {checkInNotice && (
+          <div role="status" className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded text-[11px] text-orange-950 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-orange-600 shrink-0" />
+            <span>{checkInNotice}</span>
+          </div>
+        )}
 
         {/* Title & Booking Reference */}
         <div className="mb-8">

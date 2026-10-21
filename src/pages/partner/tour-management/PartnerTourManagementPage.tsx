@@ -1,710 +1,185 @@
-import React, { useState } from 'react';
-import { ScreenId } from '../../../types/expedition';
+import React, { useEffect, useRef, useState } from 'react';
+import { useI18n } from '../../../i18n/I18nProvider';
+import { toursApi } from '../../../features/tours/api/tours.api';
+import {
+  CancellationPolicyVersionDto,
+  EquipmentPackageWriteRequest,
+  PartnerTourItemDto,
+  PartnerTourDraftRequest,
+  PartnerScheduleRequest,
+  TourRosterDto,
+} from '../../../features/tours/types/tour.types';
 
-export interface PartnerTourManagementPageProps {
-  onNavigate?: (screen: ScreenId) => void;
-}
+const emptyDraft: PartnerTourDraftRequest = { title: '', description: '', difficulty: 'moderate', durationDays: 1, itinerary: [], media: [], packingList: [], cancellationPolicyVersionId: 0, locationIds: [] };
+const emptyEquipment: EquipmentPackageWriteRequest = { title: '', includedItems: '', sharedItems: '', personalItemsToBring: '' };
+interface ScheduleFormState { startsAt: string; endsAt: string; capacity: string; basePriceVnd: string; equipmentFeeVnd: string; depositPercent: string; balanceDueAt: string; meetingPoint: string; contactPhone: string; }
+const emptySchedule: ScheduleFormState = { startsAt: '', endsAt: '', capacity: '', basePriceVnd: '', equipmentFeeVnd: '', depositPercent: '', balanceDueAt: '', meetingPoint: '', contactPhone: '' };
+const errorText = (error: unknown) => typeof error === 'object' && error && 'message' in error ? String(error.message) : 'Request failed. No changes were confirmed.';
+const dateTimeValue = (value: string) => value ? new Date(value).toISOString().slice(0, 16) : '';
+const inputClass = 'mt-1.5 block w-full rounded-lg border border-[#D7DFDA] bg-white px-3 py-2.5 text-sm text-[#1C2526] placeholder:text-[#87918D] shadow-sm outline-none transition focus:border-[#1F4E43] focus:ring-2 focus:ring-[#1F4E43]/15';
+const fieldClass = 'block min-w-0 text-sm font-medium text-[#34413D]';
+const cardClass = 'rounded-2xl border border-[#E2E7E4] bg-white p-5 shadow-sm md:p-6';
 
-export const PartnerTourManagementPage: React.FC<PartnerTourManagementPageProps> = ({
-  onNavigate = () => {},
-}) => {
-  const [companyName, setCompanyName] = useState('Sapa Peak Expeditions Co.');
-  const [licenseNumber, setLicenseNumber] = useState('VNM-TREK-8849-01');
-  const [contactName, setContactName] = useState('Huu Minh Vu');
-  const [email, setEmail] = useState('minh@sapapeaks.com');
-  const [phone, setPhone] = useState('+84 912 345 678');
-  const [guideCount, setGuideCount] = useState(4);
-  const [satelliteChecked, setSatelliteChecked] = useState(true);
-  const [termsEscrow, setTermsEscrow] = useState(true);
-  const [termsTruth, setTermsTruth] = useState(true);
+export const PartnerTourManagementPage: React.FC = () => {
+  const { t } = useI18n();
+  const [tours, setTours] = useState<PartnerTourItemDto[]>([]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [loadingTour, setLoadingTour] = useState(false);
+  const [draft, setDraft] = useState<PartnerTourDraftRequest>(emptyDraft);
+  const [schedule, setSchedule] = useState<ScheduleFormState>(emptySchedule);
+  const [equipment, setEquipment] = useState<EquipmentPackageWriteRequest>(emptyEquipment);
+  const [policies, setPolicies] = useState<CancellationPolicyVersionDto[]>([]);
+  const [roster, setRoster] = useState<TourRosterDto | null>(null);
+  const [rosterScheduleId, setRosterScheduleId] = useState('');
+  const [cancelReason, setCancelReason] = useState('');
+  const [leadGuideId, setLeadGuideId] = useState('');
+  const [supportGuideIds, setSupportGuideIds] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const editorRef = useRef<HTMLElement>(null);
 
-  // Region selections
-  const [regions, setRegions] = useState<{ [key: string]: boolean }>({
-    fansipan: true,
-    langbiang: false,
-    hagiang: true,
-    phongnha: false,
-  });
+  const loadTours = async () => {
+    setLoading(true); setError(null);
+    try { const result = await toursApi.getPartnerTours({ page: 0, size: 50 }); setTours(result.items); }
+    catch (e) { setError(errorText(e)); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { void loadTours(); }, []);
+  useEffect(() => { void toursApi.getCancellationPolicyVersions().then(result => setPolicies(result.items)).catch(e => setError(errorText(e))); }, []);
+  useEffect(() => {
+    if (isCreating || selectedId !== null) editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [isCreating, selectedId]);
 
-  // Toast state
-  const [toast, setToast] = useState<{ show: boolean; title: string; desc: string }>({
-    show: false,
-    title: '',
-    desc: '',
-  });
-
-  const showToast = (title: string, desc: string) => {
-    setToast({ show: true, title, desc });
-    setTimeout(() => {
-      setToast((prev) => ({ ...prev, show: false }));
-    }, 4000);
+  const chooseTour = async (id: number) => {
+    setSelectedId(id); setIsCreating(false); setDraft(emptyDraft); setEquipment(emptyEquipment); setNotice(null); setError(null); setRoster(null); setLoadingTour(true);
+    try {
+      const tour = await toursApi.getPartnerTour(id);
+      setDraft({ title: tour.title, description: tour.description || '', difficulty: tour.difficulty || 'moderate', durationDays: tour.durationDays || 1, requiredExperience: tour.requiredExperience, itinerary: tour.itinerary, media: tour.media.map(({ id: _id, ...item }) => item), includedServices: tour.includedServices, excludedServices: tour.excludedServices, packingList: tour.packingList.map(({ id: _id, ...item }) => item), cancellationPolicyVersionId: tour.cancellationPolicyVersionId || 0, routeFileUrl: tour.routeFileUrl, locationIds: tour.locationIds });
+      const currentEquipment = tour.equipmentOptions?.[0];
+      setEquipment(currentEquipment ? { title: currentEquipment.title, includedItems: currentEquipment.includedItems, sharedItems: currentEquipment.sharedItems, personalItemsToBring: currentEquipment.personalItemsToBring } : emptyEquipment);
+    } catch (e) { setError(errorText(e)); }
+    finally { setLoadingTour(false); }
+  };
+  const startNewTour = () => { setSelectedId(null); setIsCreating(true); setDraft(emptyDraft); setEquipment(emptyEquipment); setSchedule(emptySchedule); setRoster(null); setError(null); setNotice(null); };
+  const closeEditor = () => { setSelectedId(null); setIsCreating(false); setDraft(emptyDraft); setEquipment(emptyEquipment); setSchedule(emptySchedule); setRoster(null); setError(null); };
+  const mutate = async (action: () => Promise<unknown>, successKey: string, reload = true): Promise<boolean> => {
+    setBusy(true); setError(null); setNotice(null);
+    try { await action(); setNotice(t(successKey)); if (reload) await loadTours(); return true; }
+    catch (e) { setError(errorText(e)); return false; }
+    finally { setBusy(false); }
+  };
+  const updateDraft = <K extends keyof PartnerTourDraftRequest>(key: K, value: PartnerTourDraftRequest[K]) => setDraft(d => ({ ...d, [key]: value }));
+  const scheduleRequest = (): PartnerScheduleRequest | null => {
+    const requiredNumbers = [schedule.capacity, schedule.basePriceVnd, schedule.equipmentFeeVnd, schedule.depositPercent];
+    if (!schedule.startsAt || !schedule.endsAt || !schedule.balanceDueAt || requiredNumbers.some(value => value.trim() === '' || !Number.isFinite(Number(value)))) return null;
+    const startsAt = new Date(schedule.startsAt).getTime(); const endsAt = new Date(schedule.endsAt).getTime();
+    const capacity = Number(schedule.capacity); const basePriceVnd = Number(schedule.basePriceVnd); const equipmentFeeVnd = Number(schedule.equipmentFeeVnd); const depositPercent = Number(schedule.depositPercent);
+    if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt) || startsAt >= endsAt || capacity < 1 || basePriceVnd < 0 || equipmentFeeVnd < 0 || depositPercent < 0.01 || depositPercent > 100) return null;
+    return { startsAt: schedule.startsAt, endsAt: schedule.endsAt, capacity, basePriceVnd, equipmentFeeVnd, depositPercent, balanceDueAt: schedule.balanceDueAt, meetingPoint: schedule.meetingPoint, contactPhone: schedule.contactPhone, guideAssignments: [...(leadGuideId && Number(leadGuideId) > 0 ? [{ guideId: Number(leadGuideId), isLead: true }] : []), ...supportGuideIds.split(',').map(x => Number(x.trim())).filter(guideId => Number.isFinite(guideId) && guideId > 0).map(guideId => ({ guideId, isLead: false }))] };
+  };
+  const selectedTour = tours.find(tour => tour.id === selectedId);
+  const statusText = (status: string) => t(`partnerTour.status.${status}`);
+  const saveTour = async () => {
+    if (!draft.cancellationPolicyVersionId) { setError(t('partnerTour.selectPolicyError')); return; }
+    const creating = selectedId === null;
+    const saved = await mutate(() => creating ? toursApi.createPartnerTour(draft) : toursApi.updatePartnerTour(selectedId as number, draft), creating ? 'partnerTour.created' : 'partnerTour.saved');
+    if (saved && creating) setIsCreating(false);
+  };
+  const startArchive = async (tourId: number) => {
+    if (!window.confirm(t('partnerTour.archiveConfirm'))) return;
+    if (await mutate(() => toursApi.archivePartnerTour(tourId), 'partnerTour.archived')) {
+      if (selectedId === tourId) closeEditor();
+    }
+  };
+  const restoreTour = async (tourId: number) => {
+    if (await mutate(() => toursApi.restorePartnerTour(tourId), 'partnerTour.restored')) {
+      await chooseTour(tourId);
+      setNotice(t('partnerTour.restoreNextSteps'));
+    }
   };
 
-  const handleRegionToggle = (key: string) => {
-    setRegions((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  return <main className="min-h-[70vh] bg-[#F7F8F6] px-4 py-8 text-[#1C2526] md:px-8 md:py-10">
+    <div className="mx-auto max-w-7xl space-y-6">
+      <header className="border-b border-[#E2E7E4] pb-6">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#C2410C]">{t('partnerTour.eyebrow')}</p><h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">{t('partnerTour.title')}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[#64716D]">{t('partnerTour.description')}</p>
+      </header>
 
-  const adjustGuideCount = (delta: number) => {
-    setGuideCount((prev) => Math.max(1, prev + delta));
-  };
+      {error && <div role="alert" className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><span>{error}</span>{!tours.length && <button type="button" onClick={() => void loadTours()} disabled={loading} className="self-start rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-100 disabled:opacity-50 sm:self-auto">{loading ? t('partnerTour.loading') : t('partnerTour.retry')}</button>}</div>}
+      {notice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{notice}</div>}
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    showToast('Application Progress Saved!', 'Advancing to Step 3: Bank Payouts Setup.');
-    setTimeout(() => {
-      onNavigate('partner_bank_payouts');
-    }, 900);
-  };
-
-  return (
-    <div className="w-full bg-[#f2fbfc] text-[#141d1e] min-h-screen font-sans">
-      {/* Top Stepper Progress Header */}
-      <section className="w-full bg-[#ecf5f6] py-6 shadow-sm border-b border-[#dbe4e5]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <span className="font-mono text-xs text-[#39675b] tracking-wider uppercase font-semibold">
-                Step 2 of 4 • Operator Verification
-              </span>
-              <h2 className="text-xl text-[#141d1e] font-bold">Partner Onboarding</h2>
-            </div>
-            {/* Steps Breadcrumb */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full md:w-auto">
-              {/* Step 1 Done */}
-              <button
-                type="button"
-                onClick={() => onNavigate('partner_company_info')}
-                className="flex items-center gap-2.5 bg-[#e6f0f1] hover:bg-[#e0eaeb] px-3.5 py-2 rounded-xl transition-colors text-left cursor-pointer"
-              >
-                <span className="w-6 h-6 rounded-full bg-[#39675b] text-white flex items-center justify-center text-xs">
-                  ✓
-                </span>
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold text-[#39675b] uppercase">Step 1</span>
-                  <span className="text-xs text-[#141d1e] font-semibold">Company Info</span>
-                </div>
-              </button>
-              {/* Step 2 Active */}
-              <div className="flex items-center gap-2.5 bg-[#c2410c] text-white px-3.5 py-2 rounded-xl shadow-sm">
-                <span className="w-6 h-6 rounded-full bg-[#9b2f00] text-white flex items-center justify-center text-xs font-bold">
-                  2
-                </span>
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold uppercase">Step 2</span>
-                  <span className="text-xs font-semibold">Certificates</span>
-                </div>
-              </div>
-              {/* Step 3 */}
-              <button
-                type="button"
-                onClick={() => onNavigate('partner_bank_payouts')}
-                className="flex items-center gap-2.5 bg-[#f2fbfc] px-3.5 py-2 rounded-xl opacity-80 hover:opacity-100 transition-opacity text-left cursor-pointer"
-              >
-                <span className="w-6 h-6 rounded-full bg-[#dbe4e5] text-[#59413a] flex items-center justify-center text-xs font-medium">
-                  3
-                </span>
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold text-[#59413a] uppercase">Step 3</span>
-                  <span className="text-xs text-[#59413a]">Bank Payouts</span>
-                </div>
-              </button>
-              {/* Step 4 */}
-              <button
-                type="button"
-                onClick={() => onNavigate('partner_final_review')}
-                className="flex items-center gap-2.5 bg-[#f2fbfc] px-3.5 py-2 rounded-xl opacity-80 hover:opacity-100 transition-opacity text-left cursor-pointer"
-              >
-                <span className="w-6 h-6 rounded-full bg-[#dbe4e5] text-[#59413a] flex items-center justify-center text-xs font-medium">
-                  4
-                </span>
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold text-[#59413a] uppercase">Step 4</span>
-                  <span className="text-xs text-[#59413a]">Review</span>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
+      <section className={cardClass}>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-xl font-bold">{t('partnerTour.yourTours')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.tourListHelp')}</p></div><div className="flex items-center gap-3"><span className="rounded-full bg-[#F4F6F4] px-3 py-1 text-xs font-semibold text-[#52605D]">{t('partnerTour.tourCount', { count: tours.length })}</span>{tours.length > 0 && <button type="button" onClick={startNewTour} className="inline-flex items-center justify-center rounded-lg bg-[#1F4E43] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#173C34] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C]">{t('partnerTour.addTour')}</button>}</div></div>
+        {loading ? <p role="status" className="rounded-lg bg-[#F7F8F6] p-4 text-sm text-[#64716D]">{t('partnerTour.loading')}</p> : tours.length ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{tours.map(tour => <article key={tour.id} className={`rounded-xl border p-4 transition ${selectedId === tour.id ? 'border-[#1F4E43] bg-[#F1F6F3] shadow-sm' : 'border-[#E2E7E4] bg-white hover:border-[#A9BFB5] hover:shadow-sm'}`}>
+          <div className="flex items-start justify-between gap-3"><div className="min-w-0"><span className="block truncate font-semibold text-[#1C2526]">{tour.title}</span><span className="mt-1 block text-xs text-[#64716D]">{t('partnerTour.tourId', { id: tour.id })}</span></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${tour.status === 'published' ? 'bg-emerald-50 text-emerald-800' : tour.status === 'rejected' ? 'bg-rose-50 text-rose-800' : tour.status === 'archived' ? 'bg-stone-100 text-stone-600' : 'bg-amber-50 text-amber-800'}`}>{statusText(tour.status)}</span></div>
+          <div className="mt-4 flex flex-wrap gap-2">{tour.status === 'archived' ? <button type="button" disabled={busy} onClick={() => void restoreTour(tour.id)} className="rounded-md border border-[#CAD4CF] px-3 py-1.5 text-xs font-semibold text-[#34413D] hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.restore')}</button> : <button type="button" disabled={busy} onClick={() => void chooseTour(tour.id)} className="rounded-md border border-[#CAD4CF] px-3 py-1.5 text-xs font-semibold text-[#34413D] hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.edit')}</button>}
+            {tour.status !== 'archived' && <button type="button" disabled={busy} onClick={() => void startArchive(tour.id)} className="rounded-md px-2.5 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50">{t('partnerTour.archive')}</button>}</div>
+        </article>)}</div> : !error && <div className="rounded-xl border border-dashed border-[#CAD4CF] bg-[#FAFBFA] px-5 py-10 text-center"><p className="font-semibold">{t('partnerTour.emptyTitle')}</p><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.emptyHelp')}</p><button type="button" onClick={startNewTour} className="mt-4 rounded-lg bg-[#1F4E43] px-4 py-2 text-sm font-semibold text-white">{t('partnerTour.createFirst')}</button></div>}
+        {new Set(tours.map(tour => tour.companyId)).size > 1 && <p role="alert" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">{t('partnerTour.multipleCompanyWarning')}</p>}
       </section>
 
-      {/* Main Content Layout */}
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-10 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          {/* Left Column Primary Form (~65%) */}
-          <div className="lg:col-span-8 space-y-10">
-            {/* Header Banner Block */}
-            <div className="bg-[#ecf5f6] p-8 rounded-xl shadow-sm relative overflow-hidden border border-[#dbe4e5]">
-              <div className="relative z-10 space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#b9eadb] text-[#3d6b5f] text-xs font-bold uppercase tracking-wider">
-                  <span className="font-bold">★</span>
-                  <span>Official Outfitter Application</span>
-                </div>
-                <h1 className="font-serif text-3xl sm:text-4xl text-[#141d1e] tracking-tight leading-tight">
-                  Join Our Tour Partner Network
-                </h1>
-                <p className="text-sm sm:text-base text-[#59413a] max-w-2xl leading-relaxed">
-                  Sign up your company, submit safety certificates, and start listing trekking trips in 48 hours.
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-10">
-              {/* SECTION 1: Company & Contact Information */}
-              <div className="bg-white p-8 rounded-xl shadow-sm border border-[#dbe4e5] space-y-8">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#e6f0f1] flex items-center justify-center text-[#9b2f00] font-bold font-mono text-xs">
-                    01
-                  </div>
-                  <div>
-                    <h3 className="font-serif text-2xl text-[#141d1e] font-semibold">
-                      Company &amp; Contact Information
-                    </h3>
-                    <p className="text-xs text-[#59413a]">
-                      Tell us who you are and where your mountain trips go.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Company Name */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#141d1e] block font-semibold">
-                      Registered Company Name
-                    </label>
-                    <input
-                      className="w-full bg-[#ecf5f6] text-[#141d1e] text-sm px-4 py-2.5 rounded-lg border border-[#dbe4e5] focus:outline-none focus:bg-white focus:border-[#c2410c]"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      required
-                      type="text"
-                    />
-                  </div>
-                  {/* License Number */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#141d1e] block font-semibold">
-                      Business License Number
-                    </label>
-                    <input
-                      className="w-full bg-[#ecf5f6] text-[#141d1e] text-sm px-4 py-2.5 rounded-lg border border-[#dbe4e5] focus:outline-none focus:bg-white focus:border-[#c2410c]"
-                      value={licenseNumber}
-                      onChange={(e) => setLicenseNumber(e.target.value)}
-                      required
-                      type="text"
-                    />
-                  </div>
-                  {/* Lead Contact Name */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#141d1e] block font-semibold">
-                      Lead Contact Person
-                    </label>
-                    <input
-                      className="w-full bg-[#ecf5f6] text-[#141d1e] text-sm px-4 py-2.5 rounded-lg border border-[#dbe4e5] focus:outline-none focus:bg-white focus:border-[#c2410c]"
-                      value={contactName}
-                      onChange={(e) => setContactName(e.target.value)}
-                      required
-                      type="text"
-                    />
-                  </div>
-                  {/* Work Email */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#141d1e] block font-semibold">
-                      Work Email Address
-                    </label>
-                    <input
-                      className="w-full bg-[#ecf5f6] text-[#141d1e] text-sm px-4 py-2.5 rounded-lg border border-[#dbe4e5] focus:outline-none focus:bg-white focus:border-[#c2410c]"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      type="email"
-                    />
-                  </div>
-                  {/* Phone */}
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="text-xs text-[#141d1e] block font-semibold">
-                      Phone / WhatsApp Number (For Mountain Dispatch)
-                    </label>
-                    <input
-                      className="w-full bg-[#ecf5f6] text-[#141d1e] text-sm px-4 py-2.5 rounded-lg border border-[#dbe4e5] focus:outline-none focus:bg-white focus:border-[#c2410c]"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      required
-                      type="tel"
-                    />
-                    <span className="text-xs text-[#59413a]">
-                      We send instant SMS notifications when travelers book your tours.
-                    </span>
-                  </div>
-                </div>
-
-                {/* Operating Regions */}
-                <div className="space-y-3 pt-2">
-                  <label className="text-xs text-[#141d1e] block font-semibold">
-                    Operating Trekking Regions (Select all you guide in)
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <label className="flex items-center gap-3 p-3.5 rounded-xl bg-[#ecf5f6] hover:bg-[#e6f0f1] cursor-pointer transition-colors shadow-xs border border-[#dbe4e5]">
-                      <input
-                        checked={regions.fansipan}
-                        onChange={() => handleRegionToggle('fansipan')}
-                        className="w-4 h-4 accent-[#9b2f00] rounded cursor-pointer"
-                        type="checkbox"
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-[#141d1e]">
-                          Fansipan &amp; Hoang Lien Son
-                        </span>
-                        <span className="font-mono text-[11px] text-[#59413a]">
-                          Peak • 3,143m high
-                        </span>
-                      </div>
-                    </label>
-                    <label className="flex items-center gap-3 p-3.5 rounded-xl bg-[#ecf5f6] hover:bg-[#e6f0f1] cursor-pointer transition-colors shadow-xs border border-[#dbe4e5]">
-                      <input
-                        checked={regions.langbiang}
-                        onChange={() => handleRegionToggle('langbiang')}
-                        className="w-4 h-4 accent-[#9b2f00] rounded cursor-pointer"
-                        type="checkbox"
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-[#141d1e]">
-                          Langbiang &amp; Da Lat Plateaus
-                        </span>
-                        <span className="font-mono text-[11px] text-[#59413a]">
-                          Pine forests • 2,167m
-                        </span>
-                      </div>
-                    </label>
-                    <label className="flex items-center gap-3 p-3.5 rounded-xl bg-[#ecf5f6] hover:bg-[#e6f0f1] cursor-pointer transition-colors shadow-xs border border-[#dbe4e5]">
-                      <input
-                        checked={regions.hagiang}
-                        onChange={() => handleRegionToggle('hagiang')}
-                        className="w-4 h-4 accent-[#9b2f00] rounded cursor-pointer"
-                        type="checkbox"
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-[#141d1e]">
-                          Ha Giang Karst Geopark
-                        </span>
-                        <span className="font-mono text-[11px] text-[#59413a]">
-                          Canyon trails &amp; passes
-                        </span>
-                      </div>
-                    </label>
-                    <label className="flex items-center gap-3 p-3.5 rounded-xl bg-[#ecf5f6] hover:bg-[#e6f0f1] cursor-pointer transition-colors shadow-xs border border-[#dbe4e5]">
-                      <input
-                        checked={regions.phongnha}
-                        onChange={() => handleRegionToggle('phongnha')}
-                        className="w-4 h-4 accent-[#9b2f00] rounded cursor-pointer"
-                        type="checkbox"
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-[#141d1e]">
-                          Phong Nha Cave Expeditions
-                        </span>
-                        <span className="font-mono text-[11px] text-[#59413a]">
-                          Jungle &amp; river trekking
-                        </span>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* SECTION 2: Safety Certificates & Guide Licenses */}
-              <div className="bg-white p-8 rounded-xl shadow-sm border border-[#dbe4e5] space-y-8">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#e6f0f1] flex items-center justify-center text-[#9b2f00] font-bold font-mono text-xs">
-                    02
-                  </div>
-                  <div>
-                    <h3 className="font-serif text-2xl text-[#141d1e] font-semibold">
-                      Safety Certificates &amp; Guide Licenses
-                    </h3>
-                    <p className="text-xs text-[#59413a]">
-                      We require active licenses before publishing any trek.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Notice Box */}
-                <div className="p-4 rounded-xl bg-[#b9eadb]/40 text-[#141d1e] border border-[#b9eadb] flex items-start gap-3 shadow-xs">
-                  <div className="w-6 h-6 rounded-full bg-[#39675b] text-white flex items-center justify-center shrink-0 mt-0.5 text-xs">
-                    ✓
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold uppercase tracking-wider block text-[#1f4e43]">
-                      Why we ask for this
-                    </span>
-                    <p className="text-xs text-[#39675b] leading-relaxed">
-                      Every partner must have valid mountain safety permits and first aid training to keep travelers safe on trails.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Upload Slot 1: Pre-uploaded state */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs text-[#141d1e] font-bold">
-                      1. Tour Operator Business License
-                    </label>
-                    <span className="font-mono text-xs text-[#39675b] font-semibold flex items-center gap-1">
-                      ✓ Approved Scan
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-[#ecf5f6] border border-[#dbe4e5]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-[#b9eadb] text-[#3d6b5f] flex items-center justify-center font-bold text-sm">
-                        PDF
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold text-[#141d1e]">license_vn_2024.pdf</p>
-                        <p className="font-mono text-[11px] text-[#59413a]">2.4 MB • Uploaded 5 mins ago</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => showToast('Viewing File', 'license_vn_2024.pdf verified by system')}
-                        className="px-3 py-1.5 text-xs text-[#141d1e] hover:bg-white rounded-lg bg-[#e6f0f1] transition-colors cursor-pointer"
-                      >
-                        Preview
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => showToast('Replaced License', 'Uploaded new verification draft')}
-                        className="px-3 py-1.5 text-xs text-[#9b2f00] hover:bg-white rounded-lg bg-[#e6f0f1] transition-colors cursor-pointer"
-                      >
-                        Replace
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Upload Slot 2: Drag and drop First Aid */}
-                <div className="space-y-2">
-                  <label className="text-xs text-[#141d1e] font-bold">
-                    2. Lead Guide Wilderness First Aid (WFA / WAFA) or Red Cross Card
-                  </label>
-                  <div
-                    onClick={() => showToast('Document Attached', 'WFR Certificate #9912 attached for verification.')}
-                    className="p-8 rounded-xl bg-[#ecf5f6] text-center hover:bg-[#e6f0f1] transition-colors cursor-pointer border-2 border-dashed border-[#dbe4e5] group"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-white group-hover:bg-[#9b2f00] group-hover:text-white text-[#9b2f00] mx-auto flex items-center justify-center transition-all mb-2 shadow-xs font-bold">
-                      ↑
-                    </div>
-                    <h4 className="text-xs font-semibold text-[#141d1e] mb-1">
-                      Click or drop file here
-                    </h4>
-                    <p className="text-[11px] text-[#59413a]">PDF, JPG, or PNG up to 15MB</p>
-                    <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded bg-white text-[#39675b] font-mono text-[11px] border border-[#dbe4e5]">
-                      <span>✓ Valid within last 2 years</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Upload Slot 3: National Park Permit */}
-                <div className="space-y-2">
-                  <label className="text-xs text-[#141d1e] font-bold">
-                    3. National Park Commercial Trekking Authorization Permit
-                  </label>
-                  <div
-                    onClick={() => showToast('Permit Attached', 'Hoang Lien National Park Permit HLNP-2024-C92 verified.')}
-                    className="p-4 rounded-xl bg-[#ecf5f6] border border-[#dbe4e5] hover:bg-[#e6f0f1] cursor-pointer transition-colors"
-                  >
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 text-left">
-                        <div className="w-10 h-10 rounded-lg bg-white text-[#39675b] flex items-center justify-center font-bold text-sm">
-                          🌲
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-[#141d1e]">
-                            Hoang Lien Park Commercial Concession Permit
-                          </p>
-                          <p className="font-mono text-[11px] text-[#59413a]">
-                            Agreement #HLNP-2024-C92 • Max 20MB
-                          </p>
-                        </div>
-                      </div>
-                      <span className="px-3 py-1.5 bg-white text-[#141d1e] text-xs font-semibold rounded-lg shadow-xs border border-[#dbe4e5]">
-                        Select File
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Number of Guides & Radio SOS Check */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                  {/* Certified Guide Counter */}
-                  <div className="space-y-2">
-                    <label className="text-xs text-[#141d1e] font-bold">
-                      Certified Mountain Guides on Staff
-                    </label>
-                    <div className="flex items-center gap-3 bg-[#ecf5f6] p-2 rounded-xl border border-[#dbe4e5]">
-                      <button
-                        type="button"
-                        onClick={() => adjustGuideCount(-1)}
-                        className="w-9 h-9 rounded-lg bg-white text-[#141d1e] hover:bg-[#e6f0f1] flex items-center justify-center font-bold text-base shadow-xs cursor-pointer"
-                      >
-                        -
-                      </button>
-                      <div className="text-center w-full font-mono text-xs font-bold text-[#141d1e]">
-                        {guideCount} certified guides
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => adjustGuideCount(1)}
-                        className="w-9 h-9 rounded-lg bg-white text-[#141d1e] hover:bg-[#e6f0f1] flex items-center justify-center font-bold text-base shadow-xs cursor-pointer"
-                      >
-                        +
-                      </button>
-                    </div>
-                    <span className="text-[11px] text-[#59413a]">
-                      Must hold national or international badges.
-                    </span>
-                  </div>
-
-                  {/* Satellite Device Assurance */}
-                  <div className="space-y-2 flex flex-col justify-end">
-                    <label className="flex items-start gap-3 p-3.5 rounded-xl bg-[#ecf5f6] cursor-pointer shadow-xs border border-[#dbe4e5] hover:bg-[#e6f0f1] transition-colors">
-                      <input
-                        checked={satelliteChecked}
-                        onChange={(e) => setSatelliteChecked(e.target.checked)}
-                        className="w-4 h-4 mt-0.5 accent-[#9b2f00] rounded cursor-pointer"
-                        type="checkbox"
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-[#141d1e]">
-                          Satellite SOS device ready
-                        </span>
-                        <span className="text-[11px] text-[#59413a]">
-                          Our team carries Garmin InReach or radio trackers on all treks.
-                        </span>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* SECTION 3: Partner Agreement & Terms */}
-              <div className="bg-white p-8 rounded-xl shadow-sm border border-[#dbe4e5] space-y-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#e6f0f1] flex items-center justify-center text-[#9b2f00] font-bold font-mono text-xs">
-                    03
-                  </div>
-                  <div>
-                    <h3 className="font-serif text-2xl text-[#141d1e] font-semibold">
-                      Partner Agreement
-                    </h3>
-                    <p className="text-xs text-[#59413a]">
-                      Simple rules to protect guests and local mountain guides.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-2">
-                  <label className="flex items-start gap-3 p-4 rounded-xl bg-[#ecf5f6] border border-[#dbe4e5] cursor-pointer">
-                    <input
-                      checked={termsEscrow}
-                      onChange={(e) => setTermsEscrow(e.target.checked)}
-                      required
-                      className="w-4 h-4 mt-0.5 accent-[#9b2f00] rounded cursor-pointer"
-                      type="checkbox"
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-[#141d1e]">
-                        72-Hour Safety Escrow Payout Rule
-                      </span>
-                      <span className="text-[11px] text-[#59413a]">
-                        I understand customer tour payments are released directly to my bank 72 hours after the trek completes safely without incident.
-                      </span>
-                    </div>
-                  </label>
-                  <label className="flex items-start gap-3 p-4 rounded-xl bg-[#ecf5f6] border border-[#dbe4e5] cursor-pointer">
-                    <input
-                      checked={termsTruth}
-                      onChange={(e) => setTermsTruth(e.target.checked)}
-                      required
-                      className="w-4 h-4 mt-0.5 accent-[#9b2f00] rounded cursor-pointer"
-                      type="checkbox"
-                    />
-                    <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-[#141d1e]">
-                        Truth in Mountain Licensing
-                      </span>
-                      <span className="text-[11px] text-[#59413a]">
-                        I confirm all submitted certificates and licenses are authentic, legal, and actively monitored by our lead operations guide.
-                      </span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Form Actions */}
-              <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('partner_company_info')}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-[#ecf5f6] text-[#141d1e] text-xs font-bold hover:bg-[#e0eaeb] transition-colors border border-[#dbe4e5] cursor-pointer"
-                  >
-                    <span>← Back to Step 1</span>
-                  </button>
-                  <button
-                    type="submit"
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-3.5 bg-[#9b2f00] hover:bg-[#c2410c] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
-                  >
-                    <span>Save &amp; Continue to Bank Payouts (Step 3)</span>
-                    <span>→</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => showToast('Draft Saved', 'Your progress is stored in local state.')}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white text-[#141d1e] text-xs font-semibold rounded-xl shadow-xs border border-[#dbe4e5] hover:bg-[#ecf5f6] transition-colors cursor-pointer"
-                  >
-                    <span>Save Draft</span>
-                  </button>
-                </div>
-                <div className="flex items-center gap-2 text-[#59413a] text-xs pt-1">
-                  <span>⏱</span>
-                  <span>
-                    Our safety audit team reviews files in <strong>2 business days</strong>. Questions? Write to <span className="text-[#9b2f00] underline">partners@summittrails.com</span>
-                  </span>
-                </div>
-              </div>
-            </form>
+      {(isCreating || selectedId !== null) && <section ref={editorRef} className={`${cardClass} scroll-mt-6`}>
+        <div className="mb-5 flex flex-col gap-2 border-b border-[#E8ECE9] pb-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wider text-[#C2410C]">{selectedTour ? t('partnerTour.editing') : t('partnerTour.newTour')}</p><h2 className="mt-1 text-xl font-bold">{selectedTour?.title || t('partnerTour.tourDetails')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.draftHelp')}</p></div>{selectedTour && <span className="self-start rounded-full bg-[#F4F6F4] px-3 py-1 text-xs font-semibold text-[#52605D]">{statusText(selectedTour.status)}</span>}</div>
+        {loadingTour ? <p role="status" className="rounded-lg bg-[#F7F8F6] p-4 text-sm text-[#64716D]">{t('partnerTour.loadingTour')}</p> : <form className="grid gap-x-5 gap-y-4 md:grid-cols-2" onSubmit={e => { e.preventDefault(); void saveTour(); }}>
+          <label className={fieldClass}>{t('partnerTour.name')}<input required maxLength={160} value={draft.title} onChange={e => updateDraft('title', e.target.value)} className={inputClass} placeholder={t('partnerTour.namePlaceholder')} /></label>
+          <label className={fieldClass}>{t('partnerTour.difficulty')}<select value={draft.difficulty} onChange={e => updateDraft('difficulty', e.target.value)} className={inputClass}>{['easy', 'moderate', 'hard', 'expert'].map(value => <option key={value} value={value}>{t(`tour.${value}`)}</option>)}</select></label>
+          <label className={fieldClass}>{t('partnerTour.duration')}<input type="number" min="1" max="60" value={draft.durationDays} onChange={e => updateDraft('durationDays', Number(e.target.value))} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.experience')}<input value={draft.requiredExperience || ''} onChange={e => updateDraft('requiredExperience', e.target.value)} className={inputClass} /></label>
+          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.descriptionField')}<textarea required value={draft.description} onChange={e => updateDraft('description', e.target.value)} className={inputClass} rows={4} /></label>
+          <label className={fieldClass}>{t('partnerTour.included')}<textarea value={draft.includedServices || ''} onChange={e => updateDraft('includedServices', e.target.value)} className={inputClass} rows={3} /></label>
+          <label className={fieldClass}>{t('partnerTour.excluded')}<textarea value={draft.excludedServices || ''} onChange={e => updateDraft('excludedServices', e.target.value)} className={inputClass} rows={3} /></label>
+          <label className={fieldClass}>{t('partnerTour.packing')}<textarea value={draft.packingList.map(item => `${item.required ? '* ' : ''}${item.name}${item.note ? ` | ${item.note}` : ''}`).join('\n')} onChange={e => updateDraft('packingList', e.target.value.split('\n').filter(Boolean).map((line, index) => { const required = line.startsWith('*'); const [name, note] = line.replace(/^\*\s*/, '').split('|'); return { name: name.trim(), note: note?.trim() || null, required, displayOrder: index }; }))} className={inputClass} rows={4} /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.packingHint')}</span></label>
+          <label className={fieldClass}>{t('partnerTour.policy')}<select required value={draft.cancellationPolicyVersionId || ''} onChange={e => updateDraft('cancellationPolicyVersionId', Number(e.target.value))} className={inputClass}><option value="">{t('partnerTour.selectPolicy')}</option>{policies.map(policy => <option key={policy.id} value={policy.id}>{policy.policyTitle} · v{policy.versionNumber} · {new Date(policy.effectiveFrom).toLocaleDateString()}</option>)}</select>{!policies.length && <span className="mt-1 block text-xs font-normal text-amber-800">{t('partnerTour.noPolicies')}</span>}{policies.find(policy => policy.id === draft.cancellationPolicyVersionId)?.content && <span className="mt-1 block text-xs font-normal text-[#64716D]">{policies.find(policy => policy.id === draft.cancellationPolicyVersionId)?.content}</span>}</label>
+          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.route')}<input value={draft.routeFileUrl || ''} onChange={e => updateDraft('routeFileUrl', e.target.value || null)} className={inputClass} placeholder="https://…" /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.routeHint')}</span></label>
+          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.media')}<textarea value={draft.media.map(item => item.url).join('\n')} onChange={e => updateDraft('media', e.target.value.split('\n').map(value => value.trim()).filter(Boolean).map((url, index) => ({ mediaType: 'image', url, displayOrder: index, cover: index === 0 })))} className={inputClass} rows={3} /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.mediaHint')}</span></label>
+          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.locations')}<input value={draft.locationIds.join(',')} onChange={e => updateDraft('locationIds', e.target.value.split(',').map(value => Number(value.trim())).filter(Number.isFinite))} className={inputClass} placeholder="1, 2, 3" /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.locationsHint')}</span></label>
+          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.itinerary')}<textarea value={draft.itinerary.map(item => `${item.title} | ${item.description || ''}`).join('\n')} onChange={e => updateDraft('itinerary', e.target.value.split('\n').filter(Boolean).map((line, index) => { const [title, description] = line.split('|'); return { dayNumber: index + 1, displayOrder: index, title: title.trim(), description: description?.trim() || null, startTime: null, locationId: null }; }))} className={inputClass} rows={4} /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.itineraryHint')}</span></label>
+          <div className="md:col-span-2 flex flex-col gap-2 border-t border-[#E8ECE9] pt-4 sm:flex-row sm:flex-wrap">
+            <button disabled={busy || !policies.length || !draft.cancellationPolicyVersionId} className="rounded-lg bg-[#1F4E43] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#173C34] disabled:cursor-not-allowed disabled:opacity-50">{busy ? t('partnerTour.saving') : selectedId ? t('partnerTour.saveChanges') : t('partnerTour.createDraft')}</button>
+            {selectedId && <button type="button" disabled={busy} onClick={() => void mutate(() => toursApi.submitPartnerTour(selectedId), 'partnerTour.submitted')} className="rounded-lg border border-[#CAD4CF] bg-white px-4 py-2.5 text-sm font-semibold text-[#34413D] hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.submitReview')}</button>}
+            <button type="button" disabled={busy} onClick={closeEditor} className="rounded-lg border border-[#CAD4CF] bg-white px-4 py-2.5 text-sm font-semibold text-[#34413D] hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.cancelEdit')}</button>
           </div>
+        </form>}
+      </section>}
 
-          {/* Right Column / Sidebar Info & Support (~35%) */}
-          <aside className="lg:col-span-4 space-y-6">
-            {/* Why Partner With Us Card */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-[#dbe4e5] space-y-5">
-              <div className="flex items-center gap-2 text-[#9b2f00]">
-                <span className="text-lg">★</span>
-                <h3 className="text-base text-[#141d1e] font-bold">Why Partner With Us?</h3>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#ecf5f6] text-[#39675b] flex items-center justify-center shrink-0 text-sm font-bold">
-                    0₫
-                  </div>
-                  <div>
-                    <h4 className="text-xs text-[#141d1e] font-bold">0 VND Setup Fee</h4>
-                    <p className="text-[11px] text-[#59413a]">
-                      It is completely free to create your profile and list your trekking expeditions.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#ecf5f6] text-[#39675b] flex items-center justify-center shrink-0 text-sm font-bold">
-                    📅
-                  </div>
-                  <div>
-                    <h4 className="text-xs text-[#141d1e] font-bold">Weekly Payouts</h4>
-                    <p className="text-[11px] text-[#59413a]">
-                      Automatic bank transfers into your business account every single Monday.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#ecf5f6] text-[#39675b] flex items-center justify-center shrink-0 text-sm font-bold">
-                    👥
-                  </div>
-                  <div>
-                    <h4 className="text-xs text-[#141d1e] font-bold">Over 25,000 Travelers</h4>
-                    <p className="text-[11px] text-[#59413a]">
-                      Connect with enthusiastic alpine hikers, peak baggers, and overseas travelers.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+      {selectedId && <div className="grid gap-6 xl:grid-cols-2">
+        <section className={cardClass}><div className="mb-4"><h2 className="text-lg font-bold">{t('partnerTour.equipmentTitle')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.equipmentHelp')}</p></div><div className="grid gap-4 sm:grid-cols-2">
+          <label className={fieldClass}>{t('partnerTour.packageTitle')}<input value={equipment.title} onChange={e => setEquipment(value => ({ ...value, title: e.target.value }))} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.includedItems')}<textarea value={equipment.includedItems} onChange={e => setEquipment(value => ({ ...value, includedItems: e.target.value }))} className={inputClass} rows={3} /></label>
+          <label className={fieldClass}>{t('partnerTour.sharedItems')}<textarea value={equipment.sharedItems || ''} onChange={e => setEquipment(value => ({ ...value, sharedItems: e.target.value }))} className={inputClass} rows={3} /></label>
+          <label className={fieldClass}>{t('partnerTour.personalItems')}<textarea value={equipment.personalItemsToBring || ''} onChange={e => setEquipment(value => ({ ...value, personalItemsToBring: e.target.value }))} className={inputClass} rows={3} /></label>
+        </div><button disabled={busy || !equipment.title.trim() || !equipment.includedItems.trim()} onClick={() => void mutate(() => toursApi.replaceEquipment(selectedId, equipment), 'partnerTour.equipmentSaved')} className="mt-4 rounded-lg bg-[#1F4E43] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#173C34] disabled:opacity-50">{t('partnerTour.saveEquipment')}</button></section>
 
-            {/* Verification Checklist Card */}
-            <div className="bg-[#ecf5f6] p-6 rounded-xl shadow-sm border border-[#dbe4e5] space-y-3">
-              <div className="flex items-center gap-2 text-[#39675b]">
-                <span className="text-sm font-bold">✓</span>
-                <h4 className="text-xs text-[#141d1e] font-bold">Fast Approval Checklist</h4>
-              </div>
-              <p className="text-[11px] text-[#59413a]">
-                Partners with these documents are approved within 24 hours:
-              </p>
-              <ul className="space-y-2 text-xs text-[#141d1e]">
-                <li className="flex items-center gap-2">
-                  <span className="w-4 h-4 rounded-full bg-[#b9eadb] text-[#39675b] flex items-center justify-center text-[10px] font-bold">✓</span>
-                  <span>Clear color scan of business license</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-4 h-4 rounded-full bg-[#b9eadb] text-[#39675b] flex items-center justify-center text-[10px] font-bold">✓</span>
-                  <span>Valid first-aid certificate within 2 yrs</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-4 h-4 rounded-full bg-[#b9eadb] text-[#39675b] flex items-center justify-center text-[10px] font-bold">✓</span>
-                  <span>National Park trek permit agreement</span>
-                </li>
-              </ul>
-              <div className="pt-2">
-                <div className="bg-white p-2.5 rounded-lg flex items-center justify-between border border-[#dbe4e5]">
-                  <span className="font-mono text-[11px] text-[#59413a]">Queue Delay:</span>
-                  <span className="font-mono text-[11px] text-[#39675b] font-bold">~1.5 Days</span>
-                </div>
-              </div>
-            </div>
+        <section className={cardClass}><div className="mb-4"><h2 className="text-lg font-bold">{t('partnerTour.scheduleTitle')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.scheduleHelp')}</p></div><form className="grid gap-4 sm:grid-cols-2" onSubmit={e => { e.preventDefault(); const request = scheduleRequest(); if (!request) { setError(t('partnerTour.scheduleInvalid')); return; } void mutate(() => toursApi.createSchedule(selectedId, request), 'partnerTour.scheduleCreated'); }}>
+          <label className={fieldClass}>{t('partnerTour.starts')}<input required type="datetime-local" value={dateTimeValue(schedule.startsAt)} onChange={e => setSchedule(value => ({ ...value, startsAt: e.target.value ? new Date(e.target.value).toISOString() : '' }))} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.ends')}<input required type="datetime-local" value={dateTimeValue(schedule.endsAt)} onChange={e => setSchedule(value => ({ ...value, endsAt: e.target.value ? new Date(e.target.value).toISOString() : '' }))} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.capacity')}<input required min="1" type="number" value={schedule.capacity} onChange={e => setSchedule(value => ({ ...value, capacity: e.target.value }))} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.basePrice')}<input required min="0" type="number" value={schedule.basePriceVnd} onChange={e => setSchedule(value => ({ ...value, basePriceVnd: e.target.value }))} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.equipmentFee')}<input required min="0" type="number" value={schedule.equipmentFeeVnd} onChange={e => setSchedule(value => ({ ...value, equipmentFeeVnd: e.target.value }))} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.deposit')}<input required min="0.01" max="100" step="0.01" type="number" value={schedule.depositPercent} onChange={e => setSchedule(value => ({ ...value, depositPercent: e.target.value }))} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.balanceDue')}<input required type="datetime-local" value={dateTimeValue(schedule.balanceDueAt)} onChange={e => setSchedule(value => ({ ...value, balanceDueAt: e.target.value ? new Date(e.target.value).toISOString() : '' }))} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.leadGuideId')}<input type="number" min="1" value={leadGuideId} onChange={e => setLeadGuideId(e.target.value)} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.otherGuideIds')}<input value={supportGuideIds} onChange={e => setSupportGuideIds(e.target.value)} placeholder={t('partnerTour.commaSeparated')} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.meetingPoint')}<textarea value={schedule.meetingPoint} onChange={e => setSchedule(value => ({ ...value, meetingPoint: e.target.value }))} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.contactPhone')}<input value={schedule.contactPhone} onChange={e => setSchedule(value => ({ ...value, contactPhone: e.target.value }))} className={inputClass} /></label>
+          <button disabled={busy} className="self-end rounded-lg bg-[#1F4E43] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#173C34] disabled:opacity-50 sm:col-span-2 sm:justify-self-start">{t('partnerTour.createSchedule')}</button>
+        </form></section>
 
-            {/* Support Box with Mai Nguyen */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-[#dbe4e5] space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full bg-[#ecf5f6] overflow-hidden shrink-0 border border-[#dbe4e5]">
-                  <img
-                    className="w-full h-full object-cover"
-                    alt="Mai Nguyen portrait"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9yoAcsqVr9ETsY5Bt_zV1lm3igc7SP4vRROAHeUkPQYlpngsr5r7D85F8OoKBnA_YNq0KRUt4ubge1WO5AIsUwTBDLg7xWPMiHW-a3aWFL4FeCQGtxicQq44sJwKOyqAu0w1aNyzz1ZNPw2LRsiBzJejtdPYMWqhX1atRpSdtZ7bAR814lMDHmJrZrlQD1XuInf9UALyElgo5Ypzt2MvavYq5rtbXuYf_cueuqIilpNIWtgt2YJ0"
-                  />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-[#141d1e]">Mai Nguyen</h4>
-                  <p className="text-[11px] text-[#39675b] font-medium">Head of Vietnam Guide Relations</p>
-                  <span className="inline-flex items-center gap-1 font-mono text-[10px] text-[#39675b]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#39675b]"></span> Online Dispatch
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-[#59413a] leading-relaxed">
-                Have questions about guide requirements or bank documents? Contact our local guide desk directly.
-              </p>
-              <div className="space-y-2 pt-1">
-                <a
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#39675b] hover:bg-[#204f44] text-white text-xs font-semibold rounded-lg shadow-xs transition-colors"
-                  href="tel:+842439428888"
-                >
-                  <span>📞 Call / WhatsApp: +84 24 3942 8888</span>
-                </a>
-                <button
-                  type="button"
-                  onClick={() => onNavigate('partner_bank_payouts')}
-                  className="w-full text-center py-2 text-xs text-[#141d1e] font-semibold bg-[#ecf5f6] hover:bg-[#e6f0f1] rounded-lg transition-colors cursor-pointer"
-                >
-                  Skip to Step 3: Bank Payouts →
-                </button>
-              </div>
-            </div>
-          </aside>
-        </div>
-      </div>
-
-      {/* Toast Notification */}
-      {toast.show && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#141d1e] text-white px-5 py-3.5 rounded-xl shadow-xl border border-white/20 animate-fade-in flex items-center gap-3">
-          <span className="w-6 h-6 rounded-full bg-[#39675b] text-white flex items-center justify-center text-xs font-bold">
-            ✓
-          </span>
-          <div>
-            <p className="text-xs font-bold">{toast.title}</p>
-            <p className="text-[11px] text-stone-300">{toast.desc}</p>
+        <section className={`${cardClass} xl:col-span-2`}><div className="mb-4"><h2 className="text-lg font-bold">{t('partnerTour.operationsTitle')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.operationsHelp')}</p></div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><label className={fieldClass}>{t('partnerTour.scheduleId')}<input aria-label={t('partnerTour.scheduleId')} type="number" min="1" value={rosterScheduleId} onChange={e => setRosterScheduleId(e.target.value)} className={inputClass} /></label><label className={fieldClass}>{t('partnerTour.cancelReason')}<input value={cancelReason} onChange={e => setCancelReason(e.target.value)} className={inputClass} /></label>
+            <button disabled={!rosterScheduleId || busy} onClick={() => void (async () => { setError(null); try { setRoster(await toursApi.getRoster(selectedId, Number(rosterScheduleId))); } catch (e) { setError(errorText(e)); } })()} className="self-end rounded-lg border border-[#CAD4CF] px-3 py-2.5 text-sm font-semibold hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.loadRoster')}</button>
+            <button disabled={!rosterScheduleId || !scheduleRequest() || busy} onClick={() => { const request = scheduleRequest(); if (request) void mutate(() => toursApi.updateSchedule(selectedId, Number(rosterScheduleId), request), 'partnerTour.scheduleUpdated'); }} className="rounded-lg border border-[#CAD4CF] px-3 py-2.5 text-sm font-semibold hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.updateSchedule')}</button>
+            <button disabled={!rosterScheduleId || !cancelReason.trim() || busy} onClick={() => void mutate(() => toursApi.scheduleAction(selectedId, Number(rosterScheduleId), 'cancel', cancelReason), 'partnerTour.scheduleCanceled')} className="rounded-lg border border-rose-200 px-3 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50">{t('partnerTour.cancelSchedule')}</button>
+            <button disabled={!rosterScheduleId || busy} onClick={() => void mutate(() => toursApi.scheduleAction(selectedId, Number(rosterScheduleId), 'complete'), 'partnerTour.scheduleCompleted')} className="rounded-lg border border-[#CAD4CF] px-3 py-2.5 text-sm font-semibold hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.markComplete')}</button>
+            <button disabled={!rosterScheduleId || busy} onClick={() => void (async () => { setBusy(true); setError(null); try { const blob = await toursApi.downloadRoster(selectedId, Number(rosterScheduleId)); const objectUrl = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = objectUrl; link.download = `tour-${selectedId}-schedule-${Number(rosterScheduleId)}-roster.xlsx`; document.body.appendChild(link); link.click(); link.remove(); window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000); } catch (e) { setError(errorText(e)); } finally { setBusy(false); } })()} className="rounded-lg border border-[#CAD4CF] px-3 py-2.5 text-sm font-semibold hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.downloadRoster')}</button>
           </div>
-        </div>
-      )}
+          {roster && <div className="mt-5 overflow-hidden rounded-xl border border-[#E2E7E4]"><div className="border-b border-[#E2E7E4] bg-[#F7F8F6] px-4 py-3 text-sm font-semibold">{t('partnerTour.participants', { count: roster.participants.length })}</div>{roster.participants.length ? <ul className="divide-y divide-[#E8ECE9]">{roster.participants.map((participant, index) => <li key={`${participant.bookingCode}-${index}`} className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-[1fr_auto] sm:items-center"><span className="font-medium">{participant.fullName}</span><span className="text-xs text-[#64716D]">{participant.bookingCode}{participant.phone ? ` · ${participant.phone}` : ''}{participant.emergencyContact ? ` · ${t('partnerTour.emergencyContact')}: ${participant.emergencyContact}` : ''}</span></li>)}</ul> : <p className="px-4 py-4 text-sm text-[#64716D]">{t('partnerTour.noParticipants')}</p>}</div>}
+        </section>
+      </div>}
     </div>
-  );
+  </main>;
 };
 
 export default PartnerTourManagementPage;

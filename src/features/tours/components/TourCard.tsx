@@ -7,11 +7,10 @@ import { formatUSD } from '../../../lib/utils';
 
 interface TourCardProps {
   tour: Tour;
-  onBook?: (tour: Tour) => void;
   onViewDetails?: (tour: Tour) => void;
 }
 
-export const TourCard: React.FC<TourCardProps> = ({ tour, onBook, onViewDetails }) => {
+export const TourCard: React.FC<TourCardProps> = ({ tour, onViewDetails }) => {
   return (
     <div className="bg-white rounded-xl border border-[#E6E1D8] overflow-hidden flex flex-col hover:shadow-lg transition-all duration-200 group">
       <div className="relative h-48 overflow-hidden bg-stone-200">
@@ -71,11 +70,6 @@ export const TourCard: React.FC<TourCardProps> = ({ tour, onBook, onViewDetails 
             {onViewDetails && (
               <Button size="sm" variant="outline" onClick={() => onViewDetails(tour)}>
                 Details
-              </Button>
-            )}
-            {onBook && (
-              <Button size="sm" variant="primary" onClick={() => onBook(tour)}>
-                Book Now
               </Button>
             )}
           </div>
