@@ -17,7 +17,8 @@ export type ScreenId =
   | 'ops_moderation'
   | 'staff_escalations'
   | 'platform_analytics'
-  | 'booking_payment_result';
+  | 'booking_payment_result'
+  | 'admin_finance';
 
 export interface TourCompany {
   id: string;

@@ -26,9 +26,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const adminItems = [
-    { label: 'Moderation Console', screen: 'ops_moderation' as ScreenId, icon: ShieldCheck },
-    { label: 'Staff Escalations', screen: 'staff_escalations' as ScreenId, icon: Users },
-    { label: 'Platform Analytics', screen: 'platform_analytics' as ScreenId, icon: LayoutDashboard },
+    { label: t('adminNav.tourSubmissions'), screen: 'ops_moderation' as ScreenId, icon: ShieldCheck },
+    { label: t('adminNav.finance'), screen: 'admin_finance' as ScreenId, icon: CreditCard },
+    { label: t('adminNav.liveChats'), screen: 'staff_escalations' as ScreenId, icon: Users },
+    { label: t('adminNav.analytics'), screen: 'platform_analytics' as ScreenId, icon: LayoutDashboard },
   ];
 
   const items = role === 'admin' ? adminItems : partnerItems;

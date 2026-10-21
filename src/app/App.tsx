@@ -47,7 +47,7 @@ export function App() {
     try {
       const saved = sessionStorage.getItem('wetrek_screen_history');
       const parsed: unknown = saved ? JSON.parse(saved) : [];
-      const validScreens: ScreenId[] = ['marketplace', 'login', 'registration', 'account_profile', 'eticket', 'paybalance', 'review', 'partner_company_info', 'partner_activate', 'partner_activation_help', 'partner_application_submitted', 'partner_application_status', 'partner_certificates', 'partner_bank_payouts', 'partner_final_review', 'ops_moderation', 'staff_escalations', 'platform_analytics', 'booking_payment_result'];
+      const validScreens: ScreenId[] = ['marketplace', 'login', 'registration', 'account_profile', 'eticket', 'paybalance', 'review', 'partner_company_info', 'partner_activate', 'partner_activation_help', 'partner_application_submitted', 'partner_application_status', 'partner_certificates', 'partner_bank_payouts', 'partner_final_review', 'ops_moderation', 'staff_escalations', 'platform_analytics', 'booking_payment_result', 'admin_finance'];
       return Array.isArray(parsed) ? parsed.filter((screen): screen is ScreenId => typeof screen === 'string' && validScreens.includes(screen as ScreenId)) : [];
     } catch {
       return [];
@@ -189,6 +189,7 @@ export function App() {
     'ops_moderation',
     'staff_escalations',
     'platform_analytics',
+    'admin_finance',
   ];
 
   const hideFooterScreens: ScreenId[] = [
@@ -198,6 +199,7 @@ export function App() {
     'ops_moderation',
     'staff_escalations',
     'platform_analytics',
+    'admin_finance',
   ];
 
   return (

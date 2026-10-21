@@ -29,6 +29,9 @@ import PartnerApplicationQueue from '../features/partners/components/PartnerAppl
 
 // Admin pages
 import TourModerationQueue from '../features/tours/components/TourModerationQueue';
+import AdminFinancePage from '../pages/admin/finance/AdminFinancePage';
+import { DashboardLayout } from '../components/layout/DashboardLayout';
+import { useI18n } from '../i18n/I18nProvider';
 
 // Layout & Switcher
 import PartnerFinalReviewPage from '../pages/partner/final-review/PartnerFinalReviewPage';
@@ -60,9 +63,12 @@ export const AppRouter: React.FC<AppRouterProps> = ({
   onRegistrationSuccess,
   onOpenAIRanger,
 }) => {
+  const { t } = useI18n();
   switch (currentScreen) {
     case 'booking_payment_result':
       return <CustomerPaymentResultPage onNavigate={onNavigate} />;
+    case 'admin_finance':
+      return <AdminFinancePage onNavigate={onNavigate} />;
     case 'account_profile':
       return <AccountProfilePage />;
     case 'marketplace':
@@ -128,7 +134,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
       return <PartnerFinalReviewPage onNavigate={onNavigate} />;
 
     case 'ops_moderation':
-      return <div className="space-y-8"><PartnerApplicationQueue /><TourModerationQueue /></div>;
+      return <DashboardLayout role="admin" currentScreen="ops_moderation" onNavigate={onNavigate} title={t('adminFinance.adminTitle')} subtitle={t('adminFinance.adminSubtitle')}><div className="space-y-8"><PartnerApplicationQueue /><TourModerationQueue /></div></DashboardLayout>;
 
     case 'staff_escalations':
       return <HomePage onNavigate={onNavigate} />;

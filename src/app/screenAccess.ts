@@ -4,7 +4,7 @@ import { UserRole } from '../types/common.types';
 const publicScreens: ScreenId[] = ['marketplace', 'login', 'registration', 'partner_company_info', 'partner_activate', 'partner_activation_help', 'partner_application_submitted', 'booking_payment_result'];
 // These prototype screens have no backend API yet.
 const partnerScreens: ScreenId[] = ['partner_certificates'];
-const adminScreens: ScreenId[] = ['ops_moderation'];
+const adminScreens: ScreenId[] = ['ops_moderation', 'admin_finance'];
 
 export function canAccessScreen(role: UserRole | null, screen: ScreenId): boolean {
   if (screen === 'account_profile') return role !== null;
