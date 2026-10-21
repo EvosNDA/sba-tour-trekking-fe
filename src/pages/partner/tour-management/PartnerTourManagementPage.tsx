@@ -4,6 +4,7 @@ import { toursApi } from '../../../features/tours/api/tours.api';
 import {
   CancellationPolicyVersionDto,
   EquipmentPackageWriteRequest,
+  LocationDto,
   PartnerTourItemDto,
   PartnerTourDraftRequest,
   PartnerScheduleRequest,
@@ -24,12 +25,14 @@ export const PartnerTourManagementPage: React.FC = () => {
   const { t } = useI18n();
   const [tours, setTours] = useState<PartnerTourItemDto[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [editorSection, setEditorSection] = useState<'details' | 'content' | 'equipment' | 'departure'>('details');
   const [isCreating, setIsCreating] = useState(false);
   const [loadingTour, setLoadingTour] = useState(false);
   const [draft, setDraft] = useState<PartnerTourDraftRequest>(emptyDraft);
   const [schedule, setSchedule] = useState<ScheduleFormState>(emptySchedule);
   const [equipment, setEquipment] = useState<EquipmentPackageWriteRequest>(emptyEquipment);
   const [policies, setPolicies] = useState<CancellationPolicyVersionDto[]>([]);
+  const [destinations, setDestinations] = useState<LocationDto[]>([]);
   const [leadGuideId, setLeadGuideId] = useState('');
   const [supportGuideIds, setSupportGuideIds] = useState<string[]>([]);
   const [guides, setGuides] = useState<PartnerGuideDto[]>([]);
@@ -47,11 +50,13 @@ export const PartnerTourManagementPage: React.FC = () => {
   };
   useEffect(() => { void loadTours(); }, []);
   useEffect(() => { void toursApi.getCancellationPolicyVersions().then(result => setPolicies(result.items)).catch(e => setError(errorText(e))); }, []);
+  useEffect(() => { void toursApi.getDestinations().then(setDestinations).catch(() => setDestinations([])); }, []);
   useEffect(() => {
     if (isCreating || selectedId !== null) editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [isCreating, selectedId]);
 
   const chooseTour = async (id: number) => {
+    setEditorSection('details');
     setSelectedId(id); setIsCreating(false); setDraft(emptyDraft); setEquipment(emptyEquipment); setGuides([]); setLeadGuideId(''); setSupportGuideIds([]); setNotice(null); setError(null); setLoadingTour(true);
     try {
       const tour = await toursApi.getPartnerTour(id);
@@ -65,8 +70,8 @@ export const PartnerTourManagementPage: React.FC = () => {
     } catch (e) { setError(errorText(e)); }
     finally { setLoadingTour(false); }
   };
-  const startNewTour = () => { setSelectedId(null); setIsCreating(true); setDraft(emptyDraft); setEquipment(emptyEquipment); setSchedule(emptySchedule); setGuides([]); setLeadGuideId(''); setSupportGuideIds([]); setError(null); setNotice(null); };
-  const closeEditor = () => { setSelectedId(null); setIsCreating(false); setDraft(emptyDraft); setEquipment(emptyEquipment); setSchedule(emptySchedule); setGuides([]); setLeadGuideId(''); setSupportGuideIds([]); setError(null); };
+  const startNewTour = () => { setSelectedId(null); setEditorSection('details'); setIsCreating(true); setDraft(emptyDraft); setEquipment(emptyEquipment); setSchedule(emptySchedule); setGuides([]); setLeadGuideId(''); setSupportGuideIds([]); setError(null); setNotice(null); };
+  const closeEditor = () => { setSelectedId(null); setEditorSection('details'); setIsCreating(false); setDraft(emptyDraft); setEquipment(emptyEquipment); setSchedule(emptySchedule); setGuides([]); setLeadGuideId(''); setSupportGuideIds([]); setError(null); };
   const mutate = async (action: () => Promise<unknown>, successKey: string, reload = true): Promise<boolean> => {
     setBusy(true); setError(null); setNotice(null);
     try { await action(); setNotice(t(successKey)); if (reload) await loadTours(); return true; }
@@ -85,6 +90,8 @@ export const PartnerTourManagementPage: React.FC = () => {
   const selectedTour = tours.find(tour => tour.id === selectedId);
   const statusText = (status: string) => t(`partnerTour.status.${status}`);
   const saveTour = async () => {
+    if (!draft.title.trim()) { setEditorSection('details'); setError(t('partnerTour.nameRequired')); return; }
+    if (!draft.description.trim()) { setEditorSection('content'); setError(t('partnerTour.descriptionRequired')); return; }
     if (!draft.cancellationPolicyVersionId) { setError(t('partnerTour.selectPolicyError')); return; }
     const creating = selectedId === null;
     const saved = await mutate(() => creating ? toursApi.createPartnerTour(draft) : toursApi.updatePartnerTour(selectedId as number, draft), creating ? 'partnerTour.created' : 'partnerTour.saved');
@@ -124,37 +131,53 @@ export const PartnerTourManagementPage: React.FC = () => {
 
       {(isCreating || selectedId !== null) && <section ref={editorRef} className={`${cardClass} scroll-mt-6`}>
         <div className="mb-5 flex flex-col gap-2 border-b border-[#E8ECE9] pb-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wider text-[#C2410C]">{selectedTour ? t('partnerTour.editing') : t('partnerTour.newTour')}</p><h2 className="mt-1 text-xl font-bold">{selectedTour?.title || t('partnerTour.tourDetails')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.draftHelp')}</p></div>{selectedTour && <span className="self-start rounded-full bg-[#F4F6F4] px-3 py-1 text-xs font-semibold text-[#52605D]">{statusText(selectedTour.status)}</span>}</div>
-        {loadingTour ? <p role="status" className="rounded-lg bg-[#F7F8F6] p-4 text-sm text-[#64716D]">{t('partnerTour.loadingTour')}</p> : <form className="grid gap-x-5 gap-y-4 md:grid-cols-2" onSubmit={e => { e.preventDefault(); void saveTour(); }}>
+        <nav aria-label={t('partnerTour.editorSections')} className="mb-5 grid grid-cols-2 gap-2 border-b border-[#E8ECE9] pb-5 sm:grid-cols-4">
+          {(['details', 'content', 'equipment', 'departure'] as const).map((section, index) => {
+            const disabled = !selectedId && (section === 'equipment' || section === 'departure');
+            return <button key={section} type="button" disabled={disabled} onClick={() => setEditorSection(section)} aria-current={editorSection === section ? 'step' : undefined}
+              className={`min-h-12 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C] disabled:cursor-not-allowed disabled:opacity-45 ${editorSection === section ? 'border-[#1F4E43] bg-[#F1F6F3] text-[#1F4E43]' : 'border-[#E2E7E4] bg-white text-[#52605D] hover:bg-[#F7F8F6]'}`}>
+              <span className="mr-2 text-xs opacity-70">0{index + 1}</span>{t(`partnerTour.section.${section}`)}
+            </button>;
+          })}
+        </nav>
+        {!selectedId && <p className="-mt-2 mb-5 text-xs text-[#64716D]">{t('partnerTour.saveDraftBeforeOperations')}</p>}
+        {loadingTour ? <p role="status" className="rounded-lg bg-[#F7F8F6] p-4 text-sm text-[#64716D]">{t('partnerTour.loadingTour')}</p> : (editorSection === 'details' || editorSection === 'content') ? <form className="grid gap-x-5 gap-y-4 md:grid-cols-2" onSubmit={e => { e.preventDefault(); void saveTour(); }}>
+          {editorSection === 'details' && <>
           <label className={fieldClass}>{t('partnerTour.name')}<input required maxLength={160} value={draft.title} onChange={e => updateDraft('title', e.target.value)} className={inputClass} placeholder={t('partnerTour.namePlaceholder')} /></label>
           <label className={fieldClass}>{t('partnerTour.difficulty')}<select value={draft.difficulty} onChange={e => updateDraft('difficulty', e.target.value)} className={inputClass}>{['easy', 'moderate', 'hard', 'expert'].map(value => <option key={value} value={value}>{t(`tour.${value}`)}</option>)}</select></label>
           <label className={fieldClass}>{t('partnerTour.duration')}<input type="number" min="1" max="60" value={draft.durationDays} onChange={e => updateDraft('durationDays', Number(e.target.value))} className={inputClass} /></label>
           <label className={fieldClass}>{t('partnerTour.experience')}<input value={draft.requiredExperience || ''} onChange={e => updateDraft('requiredExperience', e.target.value)} className={inputClass} /></label>
+          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.policy')}<select required value={draft.cancellationPolicyVersionId || ''} onChange={e => updateDraft('cancellationPolicyVersionId', Number(e.target.value))} className={inputClass}><option value="">{t('partnerTour.selectPolicy')}</option>{policies.map(policy => <option key={policy.id} value={policy.id}>{policy.policyTitle} · v{policy.versionNumber} · {new Date(policy.effectiveFrom).toLocaleDateString()}</option>)}</select>{!policies.length && <span className="mt-1 block text-xs font-normal text-amber-800">{t('partnerTour.noPolicies')}</span>}{policies.find(policy => policy.id === draft.cancellationPolicyVersionId)?.content && <span className="mt-1 block text-xs font-normal text-[#64716D]">{policies.find(policy => policy.id === draft.cancellationPolicyVersionId)?.content}</span>}</label>
+          </>}
+          {editorSection === 'content' && <>
           <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.descriptionField')}<textarea required value={draft.description} onChange={e => updateDraft('description', e.target.value)} className={inputClass} rows={4} /></label>
           <label className={fieldClass}>{t('partnerTour.included')}<textarea value={draft.includedServices || ''} onChange={e => updateDraft('includedServices', e.target.value)} className={inputClass} rows={3} /></label>
           <label className={fieldClass}>{t('partnerTour.excluded')}<textarea value={draft.excludedServices || ''} onChange={e => updateDraft('excludedServices', e.target.value)} className={inputClass} rows={3} /></label>
-          <label className={fieldClass}>{t('partnerTour.packing')}<textarea value={draft.packingList.map(item => `${item.required ? '* ' : ''}${item.name}${item.note ? ` | ${item.note}` : ''}`).join('\n')} onChange={e => updateDraft('packingList', e.target.value.split('\n').filter(Boolean).map((line, index) => { const required = line.startsWith('*'); const [name, note] = line.replace(/^\*\s*/, '').split('|'); return { name: name.trim(), note: note?.trim() || null, required, displayOrder: index }; }))} className={inputClass} rows={4} /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.packingHint')}</span></label>
-          <label className={fieldClass}>{t('partnerTour.policy')}<select required value={draft.cancellationPolicyVersionId || ''} onChange={e => updateDraft('cancellationPolicyVersionId', Number(e.target.value))} className={inputClass}><option value="">{t('partnerTour.selectPolicy')}</option>{policies.map(policy => <option key={policy.id} value={policy.id}>{policy.policyTitle} · v{policy.versionNumber} · {new Date(policy.effectiveFrom).toLocaleDateString()}</option>)}</select>{!policies.length && <span className="mt-1 block text-xs font-normal text-amber-800">{t('partnerTour.noPolicies')}</span>}{policies.find(policy => policy.id === draft.cancellationPolicyVersionId)?.content && <span className="mt-1 block text-xs font-normal text-[#64716D]">{policies.find(policy => policy.id === draft.cancellationPolicyVersionId)?.content}</span>}</label>
+          <label className={fieldClass}>{t('partnerTour.packing')}<textarea value={draft.packingList.map(item => item.name).join('\n')} onChange={e => updateDraft('packingList', e.target.value.split('\n').map(line => line.trim()).filter(Boolean).map((name, index) => ({ name, note: null, required: false, displayOrder: index })))} className={inputClass} rows={4} /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.packingHint')}</span></label>
           <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.route')}<input value={draft.routeFileUrl || ''} onChange={e => updateDraft('routeFileUrl', e.target.value || null)} className={inputClass} placeholder="https://…" /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.routeHint')}</span></label>
           <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.media')}<textarea value={draft.media.map(item => item.url).join('\n')} onChange={e => updateDraft('media', e.target.value.split('\n').map(value => value.trim()).filter(Boolean).map((url, index) => ({ mediaType: 'image', url, displayOrder: index, cover: index === 0 })))} className={inputClass} rows={3} /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.mediaHint')}</span></label>
-          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.locations')}<input value={draft.locationIds.join(',')} onChange={e => updateDraft('locationIds', e.target.value.split(',').map(value => Number(value.trim())).filter(Number.isFinite))} className={inputClass} placeholder="1, 2, 3" /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.locationsHint')}</span></label>
-          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.itinerary')}<textarea value={draft.itinerary.map(item => `${item.title} | ${item.description || ''}`).join('\n')} onChange={e => updateDraft('itinerary', e.target.value.split('\n').filter(Boolean).map((line, index) => { const [title, description] = line.split('|'); return { dayNumber: index + 1, displayOrder: index, title: title.trim(), description: description?.trim() || null, startTime: null, locationId: null }; }))} className={inputClass} rows={4} /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.itineraryHint')}</span></label>
+          <fieldset className={`${fieldClass} md:col-span-2 rounded-lg border border-[#E2E7E4] p-3`}><legend className="px-1">{t('partnerTour.locations')}</legend>{destinations.length ? <div className="grid max-h-52 gap-2 overflow-y-auto sm:grid-cols-2">{destinations.map(destination => <label key={destination.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-normal hover:bg-[#F7F8F6]"><input type="checkbox" checked={draft.locationIds.includes(destination.id)} onChange={e => updateDraft('locationIds', e.target.checked ? [...draft.locationIds, destination.id] : draft.locationIds.filter(id => id !== destination.id))} className="h-4 w-4 accent-[#1F4E43]"/><span>{destination.name}{destination.provinceName ? `, ${destination.provinceName}` : ''}</span></label>)}</div> : <p className="text-xs font-normal text-[#75817C]">{t('partnerTour.noDestinations')}</p>}<span className="mt-2 block text-xs font-normal text-[#75817C]">{t('partnerTour.locationsHint')}</span></fieldset>
+          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.itinerary')}<textarea value={draft.itinerary.map(item => item.title).join('\n')} onChange={e => updateDraft('itinerary', e.target.value.split('\n').map(line => line.trim()).filter(Boolean).map((title, index) => ({ dayNumber: index + 1, displayOrder: index, title, description: null, startTime: null, locationId: null })))} className={inputClass} rows={4} /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.itineraryHint')}</span></label>
+          </>}
           <div className="md:col-span-2 flex flex-col gap-2 border-t border-[#E8ECE9] pt-4 sm:flex-row sm:flex-wrap">
             <button disabled={busy || !policies.length || !draft.cancellationPolicyVersionId} className="rounded-lg bg-[#1F4E43] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#173C34] disabled:cursor-not-allowed disabled:opacity-50">{busy ? t('partnerTour.saving') : selectedId ? t('partnerTour.saveChanges') : t('partnerTour.createDraft')}</button>
             {selectedId && <button type="button" disabled={busy} onClick={() => void mutate(() => toursApi.submitPartnerTour(selectedId), 'partnerTour.submitted')} className="rounded-lg border border-[#CAD4CF] bg-white px-4 py-2.5 text-sm font-semibold text-[#34413D] hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.submitReview')}</button>}
             <button type="button" disabled={busy} onClick={closeEditor} className="rounded-lg border border-[#CAD4CF] bg-white px-4 py-2.5 text-sm font-semibold text-[#34413D] hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.cancelEdit')}</button>
           </div>
-        </form>}
+        </form> : null}
       </section>}
 
-      {selectedId && <div className="grid gap-6 xl:grid-cols-2">
-        <section className={cardClass}><div className="mb-4"><h2 className="text-lg font-bold">{t('partnerTour.equipmentTitle')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.equipmentHelp')}</p></div><div className="grid gap-4 sm:grid-cols-2">
+      {selectedId && editorSection === 'equipment' && <section className={cardClass}>
+        <div className="mb-4"><h2 className="text-lg font-bold">{t('partnerTour.equipmentTitle')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.equipmentHelp')}</p></div><div className="grid gap-4 sm:grid-cols-2">
           <label className={fieldClass}>{t('partnerTour.packageTitle')}<input value={equipment.title} onChange={e => setEquipment(value => ({ ...value, title: e.target.value }))} className={inputClass} /></label>
           <label className={fieldClass}>{t('partnerTour.includedItems')}<textarea value={equipment.includedItems} onChange={e => setEquipment(value => ({ ...value, includedItems: e.target.value }))} className={inputClass} rows={3} /></label>
           <label className={fieldClass}>{t('partnerTour.sharedItems')}<textarea value={equipment.sharedItems || ''} onChange={e => setEquipment(value => ({ ...value, sharedItems: e.target.value }))} className={inputClass} rows={3} /></label>
           <label className={fieldClass}>{t('partnerTour.personalItems')}<textarea value={equipment.personalItemsToBring || ''} onChange={e => setEquipment(value => ({ ...value, personalItemsToBring: e.target.value }))} className={inputClass} rows={3} /></label>
-        </div><button disabled={busy || !equipment.title.trim() || !equipment.includedItems.trim()} onClick={() => void mutate(() => toursApi.replaceEquipment(selectedId, equipment), 'partnerTour.equipmentSaved')} className="mt-4 rounded-lg bg-[#1F4E43] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#173C34] disabled:opacity-50">{t('partnerTour.saveEquipment')}</button></section>
+        </div><button disabled={busy || !equipment.title.trim() || !equipment.includedItems.trim()} onClick={() => void mutate(() => toursApi.replaceEquipment(selectedId, equipment), 'partnerTour.equipmentSaved')} className="mt-4 rounded-lg bg-[#1F4E43] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#173C34] disabled:opacity-50">{t('partnerTour.saveEquipment')}</button>
 
-        <section className={cardClass}><div className="mb-4"><h2 className="text-lg font-bold">{t('partnerTour.scheduleTitle')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.scheduleHelp')}</p></div><form className="grid gap-4 sm:grid-cols-2" onSubmit={e => { e.preventDefault(); const request = scheduleRequest(); if (!request) { setError(t('partnerTour.scheduleInvalid')); return; } void mutate(() => toursApi.createSchedule(selectedId, request), 'partnerTour.scheduleCreated'); }}>
+      </section>}
+
+      {selectedId && editorSection === 'departure' && <section className={cardClass}><div className="mb-4"><h2 className="text-lg font-bold">{t('partnerTour.scheduleTitle')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.scheduleHelp')}</p></div><form className="grid gap-4 sm:grid-cols-2" onSubmit={e => { e.preventDefault(); const request = scheduleRequest(); if (!request) { setError(t('partnerTour.scheduleInvalid')); return; } void mutate(() => toursApi.createSchedule(selectedId, request), 'partnerTour.scheduleCreated'); }}>
           <label className={fieldClass}>{t('partnerTour.starts')}<input required type="datetime-local" value={dateTimeValue(schedule.startsAt)} onChange={e => setSchedule(value => ({ ...value, startsAt: e.target.value ? new Date(e.target.value).toISOString() : '' }))} className={inputClass} /></label>
           <label className={fieldClass}>{t('partnerTour.ends')}<input required type="datetime-local" value={dateTimeValue(schedule.endsAt)} onChange={e => setSchedule(value => ({ ...value, endsAt: e.target.value ? new Date(e.target.value).toISOString() : '' }))} className={inputClass} /></label>
           <label className={fieldClass}>{t('partnerTour.capacity')}<input required min="1" type="number" value={schedule.capacity} onChange={e => setSchedule(value => ({ ...value, capacity: e.target.value }))} className={inputClass} /></label>
@@ -167,9 +190,7 @@ export const PartnerTourManagementPage: React.FC = () => {
           <label className={fieldClass}>{t('partnerTour.meetingPoint')}<textarea value={schedule.meetingPoint} onChange={e => setSchedule(value => ({ ...value, meetingPoint: e.target.value }))} className={inputClass} /></label>
           <label className={fieldClass}>{t('partnerTour.contactPhone')}<input value={schedule.contactPhone} onChange={e => setSchedule(value => ({ ...value, contactPhone: e.target.value }))} className={inputClass} /></label>
           <button disabled={busy} className="self-end rounded-lg bg-[#1F4E43] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#173C34] disabled:opacity-50 sm:col-span-2 sm:justify-self-start">{t('partnerTour.createSchedule')}</button>
-        </form></section>
-
-      </div>}
+        </form></section>}
     </div>
   </main>;
 };

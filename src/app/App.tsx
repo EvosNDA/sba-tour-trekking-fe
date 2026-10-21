@@ -75,6 +75,7 @@ export function App() {
     const previous = [...screenHistory];
     while (previous.length) {
       const candidate = previous.pop()!;
+      if (role && (candidate === 'login' || candidate === 'registration')) continue;
       if (canAccessScreen(role, candidate)) {
         setScreenHistory(previous);
         changeScreen(candidate);
@@ -201,6 +202,10 @@ export function App() {
     'platform_analytics',
     'admin_finance',
   ];
+  const showBackBar = !user || !['partner', 'admin'].includes(user.role)
+    ? screenHistory.some((screen) => canAccessScreen(user?.role ?? null, screen)
+      && (!user || (screen !== 'login' && screen !== 'registration')))
+    : false;
 
   return (
     <Providers>
@@ -215,10 +220,7 @@ export function App() {
           />
         )}
 
-        <BackBar
-          disabled={screenHistory.length === 0 && currentScreen === (user ? homeScreenForRole(user.role) : 'marketplace')}
-          onBack={goBack}
-        />
+        {showBackBar && <BackBar disabled={false} onBack={goBack} />}
 
         {/* 3. Screen Body */}
         <main className="flex-1" aria-busy={isRestoring}>
