@@ -5,6 +5,7 @@ import { ScreenId, Booking, ExpeditionReview } from '../types/expedition';
 import HomePage from '../pages/public/home/HomePage';
 import TourListPage from '../pages/public/tour-list/TourListPage';
 import TourDetailPage from '../pages/public/tour-detail/TourDetailPage';
+import CustomerPaymentResultPage from '../pages/public/tour-detail/CustomerPaymentResultPage';
 
 // Auth pages
 import LoginPage from '../pages/auth/login/LoginPage';
@@ -60,6 +61,8 @@ export const AppRouter: React.FC<AppRouterProps> = ({
   onOpenAIRanger,
 }) => {
   switch (currentScreen) {
+    case 'booking_payment_result':
+      return <CustomerPaymentResultPage onNavigate={onNavigate} />;
     case 'account_profile':
       return <AccountProfilePage />;
     case 'marketplace':

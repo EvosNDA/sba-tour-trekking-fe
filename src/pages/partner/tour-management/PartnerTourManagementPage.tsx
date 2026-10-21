@@ -7,7 +7,7 @@ import {
   PartnerTourItemDto,
   PartnerTourDraftRequest,
   PartnerScheduleRequest,
-  TourRosterDto,
+  PartnerGuideDto,
 } from '../../../features/tours/types/tour.types';
 
 const emptyDraft: PartnerTourDraftRequest = { title: '', description: '', difficulty: 'moderate', durationDays: 1, itinerary: [], media: [], packingList: [], cancellationPolicyVersionId: 0, locationIds: [] };
@@ -30,11 +30,9 @@ export const PartnerTourManagementPage: React.FC = () => {
   const [schedule, setSchedule] = useState<ScheduleFormState>(emptySchedule);
   const [equipment, setEquipment] = useState<EquipmentPackageWriteRequest>(emptyEquipment);
   const [policies, setPolicies] = useState<CancellationPolicyVersionDto[]>([]);
-  const [roster, setRoster] = useState<TourRosterDto | null>(null);
-  const [rosterScheduleId, setRosterScheduleId] = useState('');
-  const [cancelReason, setCancelReason] = useState('');
   const [leadGuideId, setLeadGuideId] = useState('');
-  const [supportGuideIds, setSupportGuideIds] = useState('');
+  const [supportGuideIds, setSupportGuideIds] = useState<string[]>([]);
+  const [guides, setGuides] = useState<PartnerGuideDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,17 +52,21 @@ export const PartnerTourManagementPage: React.FC = () => {
   }, [isCreating, selectedId]);
 
   const chooseTour = async (id: number) => {
-    setSelectedId(id); setIsCreating(false); setDraft(emptyDraft); setEquipment(emptyEquipment); setNotice(null); setError(null); setRoster(null); setLoadingTour(true);
+    setSelectedId(id); setIsCreating(false); setDraft(emptyDraft); setEquipment(emptyEquipment); setGuides([]); setLeadGuideId(''); setSupportGuideIds([]); setNotice(null); setError(null); setLoadingTour(true);
     try {
       const tour = await toursApi.getPartnerTour(id);
       setDraft({ title: tour.title, description: tour.description || '', difficulty: tour.difficulty || 'moderate', durationDays: tour.durationDays || 1, requiredExperience: tour.requiredExperience, itinerary: tour.itinerary, media: tour.media.map(({ id: _id, ...item }) => item), includedServices: tour.includedServices, excludedServices: tour.excludedServices, packingList: tour.packingList.map(({ id: _id, ...item }) => item), cancellationPolicyVersionId: tour.cancellationPolicyVersionId || 0, routeFileUrl: tour.routeFileUrl, locationIds: tour.locationIds });
       const currentEquipment = tour.equipmentOptions?.[0];
       setEquipment(currentEquipment ? { title: currentEquipment.title, includedItems: currentEquipment.includedItems, sharedItems: currentEquipment.sharedItems, personalItemsToBring: currentEquipment.personalItemsToBring } : emptyEquipment);
+      try {
+        const guideResult = await toursApi.getPartnerGuides();
+        setGuides(guideResult.items.filter(guide => guide.active && guide.companyId === tour.companyId));
+      } catch (e) { setError(errorText(e)); }
     } catch (e) { setError(errorText(e)); }
     finally { setLoadingTour(false); }
   };
-  const startNewTour = () => { setSelectedId(null); setIsCreating(true); setDraft(emptyDraft); setEquipment(emptyEquipment); setSchedule(emptySchedule); setRoster(null); setError(null); setNotice(null); };
-  const closeEditor = () => { setSelectedId(null); setIsCreating(false); setDraft(emptyDraft); setEquipment(emptyEquipment); setSchedule(emptySchedule); setRoster(null); setError(null); };
+  const startNewTour = () => { setSelectedId(null); setIsCreating(true); setDraft(emptyDraft); setEquipment(emptyEquipment); setSchedule(emptySchedule); setGuides([]); setLeadGuideId(''); setSupportGuideIds([]); setError(null); setNotice(null); };
+  const closeEditor = () => { setSelectedId(null); setIsCreating(false); setDraft(emptyDraft); setEquipment(emptyEquipment); setSchedule(emptySchedule); setGuides([]); setLeadGuideId(''); setSupportGuideIds([]); setError(null); };
   const mutate = async (action: () => Promise<unknown>, successKey: string, reload = true): Promise<boolean> => {
     setBusy(true); setError(null); setNotice(null);
     try { await action(); setNotice(t(successKey)); if (reload) await loadTours(); return true; }
@@ -78,7 +80,7 @@ export const PartnerTourManagementPage: React.FC = () => {
     const startsAt = new Date(schedule.startsAt).getTime(); const endsAt = new Date(schedule.endsAt).getTime();
     const capacity = Number(schedule.capacity); const basePriceVnd = Number(schedule.basePriceVnd); const equipmentFeeVnd = Number(schedule.equipmentFeeVnd); const depositPercent = Number(schedule.depositPercent);
     if (!Number.isFinite(startsAt) || !Number.isFinite(endsAt) || startsAt >= endsAt || capacity < 1 || basePriceVnd < 0 || equipmentFeeVnd < 0 || depositPercent < 0.01 || depositPercent > 100) return null;
-    return { startsAt: schedule.startsAt, endsAt: schedule.endsAt, capacity, basePriceVnd, equipmentFeeVnd, depositPercent, balanceDueAt: schedule.balanceDueAt, meetingPoint: schedule.meetingPoint, contactPhone: schedule.contactPhone, guideAssignments: [...(leadGuideId && Number(leadGuideId) > 0 ? [{ guideId: Number(leadGuideId), isLead: true }] : []), ...supportGuideIds.split(',').map(x => Number(x.trim())).filter(guideId => Number.isFinite(guideId) && guideId > 0).map(guideId => ({ guideId, isLead: false }))] };
+    return { startsAt: schedule.startsAt, endsAt: schedule.endsAt, capacity, basePriceVnd, equipmentFeeVnd, depositPercent, balanceDueAt: schedule.balanceDueAt, meetingPoint: schedule.meetingPoint, contactPhone: schedule.contactPhone, guideAssignments: [...(leadGuideId ? [{ guideId: Number(leadGuideId), isLead: true }] : []), ...supportGuideIds.filter(id => id !== leadGuideId).map(id => ({ guideId: Number(id), isLead: false }))] };
   };
   const selectedTour = tours.find(tour => tour.id === selectedId);
   const statusText = (status: string) => t(`partnerTour.status.${status}`);
@@ -160,23 +162,13 @@ export const PartnerTourManagementPage: React.FC = () => {
           <label className={fieldClass}>{t('partnerTour.equipmentFee')}<input required min="0" type="number" value={schedule.equipmentFeeVnd} onChange={e => setSchedule(value => ({ ...value, equipmentFeeVnd: e.target.value }))} className={inputClass} /></label>
           <label className={fieldClass}>{t('partnerTour.deposit')}<input required min="0.01" max="100" step="0.01" type="number" value={schedule.depositPercent} onChange={e => setSchedule(value => ({ ...value, depositPercent: e.target.value }))} className={inputClass} /></label>
           <label className={fieldClass}>{t('partnerTour.balanceDue')}<input required type="datetime-local" value={dateTimeValue(schedule.balanceDueAt)} onChange={e => setSchedule(value => ({ ...value, balanceDueAt: e.target.value ? new Date(e.target.value).toISOString() : '' }))} className={inputClass} /></label>
-          <label className={fieldClass}>{t('partnerTour.leadGuideId')}<input type="number" min="1" value={leadGuideId} onChange={e => setLeadGuideId(e.target.value)} className={inputClass} /></label>
-          <label className={fieldClass}>{t('partnerTour.otherGuideIds')}<input value={supportGuideIds} onChange={e => setSupportGuideIds(e.target.value)} placeholder={t('partnerTour.commaSeparated')} className={inputClass} /></label>
+          <label className={fieldClass}>{t('partnerTour.leadGuide')}<select value={leadGuideId} onChange={e => { setLeadGuideId(e.target.value); setSupportGuideIds(ids => ids.filter(id => id !== e.target.value)); }} className={inputClass}><option value="">{t('partnerTour.noGuide')}</option>{guides.map(guide => <option key={guide.id} value={guide.id}>{guide.displayName}</option>)}</select>{!guides.length && <span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.noEligibleGuides')}</span>}</label>
+          <fieldset className={`${fieldClass} rounded-lg border border-[#E2E7E4] p-3`}><legend className="px-1">{t('partnerTour.supportGuides')}</legend>{guides.length ? <div className="mt-1 flex flex-wrap gap-3">{guides.filter(guide => String(guide.id) !== leadGuideId).map(guide => <label key={guide.id} className="inline-flex items-center gap-2 text-sm font-normal"><input type="checkbox" checked={supportGuideIds.includes(String(guide.id))} onChange={e => setSupportGuideIds(ids => e.target.checked ? [...ids, String(guide.id)] : ids.filter(id => id !== String(guide.id)))} className="h-4 w-4 accent-[#1F4E43]"/>{guide.displayName}</label>)}</div> : <p className="mt-1 text-xs font-normal text-[#75817C]">{t('partnerTour.noEligibleGuides')}</p>}</fieldset>
           <label className={fieldClass}>{t('partnerTour.meetingPoint')}<textarea value={schedule.meetingPoint} onChange={e => setSchedule(value => ({ ...value, meetingPoint: e.target.value }))} className={inputClass} /></label>
           <label className={fieldClass}>{t('partnerTour.contactPhone')}<input value={schedule.contactPhone} onChange={e => setSchedule(value => ({ ...value, contactPhone: e.target.value }))} className={inputClass} /></label>
           <button disabled={busy} className="self-end rounded-lg bg-[#1F4E43] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#173C34] disabled:opacity-50 sm:col-span-2 sm:justify-self-start">{t('partnerTour.createSchedule')}</button>
         </form></section>
 
-        <section className={`${cardClass} xl:col-span-2`}><div className="mb-4"><h2 className="text-lg font-bold">{t('partnerTour.operationsTitle')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.operationsHelp')}</p></div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><label className={fieldClass}>{t('partnerTour.scheduleId')}<input aria-label={t('partnerTour.scheduleId')} type="number" min="1" value={rosterScheduleId} onChange={e => setRosterScheduleId(e.target.value)} className={inputClass} /></label><label className={fieldClass}>{t('partnerTour.cancelReason')}<input value={cancelReason} onChange={e => setCancelReason(e.target.value)} className={inputClass} /></label>
-            <button disabled={!rosterScheduleId || busy} onClick={() => void (async () => { setError(null); try { setRoster(await toursApi.getRoster(selectedId, Number(rosterScheduleId))); } catch (e) { setError(errorText(e)); } })()} className="self-end rounded-lg border border-[#CAD4CF] px-3 py-2.5 text-sm font-semibold hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.loadRoster')}</button>
-            <button disabled={!rosterScheduleId || !scheduleRequest() || busy} onClick={() => { const request = scheduleRequest(); if (request) void mutate(() => toursApi.updateSchedule(selectedId, Number(rosterScheduleId), request), 'partnerTour.scheduleUpdated'); }} className="rounded-lg border border-[#CAD4CF] px-3 py-2.5 text-sm font-semibold hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.updateSchedule')}</button>
-            <button disabled={!rosterScheduleId || !cancelReason.trim() || busy} onClick={() => void mutate(() => toursApi.scheduleAction(selectedId, Number(rosterScheduleId), 'cancel', cancelReason), 'partnerTour.scheduleCanceled')} className="rounded-lg border border-rose-200 px-3 py-2.5 text-sm font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50">{t('partnerTour.cancelSchedule')}</button>
-            <button disabled={!rosterScheduleId || busy} onClick={() => void mutate(() => toursApi.scheduleAction(selectedId, Number(rosterScheduleId), 'complete'), 'partnerTour.scheduleCompleted')} className="rounded-lg border border-[#CAD4CF] px-3 py-2.5 text-sm font-semibold hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.markComplete')}</button>
-            <button disabled={!rosterScheduleId || busy} onClick={() => void (async () => { setBusy(true); setError(null); try { const blob = await toursApi.downloadRoster(selectedId, Number(rosterScheduleId)); const objectUrl = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = objectUrl; link.download = `tour-${selectedId}-schedule-${Number(rosterScheduleId)}-roster.xlsx`; document.body.appendChild(link); link.click(); link.remove(); window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000); } catch (e) { setError(errorText(e)); } finally { setBusy(false); } })()} className="rounded-lg border border-[#CAD4CF] px-3 py-2.5 text-sm font-semibold hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.downloadRoster')}</button>
-          </div>
-          {roster && <div className="mt-5 overflow-hidden rounded-xl border border-[#E2E7E4]"><div className="border-b border-[#E2E7E4] bg-[#F7F8F6] px-4 py-3 text-sm font-semibold">{t('partnerTour.participants', { count: roster.participants.length })}</div>{roster.participants.length ? <ul className="divide-y divide-[#E8ECE9]">{roster.participants.map((participant, index) => <li key={`${participant.bookingCode}-${index}`} className="grid gap-1 px-4 py-3 text-sm sm:grid-cols-[1fr_auto] sm:items-center"><span className="font-medium">{participant.fullName}</span><span className="text-xs text-[#64716D]">{participant.bookingCode}{participant.phone ? ` · ${participant.phone}` : ''}{participant.emergencyContact ? ` · ${t('partnerTour.emergencyContact')}: ${participant.emergencyContact}` : ''}</span></li>)}</ul> : <p className="px-4 py-4 text-sm text-[#64716D]">{t('partnerTour.noParticipants')}</p>}</div>}
-        </section>
       </div>}
     </div>
   </main>;

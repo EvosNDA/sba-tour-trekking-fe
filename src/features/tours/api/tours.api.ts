@@ -2,7 +2,7 @@ import { apiClient } from '../../../lib/axios';
 import { ApiResponse } from '../../../types/api.types';
 import { APP_CONFIG } from '../../../constants/config';
 import { authStore } from '../../../stores/auth.store';
-import { CancellationPolicyVersionDto, EquipmentPackageWriteRequest, LocationDto, PartnerScheduleRequest, PartnerTourDto, PartnerTourDraftRequest, PartnerTourPageDto, TourDetailDto, TourFilter, TourPageDto, TourReviewQueueItem, TourReviewsDto, TourRosterDto } from '../types/tour.types';
+import { CancellationPolicyVersionDto, EquipmentPackageWriteRequest, LocationDto, PartnerGuideDto, PartnerScheduleRequest, PartnerTourDto, PartnerTourDraftRequest, PartnerTourPageDto, TourDetailDto, TourFilter, TourPageDto, TourReviewQueueItem, TourReviewsDto, TourRosterDto } from '../types/tour.types';
 
 // The backend mounts features below /api/v1. The default Vite proxy already
 // includes /api, while an explicitly configured backend URL may not.
@@ -45,6 +45,7 @@ export const toursApi = {
   getReviews: (id: number | string, page = 0, size = 10) => get<TourReviewsDto>(tourPath(`/tours/${encodeURIComponent(id)}/reviews`), { params: { page, size }, auth: false }),
   getDestinations: () => get<LocationDto[]>(tourPath('/locations'), { auth: false }),
   getPartnerTours: (params: { page?: number; size?: number; status?: string } = {}) => get<PartnerTourPageDto>(tourPath('/partner/tours'), { params }),
+  getPartnerGuides: () => get<{ items: PartnerGuideDto[] }>(tourPath('/partner/guides')),
   getCancellationPolicyVersions: () => get<{ items: CancellationPolicyVersionDto[] }>(tourPath('/partner/tours/policy-versions')),
   createPartnerTour: (body: PartnerTourDraftRequest) => post<PartnerTourDto>(tourPath('/partner/tours'), body),
   getPartnerTour: (id: number) => get<PartnerTourDto>(tourPath(`/partner/tours/${id}`)),
@@ -56,7 +57,7 @@ export const toursApi = {
   updateSchedule: (tourId: number, scheduleId: number, body: Partial<PartnerScheduleRequest>) => patch(tourPath(`/partner/tours/${tourId}/schedules/${scheduleId}`), body),
   scheduleAction: (tourId: number, scheduleId: number, action: 'cancel' | 'complete', reason?: string) => post(tourPath(`/partner/tours/${tourId}/schedules/${scheduleId}/${action}`), { reason }),
   replaceEquipment: (tourId: number, packageRequest: EquipmentPackageWriteRequest) => put(tourPath(`/partner/tours/${tourId}/equipment-packages`), packageRequest),
-  getRoster: (tourId: number, scheduleId: number) => get<TourRosterDto>(tourPath(`/partner/tours/${tourId}/schedules/${scheduleId}/roster`)),
+  getRoster: (tourId: number, scheduleId: number, params: { page?: number; size?: number } = {}) => get<TourRosterDto>(tourPath(`/partner/tours/${tourId}/schedules/${scheduleId}/roster`), { params }),
   downloadRoster: async (tourId: number, scheduleId: number) => {
     const url = new URL(`${APP_CONFIG.API_BASE_URL.replace(/\/$/, '')}${tourPath(`/partner/tours/${tourId}/schedules/${scheduleId}/roster.xlsx`)}`, window.location.origin);
     const token = authStore.getState().token;

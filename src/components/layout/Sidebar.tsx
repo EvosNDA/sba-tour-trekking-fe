@@ -2,6 +2,7 @@ import React from 'react';
 import { Mountain, LayoutDashboard, Compass, Users, CreditCard, ShieldCheck, Settings, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ScreenId } from '../../types/expedition';
+import { useI18n } from '../../i18n/I18nProvider';
 
 export interface SidebarProps {
   currentScreen?: ScreenId;
@@ -16,11 +17,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   role = 'partner',
   className,
 }) => {
+  const { t } = useI18n();
   const partnerItems = [
-    { label: 'Company Profile', screen: 'partner_company_info' as ScreenId, icon: Mountain },
-    { label: 'Safety & Guides', screen: 'partner_certificates' as ScreenId, icon: ShieldCheck },
-    { label: 'Bank & Payouts', screen: 'partner_bank_payouts' as ScreenId, icon: CreditCard },
-    { label: 'Final Verification', screen: 'partner_final_review' as ScreenId, icon: LayoutDashboard },
+    { label: t('partnerNav.company'), screen: 'partner_company_info' as ScreenId, icon: Mountain },
+    { label: t('partnerNav.tours'), screen: 'partner_certificates' as ScreenId, icon: ShieldCheck },
+    { label: t('partnerNav.operations'), screen: 'partner_bank_payouts' as ScreenId, icon: CreditCard },
+    { label: t('partnerNav.account'), screen: 'partner_final_review' as ScreenId, icon: LayoutDashboard },
   ];
 
   const adminItems = [
@@ -77,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-stone-400 hover:text-white hover:bg-stone-800 transition-colors cursor-pointer"
         >
           <Compass className="w-4 h-4" />
-          <span>Exit to Marketplace</span>
+          <span>{t('partnerNav.marketplace')}</span>
         </button>
       </div>
     </aside>

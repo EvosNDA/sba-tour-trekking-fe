@@ -64,7 +64,8 @@ export interface PartnerScheduleRequest {
   startsAt: string; endsAt: string; capacity: number; basePriceVnd: number; equipmentFeeVnd: number; depositPercent: number;
   balanceDueAt: string; meetingPoint?: string | null; contactPhone?: string | null; guideAssignments: { guideId: number; isLead: boolean }[];
 }
-export interface TourRosterDto { scheduleId: number; participants: { bookingCode: string; fullName: string; phone?: string | null; emergencyContact?: string | null }[]; }
+export interface PartnerGuideDto { id: number; companyId: number; displayName: string; active: boolean; }
+export interface TourRosterDto { scheduleId: number; participants: { bookingCode: string; participantId?: number; fullName: string; phone?: string | null; emergencyContact?: string | null; checkedInAt?: string | null; checkInNote?: string | null }[]; page?: number; size?: number; totalItems?: number; totalPages?: number; }
 export interface TourReviewQueueItem { id: number; companyId: number; title: string; submittedAt: string; mediaCount: number; itineraryDays: number; }
 export type Tour = TourSummaryDto;
 export type Destination = LocationDto;

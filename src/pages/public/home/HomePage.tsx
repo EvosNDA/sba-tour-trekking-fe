@@ -13,7 +13,7 @@ export interface HomePageProps {
   onSearch?: (term: string) => void;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ searchTerm = '', onSearch }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onNavigate, searchTerm = '', onSearch }) => {
   const { t, language } = useI18n();
   const [destinationId, setDestinationId] = useState('');
   const [difficulty, setDifficulty] = useState('');
@@ -21,7 +21,7 @@ export const HomePage: React.FC<HomePageProps> = ({ searchTerm = '', onSearch })
   const [selectedTourId, setSelectedTourId] = useState<string | null>(null);
   const locations = useLocations();
   const tours = useTours({ query: searchTerm.trim() || undefined, destinationId: destinationId ? Number(destinationId) : undefined, difficulty: difficulty || undefined, page: 0, size: 6 });
-  if (selectedTourId) return <TourDetailPage tourId={selectedTourId} onBack={() => setSelectedTourId(null)} />;
+  if (selectedTourId) return <TourDetailPage tourId={selectedTourId} onBack={() => setSelectedTourId(null)} onNavigate={onNavigate} />;
   if (showAll) return <TourListPage onViewTour={setSelectedTourId} />;
   return <main className="min-h-screen bg-[#FDFBF7] text-[#1C2526]">
     <section className="px-4 md:px-8 py-16 border-b bg-gradient-to-b from-[#F2FBFC] to-[#FDFBF7]">

@@ -1,696 +1,294 @@
-import React, { useState } from 'react';
-import { ScreenId } from '../../../types/expedition';
+import React, { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowLeft, CalendarDays, Check, ChevronLeft, ChevronRight, Clock3, MapPin, Search, Users, X } from 'lucide-react';
+import { useI18n } from '../../../i18n/I18nProvider';
+import { formatVND } from '../../../lib/utils';
+import { PartnerBookingDetail, PartnerBookingListItem, PartnerBookingStatus, PartnerDeparture, PartnerStatement, partnerBookingsApi } from '../../../features/tours/api/partnerBookings.api';
+import { toursApi } from '../../../features/tours/api/tours.api';
+import { PartnerScheduleDto, PartnerScheduleRequest, TourRosterDto } from '../../../features/tours/types/tour.types';
 
-export interface PartnerBookingManagementPageProps {
-  onNavigate?: (screen: ScreenId) => void;
+type ActionDialog = { kind: 'cancel' | 'undoCheckIn' | 'cancelDeparture' | 'completeDeparture'; participantId?: number; tourId?: number; scheduleId?: number } | null;
+const pageSize = 20;
+const card = 'rounded-2xl border border-[#E2E7E4] bg-white shadow-sm';
+const field = 'min-h-11 rounded-lg border border-[#CAD4CF] bg-white px-3 text-sm text-[#1C2526] outline-none transition focus-visible:border-[#1F4E43] focus-visible:ring-2 focus-visible:ring-[#1F4E43]/20';
+const statusKeys: PartnerBookingStatus[] = ['pending_payment', 'confirmed', 'expired', 'cancelled', 'completed', 'no_show'];
+const getError = (error: unknown) => {
+  if (error && typeof error === 'object' && 'message' in error) return String(error.message);
+  if (error && typeof error === 'object' && 'detail' in error) return String(error.detail);
+  return '';
+};
+const toLocalInput = (value: string) => { const date = new Date(value); date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); return date.toISOString().slice(0, 16); };
+
+function ScheduleEditDialog({ schedule, busy, error, onClose, onSave }: { schedule: PartnerScheduleDto; busy: boolean; error: string; onClose: () => void; onSave: (request: PartnerScheduleRequest) => void }) {
+  const { t } = useI18n();
+  const [startsAt, setStartsAt] = useState(toLocalInput(schedule.startsAt));
+  const [endsAt, setEndsAt] = useState(toLocalInput(schedule.endsAt));
+  const [capacity, setCapacity] = useState(String(schedule.capacity));
+  const [basePriceVnd, setBasePriceVnd] = useState(String(schedule.basePriceVnd));
+  const [equipmentFeeVnd, setEquipmentFeeVnd] = useState(String(schedule.equipmentFeeVnd));
+  const [depositPercent, setDepositPercent] = useState(String(schedule.depositPercent));
+  const [balanceDueAt, setBalanceDueAt] = useState(toLocalInput(schedule.balanceDueAt));
+  const [meetingPoint, setMeetingPoint] = useState(schedule.meetingPoint || '');
+  const [contactPhone, setContactPhone] = useState(schedule.contactPhone || '');
+  const input = 'mt-1 block w-full rounded-lg border border-[#CAD4CF] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#1F4E43] focus:ring-2 focus:ring-[#1F4E43]/15';
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    onSave({ startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString(), capacity: Number(capacity), basePriceVnd: Number(basePriceVnd), equipmentFeeVnd: Number(equipmentFeeVnd), depositPercent: Number(depositPercent), balanceDueAt: new Date(balanceDueAt).toISOString(), meetingPoint, contactPhone, guideAssignments: schedule.guides.map(guide => ({ guideId: guide.id, isLead: guide.isLead })) });
+  };
+  const keyDown: React.KeyboardEventHandler<HTMLFormElement> = event => {
+    if (event.key === 'Escape' && !busy) { event.preventDefault(); onClose(); return; }
+    if (event.key !== 'Tab') return;
+    const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled])'));
+    const first = focusable[0]; const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  };
+  return <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#1C2526]/50 p-4" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget && !busy) onClose(); }}><form role="dialog" aria-modal="true" aria-labelledby="departure-edit-title" onSubmit={submit} onKeyDown={keyDown} className="my-auto w-full max-w-2xl rounded-2xl bg-white p-5 shadow-xl md:p-6"><div className="flex items-start justify-between gap-4"><div><h2 id="departure-edit-title" className="text-xl font-bold">{t('partnerOps.editDeparture')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerOps.editDepartureHelp')}</p></div><button type="button" autoFocus aria-label={t('partnerOps.close')} onClick={onClose} className="rounded px-2 py-1 text-lg">×</button></div>{error && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p>}<div className="mt-4 grid gap-3 sm:grid-cols-2">{[[t('partnerTour.starts'), startsAt, setStartsAt, 'datetime-local'], [t('partnerTour.ends'), endsAt, setEndsAt, 'datetime-local'], [t('partnerTour.capacity'), capacity, setCapacity, 'number'], [t('partnerTour.basePrice'), basePriceVnd, setBasePriceVnd, 'number'], [t('partnerTour.equipmentFee'), equipmentFeeVnd, setEquipmentFeeVnd, 'number'], [t('partnerTour.deposit'), depositPercent, setDepositPercent, 'number'], [t('partnerTour.balanceDue'), balanceDueAt, setBalanceDueAt, 'datetime-local'], [t('partnerTour.meetingPoint'), meetingPoint, setMeetingPoint, 'text'], [t('partnerTour.contactPhone'), contactPhone, setContactPhone, 'tel']].map(([label, value, setter, type]) => <label key={String(label)} className="text-xs font-semibold text-[#52605D]">{String(label)}<input type={String(type)} required={type === 'datetime-local' || type === 'number'} min={type === 'number' ? '0' : undefined} step={label === t('partnerTour.deposit') ? '0.01' : '1'} value={String(value)} onChange={event => (setter as (value: string) => void)(event.target.value)} className={input}/></label>)}</div><div className="mt-5 flex justify-end gap-2"><button type="button" disabled={busy} onClick={onClose} className="min-h-10 rounded-lg border border-[#CAD4CF] px-4 text-sm font-semibold">{t('partnerOps.close')}</button><button type="submit" disabled={busy || !startsAt || !endsAt || !balanceDueAt || Number(capacity) < schedule.confirmedSeats + schedule.heldSeats} className="min-h-10 rounded-lg bg-[#1F4E43] px-4 text-sm font-semibold text-white disabled:opacity-50">{busy ? t('partnerOps.saving') : t('partnerOps.saveDeparture')}</button></div></form></div>;
 }
 
-export const PartnerBookingManagementPage: React.FC<PartnerBookingManagementPageProps> = ({
-  onNavigate = () => {},
-}) => {
-  const [bankName, setBankName] = useState('Vietcombank (Foreign Trade)');
-  const [branchName, setBranchName] = useState('Lao Cai Branch - Sapa District');
-  const [accountNumber, setAccountNumber] = useState('0071 0008 8129 4421');
-  const [taxCode, setTaxCode] = useState('0108924155');
-  const [invoicingEmail, setInvoicingEmail] = useState('billing@sapapeaks.com');
-  const [eInvoiceAuth, setEInvoiceAuth] = useState(true);
+export interface PartnerBookingManagementPageProps { onNavigate?: (screen: import('../../../types/expedition').ScreenId) => void; }
 
-  // Toast
-  const [toast, setToast] = useState<{ show: boolean; title: string; desc: string }>({
-    show: false,
-    title: '',
-    desc: '',
-  });
+export const PartnerBookingManagementPage: React.FC<PartnerBookingManagementPageProps> = () => {
+  const { t, language } = useI18n();
+  const locale = language === 'vi' ? 'vi-VN' : 'en-US';
+  const [items, setItems] = useState<PartnerBookingListItem[]>([]);
+  const [page, setPage] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [status, setStatus] = useState('');
+  const [query, setQuery] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selected, setSelected] = useState<PartnerBookingDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [dialog, setDialog] = useState<ActionDialog>(null);
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [tab, setTab] = useState<'bookings' | 'departures' | 'payments'>('bookings');
+  const [departures, setDepartures] = useState<PartnerDeparture[]>([]);
+  const [departureLoading, setDepartureLoading] = useState(false);
+  const [departureError, setDepartureError] = useState('');
+  const [departureDate, setDepartureDate] = useState('');
+  const [activeRoster, setActiveRoster] = useState<number | null>(null);
+  const [roster, setRoster] = useState<TourRosterDto | null>(null);
+  const [rosterPage, setRosterPage] = useState(0);
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [departurePage, setDeparturePage] = useState(0);
+  const [departureTotalPages, setDepartureTotalPages] = useState(0);
+  const [editSchedule, setEditSchedule] = useState<PartnerScheduleDto | null>(null);
+  const [editLoading, setEditLoading] = useState<number | null>(null);
+  const [statements, setStatements] = useState<PartnerStatement[]>([]);
+  const [statementLoading, setStatementLoading] = useState(false);
+  const [statementError, setStatementError] = useState('');
+  const [statementPage, setStatementPage] = useState(0);
+  const [statementTotalPages, setStatementTotalPages] = useState(0);
+  const dialogOpenerRef = useRef<HTMLElement | null>(null);
+  const scheduleEditOpenerRef = useRef<HTMLElement | null>(null);
 
-  const showToast = (title: string, desc: string) => {
-    setToast({ show: true, title, desc });
-    setTimeout(() => {
-      setToast((prev) => ({ ...prev, show: false }));
-    }, 4000);
+  const load = useCallback(async (nextPage: number) => {
+    setLoading(true); setError('');
+    try {
+      const result = await partnerBookingsApi.list({ status: (status || undefined) as PartnerBookingStatus | undefined, dateFrom: dateFrom ? new Date(`${dateFrom}T00:00:00`).toISOString() : undefined, dateTo: dateTo ? new Date(`${dateTo}T23:59:59.999`).toISOString() : undefined, query: query.trim() || undefined, page: nextPage, size: pageSize });
+      setItems(result.items); setPage(result.page); setTotalItems(result.totalItems); setTotalPages(result.totalPages);
+    } catch (e) { setError(getError(e) || t('partnerOps.error')); }
+    finally { setLoading(false); }
+  }, [dateFrom, dateTo, query, status, t]);
+
+  useEffect(() => { void load(0); }, [status, dateFrom, dateTo]);
+
+  useEffect(() => {
+    if (tab !== 'departures') return;
+    setDepartureLoading(true); setDepartureError('');
+    const from = departureDate ? new Date(`${departureDate}T00:00:00`).toISOString() : new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+    const to = departureDate ? new Date(new Date(`${departureDate}T00:00:00`).getTime() + 86400000).toISOString() : new Date(Date.now() + 90 * 86400000).toISOString();
+    void partnerBookingsApi.departures({ from, to, page: departurePage, size: 20 }).then(result => { setDepartures(result.items); setDepartureTotalPages(result.totalPages); }).catch(e => setDepartureError(getError(e) || t('partnerOps.error'))).finally(() => setDepartureLoading(false));
+  }, [departureDate, departurePage, tab, t]);
+
+  useEffect(() => {
+    if (tab !== 'payments') return;
+    setStatementLoading(true); setStatementError('');
+    void partnerBookingsApi.statements({ page: statementPage, size: 20 }).then(result => { setStatements(result.items); setStatementTotalPages(result.totalPages); }).catch(e => setStatementError(getError(e) || t('partnerOps.error'))).finally(() => setStatementLoading(false));
+  }, [statementPage, tab, t]);
+
+  const openRoster = async (departure: PartnerDeparture) => {
+    if (activeRoster === departure.scheduleId) { setActiveRoster(null); setRoster(null); return; }
+    setActiveRoster(departure.scheduleId); setRoster(null); setRosterPage(0); setDepartureError('');
+    await loadRoster(departure, 0);
   };
 
-  const handleContinue = () => {
-    showToast(
-      'Local draft only',
-      'Bank details are kept in this frontend. Partner payout setup is reviewed by the operations team and is not submitted here.',
-    );
-    setTimeout(() => {
-      onNavigate('partner_final_review');
-    }, 800);
+  const loadRoster = async (departure: PartnerDeparture, nextPage: number) => {
+    setRosterLoading(true); setDepartureError('');
+    try { setRoster(await toursApi.getRoster(departure.tourId, departure.scheduleId, { page: nextPage, size: 50 })); setRosterPage(nextPage); }
+    catch (e) { setDepartureError(getError(e) || t('partnerOps.rosterError')); }
+    finally { setRosterLoading(false); }
   };
 
-  return (
-    <div className="w-full bg-[#f2fbfc] text-[#141d1e] min-h-screen font-sans">
-      {/* Top Visual Accent / Breadcrumb Bar */}
-      <div className="w-full bg-[#ecf5f6] py-3 border-b border-[#dbe4e5]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2 font-mono text-xs text-[#59413a]">
-            <span className="inline-flex items-center gap-1.5 text-[#39675b] font-semibold">
-              <span>✓</span> Verified Partner Onboarding
-            </span>
-            <span>/</span>
-            <span className="text-[#141d1e] font-semibold">Application Ref: #ST-VN-8842</span>
+  const openScheduleEditor = async (departure: PartnerDeparture) => {
+    scheduleEditOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setEditLoading(departure.scheduleId); setError('');
+    try {
+      const tour = await toursApi.getPartnerTour(departure.tourId);
+      const schedule = tour.schedules.find(item => item.id === departure.scheduleId);
+      if (!schedule) throw new Error(t('partnerOps.scheduleUnavailable'));
+      setEditSchedule(schedule);
+    } catch (e) { setError(getError(e) || t('partnerOps.scheduleUnavailable')); }
+    finally { setEditLoading(null); }
+  };
+
+  const saveSchedule = async (request: PartnerScheduleRequest) => {
+    if (!editSchedule) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      await toursApi.updateSchedule(editSchedule.tourId, editSchedule.id, request);
+      setNotice(t('partnerOps.departureUpdated')); closeScheduleEditor();
+      const from = departureDate ? new Date(`${departureDate}T00:00:00`).toISOString() : new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+      const to = departureDate ? new Date(new Date(`${departureDate}T00:00:00`).getTime() + 86400000).toISOString() : new Date(Date.now() + 90 * 86400000).toISOString();
+      const result = await partnerBookingsApi.departures({ from, to, page: departurePage, size: 20 }); setDepartures(result.items); setDepartureTotalPages(result.totalPages);
+    } catch (e) { setError(getError(e) || t('partnerOps.actionError')); }
+    finally { setBusy(false); }
+  };
+
+  const closeScheduleEditor = () => {
+    setEditSchedule(null);
+    window.requestAnimationFrame(() => scheduleEditOpenerRef.current?.focus());
+  };
+
+  const openBooking = async (id: number) => {
+    setSelected(null); setDetailLoading(true); setError(''); setNotice('');
+    try { setSelected(await partnerBookingsApi.detail(id)); }
+    catch (e) { setError(getError(e) || t('partnerOps.error')); }
+    finally { setDetailLoading(false); }
+  };
+
+  const refreshSelected = async () => {
+    if (!selected) return;
+    setSelected(await partnerBookingsApi.detail(selected.id));
+    await load(page);
+  };
+
+  const submitDialog = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!dialog || (dialog.kind !== 'completeDeparture' && !reason.trim())) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      if (dialog.kind === 'cancel' && selected) {
+        await partnerBookingsApi.cancel(selected.id, reason.trim());
+        setNotice(t('partnerOps.bookingCancelled'));
+      } else if (dialog.kind === 'undoCheckIn' && selected && dialog.participantId) {
+        await partnerBookingsApi.undoCheckIn(selected.id, dialog.participantId, reason.trim());
+        setNotice(t('partnerOps.checkInUndone'));
+      } else if (dialog.kind === 'cancelDeparture' && dialog.tourId && dialog.scheduleId) {
+        await toursApi.scheduleAction(dialog.tourId, dialog.scheduleId, 'cancel', reason.trim());
+        setNotice(t('partnerOps.departureCancelled'));
+      } else if (dialog.kind === 'completeDeparture' && dialog.tourId && dialog.scheduleId) {
+        await toursApi.scheduleAction(dialog.tourId, dialog.scheduleId, 'complete');
+        setNotice(t('partnerOps.departureCompleted'));
+      }
+      closeDialog(); setReason('');
+      if (selected && (dialog.kind === 'cancel' || dialog.kind === 'undoCheckIn')) await refreshSelected();
+      if (dialog.kind === 'cancelDeparture' || dialog.kind === 'completeDeparture') {
+        const from = departureDate ? new Date(`${departureDate}T00:00:00`).toISOString() : new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+        const to = departureDate ? new Date(new Date(`${departureDate}T00:00:00`).getTime() + 86400000).toISOString() : new Date(Date.now() + 90 * 86400000).toISOString();
+        const result = await partnerBookingsApi.departures({ from, to, page: departurePage, size: 20 }); setDepartures(result.items); setDepartureTotalPages(result.totalPages);
+      }
+    } catch (e) { setError(getError(e) || t('partnerOps.actionError')); }
+    finally { setBusy(false); }
+  };
+
+  const checkIn = async (participantId: number) => {
+    if (!selected) return;
+    setBusy(true); setError(''); setNotice('');
+    try { await partnerBookingsApi.checkIn(selected.id, participantId); setNotice(t('partnerOps.checkInSaved')); await refreshSelected(); }
+    catch (e) { setError(getError(e) || t('partnerOps.actionError')); }
+    finally { setBusy(false); }
+  };
+
+  const showDialog = (next: NonNullable<ActionDialog>) => {
+    dialogOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setDialog(next);
+  };
+  const closeDialog = () => {
+    setDialog(null);
+    window.requestAnimationFrame(() => dialogOpenerRef.current?.focus());
+  };
+  const handleDialogKeyDown: React.KeyboardEventHandler<HTMLFormElement> = event => {
+    if (event.key === 'Escape' && !busy) { event.preventDefault(); closeDialog(); return; }
+    if (event.key !== 'Tab') return;
+    const focusable = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), textarea:not([disabled])'));
+    const first = focusable[0]; const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  };
+
+  const date = (value: string | null | undefined, withTime = false) => value ? new Intl.DateTimeFormat(locale, withTime ? { dateStyle: 'medium', timeStyle: 'short' } : { dateStyle: 'medium' }).format(new Date(value)) : '—';
+  const money = (value: number) => formatVND(value, language);
+  const statusPill = (value: string, departure = false) => <span className="inline-flex rounded-full bg-[#F1F5F2] px-2.5 py-1 text-xs font-semibold text-[#34413D]">{t(`partnerOps.${departure ? 'departureStatus' : 'status'}.${value}`)}</span>;
+  const filterSubmit = (event: FormEvent) => { event.preventDefault(); void load(0); };
+  const cancelAllowed = selected && ['pending_payment', 'confirmed'].includes(selected.status) && new Date(selected.departure.startsAt).getTime() > Date.now();
+  const checkInAllowed = selected?.status === 'confirmed' && new Date(selected.departure.endsAt).getTime() > Date.now();
+
+  return <main className="min-h-[70vh] bg-[#F7F8F6] px-4 py-8 text-[#1C2526] md:px-8 md:py-10">
+    <div className="mx-auto max-w-7xl space-y-6">
+      <header className="border-b border-[#E2E7E4] pb-6">
+        <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#C2410C]">{t('partnerOps.eyebrow')}</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">{t('partnerOps.title')}</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#64716D]">{t('partnerOps.description')}</p>
+      </header>
+
+      {notice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{notice}</div>}
+      {error && <div role="alert" className="flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"><span>{error}</span><button type="button" onClick={() => void load(page)} className="self-start rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-semibold sm:self-auto">{t('partnerOps.retry')}</button></div>}
+
+      {!selected && !detailLoading && <>
+        <nav aria-label={t('partnerOps.title')} className="flex w-full flex-wrap gap-2 border-b border-[#E2E7E4] pb-3">{(['bookings', 'departures', 'payments'] as const).map(key => <button key={key} type="button" aria-current={tab === key ? 'page' : undefined} onClick={() => setTab(key)} className={`min-h-10 rounded-lg px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C2410C] ${tab === key ? 'bg-[#1F4E43] text-white' : 'bg-white text-[#52605D] hover:bg-[#F1F5F2]'}`}>{t(`partnerOps.tabs.${key}`)}</button>)}</nav>
+        {tab === 'departures' && <section className="space-y-4"><header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-xl font-bold">{t('partnerOps.departuresTitle')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerOps.departuresHelp')}</p></div><label className="grid gap-1 text-xs font-semibold text-[#52605D]">{t('partnerOps.from')}<input type="date" value={departureDate} onChange={e => { setDepartureDate(e.target.value); setDeparturePage(0); }} className={field}/></label></header>{departureError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{departureError}</p>}{departureLoading ? <p role="status" className={`${card} p-5 text-sm`}>{t('partnerOps.loading')}</p> : departures.length ? <div className="grid gap-3">{departures.map(departure => <article key={departure.scheduleId} className={`${card} overflow-hidden`}><div className="grid gap-4 p-4 md:grid-cols-[minmax(0,1.4fr)_minmax(11rem,.8fr)_auto] md:items-center md:p-5"><div><div className="flex flex-wrap gap-2">{statusPill(departure.status, true)}<span className="text-xs text-[#64716D]">{date(departure.startsAt, true)}</span></div><h3 className="mt-2 text-lg font-bold">{departure.tourTitle}</h3><p className="mt-1 flex items-center gap-2 text-sm text-[#52605D]"><MapPin aria-hidden="true" className="h-4 w-4 shrink-0"/>{departure.meetingPoint || '—'}</p><p className="mt-1 text-xs text-[#64716D]">{t('partnerOps.guides')}: {departure.guideNames.join(', ') || '—'}{departure.contactPhone ? ` · ${departure.contactPhone}` : ''}</p></div><div className="grid grid-cols-2 gap-3 text-sm"><span><span className="block text-xs text-[#75817C]">{t('partnerOps.capacityUse', { used: departure.confirmedSeats + departure.heldSeats, total: departure.capacity })}</span><strong>{t('partnerOps.availableSeats', { count: departure.availableSeats })}</strong></span><span><span className="block text-xs text-[#75817C]">{t('partnerOps.travelers')}</span><strong>{departure.participantCount}</strong></span></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void openRoster(departure)} className="min-h-10 rounded-lg border border-[#CAD4CF] px-4 text-sm font-semibold hover:bg-[#F1F5F2]">{activeRoster === departure.scheduleId ? t('partnerOps.close') : t('partnerOps.openRoster')}</button>{departure.status === 'scheduled' && <button type="button" disabled={editLoading === departure.scheduleId} onClick={() => void openScheduleEditor(departure)} className="min-h-10 rounded-lg border border-[#CAD4CF] px-3 text-sm font-semibold hover:bg-[#F1F5F2] disabled:opacity-50">{editLoading === departure.scheduleId ? t('partnerOps.loading') : t('partnerOps.editDeparture')}</button>}{departure.status === 'scheduled' && new Date(departure.startsAt).getTime() > Date.now() && <button type="button" onClick={() => { showDialog({ kind: 'cancelDeparture', tourId: departure.tourId, scheduleId: departure.scheduleId }); setReason(''); }} className="min-h-10 rounded-lg border border-rose-200 px-3 text-sm font-semibold text-rose-800 hover:bg-rose-50">{t('partnerOps.cancelDeparture')}</button>}{['scheduled', 'ongoing'].includes(departure.status) && new Date(departure.endsAt).getTime() <= Date.now() && <button type="button" onClick={() => { showDialog({ kind: 'completeDeparture', tourId: departure.tourId, scheduleId: departure.scheduleId }); setReason(''); }} className="min-h-10 rounded-lg bg-[#1F4E43] px-3 text-sm font-semibold text-white hover:bg-[#173C34]">{t('partnerOps.completeDeparture')}</button>}</div></div>{activeRoster === departure.scheduleId && <div className="border-t border-[#E8ECE9] bg-[#FAFBFA] p-4">{rosterLoading || !roster ? <p role="status" className="text-sm text-[#64716D]">{t('partnerOps.rosterLoading')}</p> : roster.participants.length ? <><ul className="grid gap-2 sm:grid-cols-2">{roster.participants.map((person, index) => <li key={`${person.bookingCode}-${index}`} className="rounded-lg border border-[#E2E7E4] bg-white p-3"><p className="text-sm font-semibold">{person.fullName}</p><p className="mt-1 text-xs text-[#64716D]">{person.bookingCode}{person.phone ? ` · ${person.phone}` : ''}</p>{person.checkedInAt && <p className="mt-1 text-xs font-medium text-emerald-800">{t('partnerOps.checkedIn', { date: date(person.checkedInAt, true) })}</p>}</li>)}</ul>{(roster.totalPages ?? 0) > 1 && <nav aria-label={t('partnerOps.rosterTitle')} className="mt-3 flex items-center justify-between"><button type="button" disabled={rosterPage <= 0} onClick={() => void loadRoster(departure, rosterPage - 1)} className="min-h-10 rounded-lg border border-[#CAD4CF] px-3 text-sm disabled:opacity-40">{t('partnerOps.previous')}</button><span className="text-xs text-[#64716D]">{t('partnerOps.page', { current: rosterPage + 1, total: roster.totalPages ?? 1 })}</span><button type="button" disabled={rosterPage + 1 >= (roster.totalPages ?? 0)} onClick={() => void loadRoster(departure, rosterPage + 1)} className="min-h-10 rounded-lg border border-[#CAD4CF] px-3 text-sm disabled:opacity-40">{t('partnerOps.next')}</button></nav>}</> : <p className="text-sm text-[#64716D]">{t('partnerTour.noParticipants')}</p>}</div>}</article>)}</div> : <div className={`${card} border-dashed p-10 text-center text-sm`}>{t('partnerOps.noDepartures')}</div>}</section>}
+        {tab === 'payments' && <section className="space-y-4"><header><h2 className="text-xl font-bold">{t('partnerOps.statementsTitle')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerOps.statementsHelp')}</p></header>{statementError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{statementError}</p>}{statementLoading ? <p role="status" className={`${card} p-5 text-sm`}>{t('partnerOps.loading')}</p> : statements.length ? <div className="grid gap-3">{statements.map(statement => <article key={statement.id} className={`${card} p-5`}><div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs text-[#64716D]">{t('partnerOps.period')}</p><h3 className="mt-1 font-bold">{date(statement.periodStart)} – {date(statement.periodEnd)}</h3></div><span className="rounded-full bg-[#F1F5F2] px-2.5 py-1 text-xs font-semibold">{t(`partnerOps.statementStatus.${statement.status}`)}</span></div><dl className="mt-4 grid grid-cols-1 gap-3 border-t border-[#E8ECE9] pt-4 sm:grid-cols-3"><div><dt className="text-xs text-[#64716D]">{t('partnerOps.payable')}</dt><dd className="mt-1 font-semibold">{money(statement.payableVnd)}</dd></div><div><dt className="text-xs text-[#64716D]">{t('partnerOps.transferred')}</dt><dd className="mt-1 font-semibold text-emerald-800">{money(statement.transferredVnd)}</dd></div><div><dt className="text-xs text-[#64716D]">{t('partnerOps.statementRemaining')}</dt><dd className="mt-1 font-semibold">{money(statement.remainingVnd)}</dd></div></dl>{statement.note && <p className="mt-3 text-sm text-[#52605D]">{statement.note}</p>}<div className="mt-4 border-t border-[#E8ECE9] pt-3"><h4 className="text-sm font-semibold">{t('partnerOps.transfers')}</h4>{statement.transfers.length ? <ul className="mt-2 divide-y divide-[#E8ECE9]">{statement.transfers.map((transfer, index) => <li key={`${transfer.transferredAt}-${index}`} className="flex justify-between gap-3 py-2 text-sm"><time>{date(transfer.transferredAt, true)}</time><strong>{money(transfer.amountVnd)}</strong></li>)}</ul> : <p className="mt-1 text-sm text-[#64716D]">{t('partnerOps.noTransfers')}</p>}</div></article>)}</div> : <div className={`${card} border-dashed p-10 text-center text-sm`}>{t('partnerOps.noStatements')}</div>}</section>}
+        {tab === 'bookings' && <>
+        <form onSubmit={filterSubmit} className={`${card} grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-[minmax(15rem,1.5fr)_minmax(12rem,1fr)_minmax(11rem,.8fr)_minmax(11rem,.8fr)_auto] xl:items-end`}>
+          <label className="grid gap-1.5 text-xs font-semibold text-[#52605D]">{t('partnerOps.search')}<span className="relative"><Search aria-hidden="true" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#75817C]"/><input value={query} onChange={e => setQuery(e.target.value)} placeholder={t('partnerOps.search')} className={`${field} w-full pl-9`} /></span></label>
+          <label className="grid gap-1.5 text-xs font-semibold text-[#52605D]">{t('partnerOps.status')}<select value={status} onChange={e => setStatus(e.target.value)} className={field}><option value="">{t('partnerOps.allStatuses')}</option>{statusKeys.map(key => <option key={key} value={key}>{t(`partnerOps.status.${key}`)}</option>)}</select></label>
+          <label className="grid gap-1.5 text-xs font-semibold text-[#52605D]">{t('partnerOps.from')}<input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className={field}/></label>
+          <label className="grid gap-1.5 text-xs font-semibold text-[#52605D]">{t('partnerOps.to')}<input type="date" min={dateFrom || undefined} value={dateTo} onChange={e => setDateTo(e.target.value)} className={field}/></label>
+          <button type="submit" className="min-h-11 rounded-lg bg-[#1F4E43] px-4 text-sm font-semibold text-white transition hover:bg-[#173C34] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C]">{t('partnerOps.filter')}</button>
+        </form>
+        <section aria-label={t('partnerOps.title')}>
+          <div className="mb-3 flex items-center justify-between"><p className="text-sm font-semibold text-[#52605D]">{t('partnerOps.count', { count: totalItems })}</p></div>
+          {loading ? <p role="status" className={`${card} p-6 text-sm text-[#64716D]`}>{t('partnerOps.loading')}</p> : items.length ? <div className="grid gap-3">{items.map(item => <article key={item.id} className={`${card} grid gap-4 p-4 transition hover:border-[#A9BFB5] hover:shadow-md md:grid-cols-[minmax(0,1.5fr)_minmax(12rem,1fr)_auto] md:items-center md:p-5`}>
+            <div className="min-w-0"><div className="flex flex-wrap items-center gap-2">{statusPill(item.status)}<span className="text-xs text-[#64716D]">{item.bookingCode}</span></div><h2 className="mt-2 truncate text-base font-bold">{item.departure.tourTitle}</h2><p className="mt-1 flex items-center gap-2 text-sm text-[#52605D]"><CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0"/>{date(item.departure.startsAt, true)} <span className="text-[#A3ADA8]">·</span><Users aria-hidden="true" className="h-4 w-4 shrink-0"/>{item.participantCount}</p></div>
+            <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-1"><span><span className="block text-xs text-[#75817C]">{t('partnerOps.total')}</span><strong>{money(item.totalPriceVnd)}</strong></span><span><span className="block text-xs text-[#75817C]">{t('partnerOps.received')}</span><strong>{money(item.receivedVnd)}</strong></span>{item.pendingReviewVnd > 0 && <span className="col-span-2 text-xs font-semibold text-amber-800 md:col-span-1">{t('partnerOps.pendingReview', { amount: money(item.pendingReviewVnd) })}</span>}</div>
+            <button type="button" onClick={() => void openBooking(item.id)} className="min-h-10 rounded-lg border border-[#CAD4CF] px-4 text-sm font-semibold transition hover:bg-[#F1F5F2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C]">{t('partnerOps.open')}</button>
+          </article>)}</div> : <div className={`${card} border-dashed p-10 text-center`}><p className="font-semibold">{query || status || dateFrom || dateTo ? t('partnerOps.empty') : t('partnerOps.noBookings')}</p></div>}
+          {totalPages > 1 && <nav aria-label={t('partnerOps.title')} className="mt-5 flex items-center justify-center gap-4"><button type="button" disabled={page <= 0 || loading} onClick={() => void load(page - 1)} className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-[#CAD4CF] bg-white px-3 text-sm font-semibold disabled:opacity-40"><ChevronLeft aria-hidden="true" className="h-4 w-4"/>{t('partnerOps.previous')}</button><span aria-live="polite" className="text-sm text-[#52605D]">{t('partnerOps.page', { current: page + 1, total: totalPages })}</span><button type="button" disabled={page + 1 >= totalPages || loading} onClick={() => void load(page + 1)} className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-[#CAD4CF] bg-white px-3 text-sm font-semibold disabled:opacity-40">{t('partnerOps.next')}<ChevronRight aria-hidden="true" className="h-4 w-4"/></button></nav>}
+        </section>
+        </>}
+      </>}
+
+      {detailLoading && <p role="status" className={`${card} p-6 text-sm text-[#64716D]`}>{t('partnerOps.loading')}</p>}
+      {selected && <>
+        <button type="button" onClick={() => { setSelected(null); setError(''); setNotice(''); }} className="inline-flex min-h-10 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-[#34413D] hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C2410C]"><ArrowLeft aria-hidden="true" className="h-4 w-4"/>{t('partnerOps.back')}</button>
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(18rem,.8fr)]">
+          <div className="space-y-5">
+            <section className={`${card} p-5 md:p-6`}>
+              <div className="flex flex-wrap items-start justify-between gap-3"> <div><p className="text-xs font-semibold uppercase tracking-wide text-[#75817C]">{t('partnerOps.booking')} · {selected.bookingCode}</p><h2 className="mt-2 text-2xl font-bold">{selected.departure.tourTitle}</h2></div>{statusPill(selected.status)}</div>
+              <div className="mt-5 grid gap-4 border-t border-[#E8ECE9] pt-4 sm:grid-cols-2"><div><p className="text-xs text-[#75817C]">{t('partnerOps.departure')}</p><p className="mt-1 flex items-start gap-2 text-sm font-semibold"><CalendarDays aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[#1F4E43]"/>{date(selected.departure.startsAt, true)} – {date(selected.departure.endsAt, true)}</p></div><div><p className="text-xs text-[#75817C]">{t('partnerOps.customer')}</p><p className="mt-1 text-sm font-semibold">{selected.customer.displayName}</p><p className="text-sm text-[#64716D]">{selected.customer.email || selected.customer.phone || '—'}</p></div><div><p className="text-xs text-[#75817C]">{t('partnerOps.meetingPoint')}</p><p className="mt-1 flex gap-2 text-sm"><MapPin aria-hidden="true" className="h-4 w-4 shrink-0 text-[#1F4E43]"/>{selected.departure.meetingPoint || '—'}</p></div><div><p className="text-xs text-[#75817C]">{t('partnerOps.contactPhone')}</p><p className="mt-1 text-sm">{selected.departure.contactPhone || '—'}</p></div></div>
+            </section>
+            <section className={`${card} overflow-hidden`}><div className="flex items-center justify-between border-b border-[#E8ECE9] px-5 py-4"><div><h3 className="font-bold">{t('partnerOps.travelers')}</h3><p className="mt-0.5 text-xs text-[#64716D]">{selected.participants.length} / {selected.participantCount}</p></div><Users aria-hidden="true" className="h-5 w-5 text-[#1F4E43]"/></div><ul className="divide-y divide-[#E8ECE9]">{selected.participants.map(person => <li key={person.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="font-semibold">{person.fullName}</p><p className="mt-0.5 truncate text-sm text-[#64716D]">{[person.email, person.phone].filter(Boolean).join(' · ') || '—'}</p>{person.checkedInAt && <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-emerald-800"><Check aria-hidden="true" className="h-3.5 w-3.5"/>{t('partnerOps.checkedIn', { date: date(person.checkedInAt, true) })}</p>}</div>
+                {checkInAllowed && (person.checkedInAt ? <button type="button" disabled={busy} onClick={() => { showDialog({ kind: 'undoCheckIn', participantId: person.id }); setReason(''); }} className="min-h-10 self-start rounded-lg border border-[#CAD4CF] px-3 text-sm font-semibold hover:bg-[#F1F5F2] disabled:opacity-50 sm:self-auto">{t('partnerOps.undoCheckIn')}</button> : <button type="button" disabled={busy} onClick={() => void checkIn(person.id)} className="min-h-10 self-start rounded-lg bg-[#1F4E43] px-3 text-sm font-semibold text-white hover:bg-[#173C34] disabled:opacity-50 sm:self-auto">{busy ? t('partnerOps.saving') : t('partnerOps.checkIn')}</button>)}</li>)}</ul></section>
+            <section className={`${card} p-5 md:p-6`}><div className="flex items-center justify-between"><h3 className="font-bold">{t('partnerOps.refunds')}</h3><p className="text-xs text-[#64716D]">{t('partnerOps.readOnlyRefund')}</p></div>{selected.refundRequests.length ? <ul className="mt-4 divide-y divide-[#E8ECE9]">{selected.refundRequests.map(refund => <li key={refund.id} className="py-3 first:pt-0 last:pb-0"><div className="flex flex-wrap justify-between gap-2 text-sm"><span className="font-semibold">{money(refund.requestedAmountVnd)}</span><span className="rounded-full bg-[#F1F5F2] px-2.5 py-1 text-xs">{t(`partnerOps.refundStatus.${refund.status}`)}</span></div><p className="mt-1 text-sm text-[#52605D]">{refund.reason}</p>{refund.decisionNote && <p className="mt-1 text-xs text-[#64716D]">{t('partnerOps.decisionNote', { note: refund.decisionNote })}</p>}<p className="mt-1 text-xs text-[#75817C]">{date(refund.createdAt, true)}</p></li>)}</ul> : <p className="mt-3 text-sm text-[#64716D]">{t('partnerOps.noRefunds')}</p>}</section>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#b9eadb] text-[#3d6b5f] text-[11px] font-bold">
-              <span className="w-2 h-2 rounded-full bg-[#39675b] animate-pulse"></span>
-              Auto-saved just now
-            </span>
-            <span className="font-mono text-xs text-[#59413a]">Step 3 of 4</span>
-          </div>
+          <aside className="space-y-5 xl:sticky xl:top-6">
+            <section className={`${card} p-5`}><h3 className="font-bold">{t('partnerOps.money')}</h3><dl className="mt-4 space-y-3 text-sm"><div className="flex justify-between gap-4"><dt className="text-[#64716D]">{t('partnerOps.total')}</dt><dd className="font-semibold">{money(selected.money.totalPriceVnd)}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#64716D]">{t('partnerOps.received')}</dt><dd className="font-semibold text-emerald-800">{money(selected.money.receivedVnd)}</dd></div>{selected.money.pendingReviewVnd > 0 && <div className="flex justify-between gap-4 text-amber-900"><dt>{t('partnerOps.pendingReviewLabel')}</dt><dd className="font-semibold">{money(selected.money.pendingReviewVnd)}</dd></div>}<div className="flex justify-between gap-4"><dt className="text-[#64716D]">{t('partnerOps.refunded')}</dt><dd className="font-semibold">{money(selected.money.refundedVnd)}</dd></div><div className="flex justify-between gap-4"><dt className="text-[#64716D]">{t('partnerOps.balanceDue')}</dt><dd className="text-right">{date(selected.money.balanceDueAt, true)}</dd></div></dl></section>
+            {cancelAllowed && <section className="rounded-2xl border border-rose-200 bg-rose-50 p-5"><h3 className="font-bold text-rose-950">{t('partnerOps.cancelConfirmTitle')}</h3><p className="mt-2 text-sm leading-5 text-rose-900">{t('partnerOps.cancelImpact')}</p><button type="button" onClick={() => { showDialog({ kind: 'cancel' }); setReason(''); }} className="mt-4 min-h-10 rounded-lg border border-rose-300 bg-white px-4 text-sm font-semibold text-rose-800 hover:bg-rose-100">{t('partnerOps.cancel')}</button></section>}
+            <div className={`${card} flex items-start gap-3 p-4 text-sm text-[#52605D]`}><Clock3 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[#1F4E43]"/>{t('partnerOps.payoutUnavailable')}</div>
+          </aside>
         </div>
-      </div>
+      </>}
 
-      {/* Stepper Header Container */}
-      <div className="w-full bg-white shadow-xs border-b border-[#dbe4e5]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative">
-            {/* Step 1 Completed */}
-            <button
-              type="button"
-              onClick={() => onNavigate('partner_company_info')}
-              className="flex items-center gap-3.5 p-3 rounded-lg bg-[#ecf5f6] hover:bg-[#e0eaeb] transition-colors text-left cursor-pointer"
-            >
-              <div className="w-8 h-8 rounded-full bg-[#39675b] text-white flex items-center justify-center shrink-0 shadow-xs text-xs">
-                ✓
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[11px] font-bold text-[#39675b] uppercase tracking-wider">
-                  Step 1 • Completed
-                </span>
-                <span className="text-sm font-semibold text-[#141d1e] truncate">
-                  Company Info
-                </span>
-              </div>
-            </button>
-
-            {/* Step 2 Completed */}
-            <button
-              type="button"
-              onClick={() => onNavigate('partner_certificates')}
-              className="flex items-center gap-3.5 p-3 rounded-lg bg-[#ecf5f6] hover:bg-[#e0eaeb] transition-colors text-left cursor-pointer"
-            >
-              <div className="w-8 h-8 rounded-full bg-[#39675b] text-white flex items-center justify-center shrink-0 shadow-xs text-xs">
-                ✓
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[11px] font-bold text-[#39675b] uppercase tracking-wider">
-                  Step 2 • Completed
-                </span>
-                <span className="text-sm font-semibold text-[#141d1e] truncate">
-                  Certificates
-                </span>
-              </div>
-            </button>
-
-            {/* Step 3 Active */}
-            <div className="flex items-center gap-3.5 p-3 rounded-lg bg-[#ffdbd0] shadow-xs border border-[#ffb59d]">
-              <div className="w-8 h-8 rounded-full bg-[#c2410c] text-white flex items-center justify-center shrink-0 shadow-xs text-xs font-bold">
-                3
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[11px] font-bold text-[#9b2f00] uppercase tracking-wider">
-                  In Progress
-                </span>
-                <span className="text-sm font-bold text-[#390c00] truncate">
-                  Bank Payouts
-                </span>
-              </div>
-            </div>
-
-            {/* Step 4 Pending */}
-            <button
-              type="button"
-              onClick={() => onNavigate('partner_final_review')}
-              className="flex items-center gap-3.5 p-3 rounded-lg bg-[#ecf5f6]/60 opacity-70 hover:opacity-100 transition-opacity text-left cursor-pointer"
-            >
-              <div className="w-8 h-8 rounded-full bg-[#d2dcdd] text-[#59413a] flex items-center justify-center shrink-0 text-xs font-bold">
-                4
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[11px] font-bold text-[#59413a] uppercase tracking-wider">
-                  Step 4
-                </span>
-                <span className="text-sm text-[#141d1e] truncate">Final Review</span>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Work Canvas */}
-      <div className="w-full bg-[#f2fbfc] pt-8 pb-16">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12">
-          {/* Top Section Titles */}
-          <div className="max-w-3xl mb-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#bceddd] text-[#00201a] text-xs font-bold mb-4">
-              <span>🏛</span> Official Outfitter Banking Setup
-            </div>
-            <h1 className="font-serif text-3xl sm:text-4xl text-[#141d1e] mb-3 leading-tight">
-              Set Up Your Weekly Bank Payouts
-            </h1>
-            <p className="text-base text-[#59413a] leading-relaxed">
-              Enter your company bank account details to get automated earnings sent every Monday after the 72-hour safety check. Direct wire with zero transfer fees.
-            </p>
-          </div>
-
-          {/* Two-Column Primary Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            {/* Left Column: Form & Sections (~68%) */}
-            <div className="lg:col-span-8 space-y-10">
-              {/* Section 01: Bank Account Details */}
-              <div className="bg-white rounded-xl p-8 shadow-sm border border-[#dbe4e5] space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-[#e6f0f1]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded bg-[#c2410c]/10 text-[#c2410c] flex items-center justify-center font-mono text-xs font-bold">
-                      01
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-[#141d1e]">
-                        Receiving Bank Account Details
-                      </h2>
-                      <p className="text-xs text-[#59413a]">
-                        Where SummitTrails transfers your trek booking revenue.
-                      </p>
-                    </div>
-                  </div>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#b9eadb] text-[#3d6b5f] font-mono text-xs font-semibold">
-                    <span>🔒</span> 256-Bit Encrypted
-                  </span>
-                </div>
-
-                {/* Form Grid */}
-                <div className="space-y-5">
-                  {/* Beneficiary Name */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-bold text-[#141d1e]">
-                        Beneficiary / Account Holder Name
-                      </label>
-                      <span className="inline-flex items-center gap-1 font-mono text-xs text-[#9b2f00]">
-                        <span>🔒</span> Must match registered business name
-                      </span>
-                    </div>
-                    <div className="relative">
-                      <input
-                        className="w-full bg-[#ecf5f6] text-[#141d1e] px-4 py-3 rounded-lg text-sm font-medium border border-[#dbe4e5] cursor-not-allowed focus:outline-none"
-                        readOnly
-                        type="text"
-                        value="Sapa Peak Expeditions Company Limited"
-                      />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[#39675b] flex items-center gap-1 text-xs font-bold">
-                        <span>✓</span> Matched Step 1
-                      </div>
-                    </div>
-                    <p className="text-xs text-[#59413a] mt-1.5">
-                      Legal name imported from your validated Business Registration certificate.
-                    </p>
-                  </div>
-
-                  {/* Bank Selector & Branch Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Bank Dropdown */}
-                    <div>
-                      <label className="block text-xs font-bold text-[#141d1e] mb-2">
-                        Bank Name
-                      </label>
-                      <div className="relative">
-                        <select
-                          value={bankName}
-                          onChange={(e) => setBankName(e.target.value)}
-                          className="w-full bg-white shadow-xs rounded-lg px-4 py-3 text-xs sm:text-sm font-semibold border border-[#dbe4e5] focus:outline-none border-[#dbe4e5] focus:border-[#c2410c] cursor-pointer"
-                        >
-                          <option value="Vietcombank (Foreign Trade)">Vietcombank (Foreign Trade)</option>
-                          <option value="BIDV (Bank for Investment & Development)">BIDV (Bank for Investment &amp; Development)</option>
-                          <option value="VietinBank (Vietnam Joint Stock)">VietinBank (Vietnam Joint Stock)</option>
-                          <option value="Techcombank (Vietnam Technological)">Techcombank (Vietnam Technological)</option>
-                        </select>
-                      </div>
-                      <span className="font-mono text-[11px] text-[#59413a] block mt-1">
-                        SWIFT: BFTVVNVX
-                      </span>
-                    </div>
-
-                    {/* Branch & City */}
-                    <div>
-                      <label className="block text-xs font-bold text-[#141d1e] mb-2">
-                        Branch Name &amp; District
-                      </label>
-                      <div className="relative">
-                        <input
-                          className="w-full bg-[#ecf5f6] text-[#141d1e] px-4 py-3 rounded-lg text-xs sm:text-sm border border-[#dbe4e5] focus:bg-white focus:outline-none transition-colors"
-                          value={branchName}
-                          onChange={(e) => setBranchName(e.target.value)}
-                          type="text"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#59413a] text-sm">
-                          📍
-                        </span>
-                      </div>
-                      <span className="font-mono text-[11px] text-[#59413a] block mt-1">
-                        Northern Alpine Hub
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Account Number & Currency */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Account Number */}
-                    <div>
-                      <label className="block text-xs font-bold text-[#141d1e] mb-2">
-                        Bank Account Number
-                      </label>
-                      <div className="relative">
-                        <input
-                          className="w-full bg-[#ecf5f6] text-[#141d1e] px-4 py-3 rounded-lg font-mono text-xs sm:text-sm font-semibold tracking-wider border border-[#dbe4e5] focus:bg-white focus:outline-none transition-colors"
-                          value={accountNumber}
-                          onChange={(e) => setAccountNumber(e.target.value)}
-                          type="text"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#39675b] text-base font-bold">
-                          ✓
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#59413a] mt-1.5">
-                        Direct domestic clearing via NAPAS Fast Transfer.
-                      </p>
-                    </div>
-
-                    {/* Currency Preference */}
-                    <div>
-                      <label className="block text-xs font-bold text-[#141d1e] mb-2">
-                        Settlement Currency
-                      </label>
-                      <div className="p-3 rounded-lg bg-[#e0eaeb] border border-[#dbe4e5] flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-full bg-[#c2410c] text-white flex items-center justify-center font-bold text-xs">
-                            ₫
-                          </div>
-                          <div>
-                            <span className="text-xs font-bold text-[#141d1e] block leading-tight">
-                              VND - Vietnam Dong
-                            </span>
-                            <span className="font-mono text-[11px] text-[#39675b]">
-                              Zero Foreign Exchange Fees
-                            </span>
-                          </div>
-                        </div>
-                        <span className="text-[#9b2f00] font-bold">●</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 02: Payout Schedule & Escrow Policy */}
-              <div className="bg-white rounded-xl p-8 shadow-sm border border-[#dbe4e5] space-y-6">
-                <div className="flex items-center gap-3 pb-2 border-b border-[#e6f0f1]">
-                  <div className="w-8 h-8 rounded bg-[#c2410c]/10 text-[#c2410c] flex items-center justify-center font-mono text-xs font-bold">
-                    02
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-[#141d1e]">
-                      Payout Schedule &amp; Escrow Policy
-                    </h2>
-                    <p className="text-xs text-[#59413a]">
-                      Simple, predictable payouts designed for professional wilderness operations.
-                    </p>
-                  </div>
-                </div>
-
-                {/* 3-Step Flow Diagram */}
-                <div className="bg-[#ecf5f6] rounded-xl p-6 space-y-5 border border-[#dbe4e5]">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white p-4 rounded-lg shadow-xs space-y-2 border border-[#dbe4e5]">
-                      <div className="w-8 h-8 rounded-full bg-[#b9eadb] text-[#39675b] flex items-center justify-center text-sm font-bold">
-                        💳
-                      </div>
-                      <h4 className="text-xs font-bold text-[#141d1e]">
-                        1. Guest Books &amp; Pays
-                      </h4>
-                      <p className="text-[11px] text-[#59413a] leading-relaxed">
-                        Guest deposits 100% of trek funds into SummitTrails secured escrow account.
-                      </p>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg shadow-xs space-y-2 border border-[#dbe4e5]">
-                      <div className="w-8 h-8 rounded-full bg-[#ffdbd0] text-[#9b2f00] flex items-center justify-center text-sm font-bold">
-                        🛡
-                      </div>
-                      <h4 className="text-xs font-bold text-[#141d1e]">
-                        2. 72-Hour Safety Check
-                      </h4>
-                      <p className="text-[11px] text-[#59413a] leading-relaxed">
-                        Trek ends safely. Dispatch confirms zero distress triggers or unhandled emergencies.
-                      </p>
-                    </div>
-                    <div className="bg-white p-4 rounded-lg shadow-xs space-y-2 border border-[#dbe4e5]">
-                      <div className="w-8 h-8 rounded-full bg-[#39675b] text-white flex items-center justify-center text-sm font-bold">
-                        🏦
-                      </div>
-                      <h4 className="text-xs font-bold text-[#141d1e]">
-                        3. Weekly Monday Payout
-                      </h4>
-                      <p className="text-[11px] text-[#59413a] leading-relaxed">
-                        Your 90% net earnings arrive directly into Vietcombank every Monday at 10:00 AM ICT.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Callout Banner */}
-                  <div className="bg-[#e0eaeb] p-4 rounded-lg flex items-start gap-3 border border-[#dbe4e5]">
-                    <span className="text-[#9b2f00] text-base mt-0.5">ℹ</span>
-                    <div className="space-y-1">
-                      <span className="text-xs font-bold text-[#141d1e]">
-                        Transparent 10% Platform Commission
-                      </span>
-                      <p className="text-[11px] text-[#59413a] leading-relaxed">
-                        Our flat 10% fee covers international credit card gateway costs, emergency satellite dispatcher monitoring, USFS/NPS compliance filings, and 24/7 guest evacuation insurance coordination. You keep 90% without hidden charges.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Upload Verification Document */}
-                <div className="space-y-3 pt-2">
-                  <label className="block text-xs font-bold text-[#141d1e]">
-                    Bank Account Confirmation or Voided Cheque Scan
-                  </label>
-                  <div className="p-4 rounded-lg bg-[#ecf5f6] border border-[#dbe4e5] flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-[#b9eadb] text-[#39675b] flex items-center justify-center text-sm font-bold">
-                        📄
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-[#141d1e] block">
-                          vietcombank_account_verification.pdf
-                        </span>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="font-mono text-[11px] text-[#59413a]">1.8 MB</span>
-                          <span className="text-[#59413a]">•</span>
-                          <span className="inline-flex items-center gap-1 font-mono text-[11px] text-[#39675b] font-bold">
-                            ✓ Verified Scan Uploaded
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => showToast('File Replaced', 'New account verification scan uploaded.')}
-                        className="px-3 py-1.5 rounded-lg bg-white text-[#141d1e] text-xs font-semibold hover:bg-[#e6f0f1] transition-colors border border-[#dbe4e5] cursor-pointer"
-                      >
-                        Replace
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => showToast('File Cleared', 'Please re-upload before final review.')}
-                        className="w-8 h-8 rounded-lg text-[#ba1a1a] hover:bg-[#ffdad6] flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Section 03: Electronic Tax & Invoicing */}
-              <div className="bg-white rounded-xl p-8 shadow-sm border border-[#dbe4e5] space-y-6">
-                <div className="flex items-center gap-3 pb-2 border-b border-[#e6f0f1]">
-                  <div className="w-8 h-8 rounded bg-[#c2410c]/10 text-[#c2410c] flex items-center justify-center font-mono text-xs font-bold">
-                    03
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-[#141d1e]">
-                      Electronic Tax &amp; Invoicing (VAT / e-Invoice)
-                    </h2>
-                    <p className="text-xs text-[#59413a]">
-                      Legal compliance according to General Department of Taxation regulations.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Tax Code */}
-                  <div>
-                    <label className="block text-xs font-bold text-[#141d1e] mb-2">
-                      Tax Code / Enterprise Code (Mã số thuế)
-                    </label>
-                    <div className="relative">
-                      <input
-                        className="w-full bg-[#ecf5f6] text-[#141d1e] px-4 py-3 rounded-lg font-mono text-xs sm:text-sm font-semibold tracking-wider border border-[#dbe4e5] focus:bg-white focus:outline-none transition-colors"
-                        value={taxCode}
-                        onChange={(e) => setTaxCode(e.target.value)}
-                        type="text"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#39675b] text-base font-bold">
-                        ✓
-                      </span>
-                    </div>
-                    <span className="font-mono text-[11px] text-[#39675b] block mt-1">
-                      Active business entity in Sapa, Lao Cai
-                    </span>
-                  </div>
-
-                  {/* Invoicing Email */}
-                  <div>
-                    <label className="block text-xs font-bold text-[#141d1e] mb-2">
-                      Official Registered Invoicing Email
-                    </label>
-                    <div className="relative">
-                      <input
-                        className="w-full bg-[#ecf5f6] text-[#141d1e] px-4 py-3 rounded-lg text-xs sm:text-sm border border-[#dbe4e5] focus:bg-white focus:outline-none transition-colors"
-                        value={invoicingEmail}
-                        onChange={(e) => setInvoicingEmail(e.target.value)}
-                        type="email"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#59413a] text-sm">
-                        ✉
-                      </span>
-                    </div>
-                    <span className="font-mono text-[11px] text-[#59413a] block mt-1">
-                      E-invoices will be sent in XML &amp; PDF format
-                    </span>
-                  </div>
-                </div>
-
-                {/* Legal Agreement Checkbox */}
-                <div className="p-4 rounded-lg bg-[#ecf5f6] border border-[#dbe4e5] flex items-start gap-3">
-                  <input
-                    checked={eInvoiceAuth}
-                    onChange={(e) => setEInvoiceAuth(e.target.checked)}
-                    className="mt-1 w-4 h-4 rounded accent-[#9b2f00] cursor-pointer"
-                    id="e-invoice-auth"
-                    type="checkbox"
-                  />
-                  <label
-                    className="text-xs text-[#141d1e] leading-relaxed cursor-pointer"
-                    htmlFor="e-invoice-auth"
-                  >
-                    <span className="font-bold text-[#141d1e]">
-                      I authorize SummitTrails Vietnam
-                    </span>{' '}
-                    to generate and dispatch electronic VAT commission invoices (Hóa đơn điện tử) following Circular 78/2021/TT-BTC on the 1st day of every month for previous month commissions.
-                  </label>
-                </div>
-              </div>
-
-              {/* Bottom Action Flow Bar */}
-              <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => onNavigate('partner_certificates')}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-[#ecf5f6] text-[#141d1e] text-xs font-bold hover:bg-[#e0eaeb] transition-colors border border-[#dbe4e5] cursor-pointer"
-                  >
-                    <span>← Back to Step 2 (Certificates)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => showToast('Local draft only', 'Not submitted to the operations team.')}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white text-[#59413a] text-xs font-semibold hover:text-[#141d1e] hover:bg-[#ecf5f6] transition-colors shadow-xs border border-[#dbe4e5] cursor-pointer"
-                  >
-                    <span>Save Draft</span>
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleContinue}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-3.5 rounded-lg bg-[#c2410c] hover:bg-[#9b2f00] text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
-                >
-                  <span>Continue to Final Review &amp; Sign</span>
-                  <span>→</span>
-                </button>
-              </div>
-
-              <div className="text-center sm:text-left pt-1">
-                <p className="text-xs text-[#59413a]">
-                  Bank details are verified by our finance desk within 24 business hours. Need special cross-border wire routing? Contact{' '}
-                  <span className="text-[#9b2f00] underline">partners@summittrails.com</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Right Column: Security, Summary Preview & Support (~32%) */}
-            <div className="lg:col-span-4 space-y-6">
-              {/* Card 1: Payout Security & Protection */}
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-[#dbe4e5] space-y-5">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[#39675b] text-xl">🛡</span>
-                  <h3 className="font-serif text-lg font-bold text-[#141d1e]">
-                    Payout Protection
-                  </h3>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full bg-[#b9eadb] text-[#39675b] flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">
-                      ⇄
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-[#141d1e]">Direct Bank Transfers</h4>
-                      <p className="text-[11px] text-[#59413a] mt-0.5 leading-relaxed">
-                        Direct wire via national clearing system (NAPAS / SWIFT). 0 VND transfer fees on all weekly payouts.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full bg-[#b9eadb] text-[#39675b] flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">
-                      📅
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-[#141d1e]">Automated Monday Cycle</h4>
-                      <p className="text-[11px] text-[#59413a] mt-0.5 leading-relaxed">
-                        No manual withdrawal requests needed. Cleared funds arrive automatically every Monday morning at 10:00 AM.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full bg-[#b9eadb] text-[#39675b] flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">
-                      🔒
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-[#141d1e]">72-Hour Safety Window</h4>
-                      <p className="text-[11px] text-[#59413a] mt-0.5 leading-relaxed">
-                        Protects outfitters against fraudulent chargebacks and provides orderly payouts if alpine storms force safe reroutes.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full bg-[#b9eadb] text-[#39675b] flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">
-                      📜
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-[#141d1e]">Full Tax Compliance</h4>
-                      <p className="text-[11px] text-[#59413a] mt-0.5 leading-relaxed">
-                        Fully compliant with Vietnam e-invoicing standards (Circular 78/2021/TT-BTC) and international audits.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2: Payout Summary Preview (Mock Calculation) */}
-              <div className="bg-[#e0eaeb] rounded-xl p-6 shadow-sm border border-[#dbe4e5] space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-[#39675b] uppercase tracking-wider">
-                    Calculation Model
-                  </span>
-                  <span className="font-mono text-[11px] bg-white px-2 py-0.5 rounded text-[#141d1e] font-semibold border border-[#dbe4e5]">
-                    Standard Split
-                  </span>
-                </div>
-                <h3 className="text-base font-bold text-[#141d1e] leading-tight">
-                  Payout Summary Preview
-                </h3>
-                <p className="text-xs text-[#59413a]">
-                  Here is how a typical Fansipan 3D2N Backcountry Expedition booking splits:
-                </p>
-                {/* Spec rows */}
-                <div className="bg-white rounded-lg p-4 space-y-2.5 text-xs border border-[#dbe4e5]">
-                  <div className="flex items-center justify-between pb-2 border-b border-stone-100">
-                    <span className="text-[#59413a]">Example 3D2N Trek Booking</span>
-                    <span className="font-mono font-bold text-[#141d1e]">10,000,000 ₫</span>
-                  </div>
-                  <div className="flex items-center justify-between pb-2 border-b border-stone-100">
-                    <div className="flex items-center gap-1.5 text-[#59413a]">
-                      <span>SummitTrails Fee (10%)</span>
-                    </div>
-                    <span className="font-mono font-semibold text-[#9b2f00]">-1,000,000 ₫</span>
-                  </div>
-                  <div className="flex items-center justify-between pb-2 border-b border-stone-100">
-                    <span className="text-[#59413a]">Payment Processing &amp; Insurance</span>
-                    <span className="font-mono text-[#39675b] font-medium">0 ₫ (Included)</span>
-                  </div>
-                  <div className="pt-2 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs text-[#141d1e] block font-bold">Net Payout to Bank</span>
-                      <span className="font-mono text-[11px] text-[#39675b]">Every Monday 10:00 AM</span>
-                    </div>
-                    <span className="text-base font-bold text-[#39675b] font-mono">
-                      9,000,000 ₫
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 pt-1 font-mono text-[11px] text-[#59413a]">
-                  <span className="text-[#39675b] font-bold">⚡</span>
-                  <span>Fast clearing to Vietcombank accounts</span>
-                </div>
-              </div>
-
-              {/* Card 3: Support Contact Desk */}
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-[#dbe4e5] space-y-4">
-                <span className="text-[11px] font-bold text-[#9b2f00] uppercase tracking-wider block">
-                  Dedicated Guide Support
-                </span>
-                <div className="flex items-center gap-3.5">
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-[#ecf5f6] overflow-hidden border border-[#dbe4e5]">
-                      <img
-                        className="w-full h-full object-cover"
-                        alt="Mai Nguyen portrait"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqxlZwl_TyyqgZLFMvbysRvoIC_-4UImaVzzmtKsuzjCnnh6zJFX6rVV0XJvfGbScHg25ZF169Xsahp-NtwHXy3c_5XOhU1Z6c57xpj_F0w3OJ64fXY1RUhWINuj0V1JIcEAasCAb2FsBUI9YMNvjvC-UHugeeyx94Gl-UUQumyKN2Vz7aRnl99jLHSx4swrTVj82xzsXCdgUXCZsi2-sGtZebQ4c9ZPyqqt42ry6VXUi9QZjxJFY"
-                      />
-                    </div>
-                    <span className="w-3 h-3 rounded-full bg-[#39675b] absolute bottom-0 right-0 ring-2 ring-white"></span>
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-[#141d1e] leading-snug">Mai Nguyen</h4>
-                    <p className="text-[11px] text-[#59413a]">Head of Vietnam Guide Relations</p>
-                  </div>
-                </div>
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center gap-2 text-[#141d1e] text-xs font-semibold">
-                    <span className="text-[#9b2f00]">📞</span>
-                    <span>+84 24 3942 8888</span>
-                  </div>
-                  <p className="text-xs text-[#59413a] leading-tight">
-                    Direct phone &amp; WhatsApp support. Available Mon - Sat, 8:00 - 18:00 ICT.
-                  </p>
-                  <div className="pt-1">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#ecf5f6] text-[#39675b] font-mono text-[11px] border border-[#dbe4e5]">
-                      <span>🌐</span> We speak English &amp; Tiếng Việt
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Toast Notification */}
-      {toast.show && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#141d1e] text-white px-5 py-3.5 rounded-xl shadow-xl border border-white/20 animate-fade-in flex items-center gap-3">
-          <span className="w-6 h-6 rounded-full bg-[#39675b] text-white flex items-center justify-center text-xs font-bold">
-            ✓
-          </span>
-          <div>
-            <p className="text-xs font-bold">{toast.title}</p>
-            <p className="text-[11px] text-stone-300">{toast.desc}</p>
-          </div>
-        </div>
-      )}
+      {dialog && <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1C2526]/50 p-4" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget && !busy) closeDialog(); }}><form role="dialog" aria-modal="true" aria-labelledby="partner-action-title" onSubmit={submitDialog} onKeyDown={handleDialogKeyDown} className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl md:p-6"><div className="flex items-start justify-between gap-4"><h2 id="partner-action-title" className="text-xl font-bold">{dialog.kind === 'cancel' ? t('partnerOps.cancelConfirmTitle') : dialog.kind === 'undoCheckIn' ? t('partnerOps.undoCheckIn') : dialog.kind === 'cancelDeparture' ? t('partnerOps.cancelDepartureTitle') : t('partnerOps.completeDepartureTitle')}</h2><button type="button" autoFocus aria-label={t('partnerOps.close')} onClick={closeDialog} disabled={busy} className="rounded p-1 text-[#64716D] hover:bg-[#F1F5F2]"><X aria-hidden="true" className="h-5 w-5"/></button></div>{['cancel', 'cancelDeparture'].includes(dialog.kind) && <p className="mt-3 text-sm leading-5 text-[#52605D]">{dialog.kind === 'cancel' ? t('partnerOps.cancelImpact') : t('partnerOps.cancelDepartureImpact')}</p>}{dialog.kind === 'completeDeparture' && <p className="mt-3 text-sm leading-5 text-[#52605D]">{t('partnerOps.completeDepartureImpact')}</p>}{dialog.kind !== 'completeDeparture' && <label className="mt-4 grid gap-2 text-sm font-semibold">{dialog.kind === 'cancel' ? t('partnerOps.cancelReason') : dialog.kind === 'cancelDeparture' ? t('partnerOps.departureCancelReason') : t('partnerOps.undoReason')}<textarea required minLength={3} value={reason} onChange={e => setReason(e.target.value)} rows={3} className={`${field} py-2`} /></label>}<div className="mt-5 flex justify-end gap-2"><button type="button" disabled={busy} onClick={closeDialog} className="min-h-10 rounded-lg border border-[#CAD4CF] px-4 text-sm font-semibold">{t('partnerOps.close')}</button><button type="submit" disabled={busy || (dialog.kind !== 'completeDeparture' && reason.trim().length < 3)} className={`min-h-10 rounded-lg px-4 text-sm font-semibold text-white disabled:opacity-50 ${['cancel', 'cancelDeparture'].includes(dialog.kind) ? 'bg-rose-700 hover:bg-rose-800' : 'bg-[#1F4E43] hover:bg-[#173C34]'}`}>{busy ? t('partnerOps.saving') : dialog.kind === 'cancel' ? t('partnerOps.confirmCancel') : dialog.kind === 'cancelDeparture' ? t('partnerOps.confirmDepartureCancel') : dialog.kind === 'completeDeparture' ? t('partnerOps.completeDeparture') : t('partnerOps.confirmUndo')}</button></div></form></div>}
+      {editSchedule && <ScheduleEditDialog key={editSchedule.id} schedule={editSchedule} busy={busy} error={error} onClose={closeScheduleEditor} onSave={request => void saveSchedule(request)} />}
     </div>
-  );
+  </main>;
 };
 
 export default PartnerBookingManagementPage;

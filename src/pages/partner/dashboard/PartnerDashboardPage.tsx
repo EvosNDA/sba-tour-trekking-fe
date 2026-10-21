@@ -58,10 +58,14 @@ export const PartnerDashboardPage: React.FC<PartnerDashboardPageProps> = ({ onNa
         <header className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">{t('partner.title')}</h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-[#52605D]">{t('partner.intro')}</p>
+          <p className="mt-3 text-xs text-[#64716D]">{t('partner.requiredNote')}</p>
+          <nav aria-label={t('partner.stepsLabel')} className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[["partner-business", 'partner.stepBusiness'], ["partner-contact", 'partner.stepContact'], ["partner-areas", 'partner.stepAreasSafety'], ["partner-submit", 'partner.stepSubmit']].map(([id, label]) => <a key={id} href={`#${id}`} className="rounded-lg border border-[#E2E7E4] bg-white px-3 py-2 text-center text-xs font-semibold text-[#34413D] hover:border-[#A9BFB5] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C2410C]">{t(label)}</a>)}
+          </nav>
         </header>
 
         <form onSubmit={handleSubmit} className="space-y-7 rounded-xl border border-[#E2E7E4] bg-white p-5 shadow-sm md:p-8">
-          <section aria-labelledby="partner-business-heading" className="space-y-5">
+          <section id="partner-business" aria-labelledby="partner-business-heading" className="space-y-5">
             <div>
               <h2 id="partner-business-heading" className="text-lg font-semibold">{t('partner.businessSection')}</h2>
               <p className="mt-1 text-sm text-[#64716D]">{t('partner.businessHelp')}</p>
@@ -91,7 +95,7 @@ export const PartnerDashboardPage: React.FC<PartnerDashboardPageProps> = ({ onNa
             </div>
           </section>
 
-          <section aria-labelledby="partner-contact-heading" className="space-y-5 border-t border-[#E6EAE7] pt-6">
+          <section id="partner-contact" aria-labelledby="partner-contact-heading" className="space-y-5 border-t border-[#E6EAE7] pt-6">
             <div>
               <h2 id="partner-contact-heading" className="text-lg font-semibold">{t('partner.contactSection')}</h2>
               <p className="mt-1 text-sm text-[#64716D]">{t('partner.contactHelp')}</p>
@@ -109,7 +113,7 @@ export const PartnerDashboardPage: React.FC<PartnerDashboardPageProps> = ({ onNa
             </div>
           </section>
 
-          <section aria-labelledby="partner-area-heading" className="space-y-4 border-t border-[#E6EAE7] pt-6">
+          <section id="partner-areas" aria-labelledby="partner-area-heading" className="space-y-4 border-t border-[#E6EAE7] pt-6">
             <div>
               <h2 id="partner-area-heading" className="text-lg font-semibold">{t('partner.tourAreas')}</h2>
               <p className="mt-1 text-sm text-[#64716D]">{t('partner.tourAreasHelp')}</p>
@@ -129,17 +133,21 @@ export const PartnerDashboardPage: React.FC<PartnerDashboardPageProps> = ({ onNa
               <h2 id="partner-safety-heading" className="text-lg font-semibold">{t('partner.safetyTitle')}</h2>
               <p className="mt-1 text-sm text-[#64716D]">{t('partner.safetyHelp')}</p>
             </div>
-            <label className="flex items-start gap-3 rounded-md border border-[#E2E7E4] bg-[#F7F8F6] p-4 text-sm leading-6 text-[#263330]">
-              <input type="checkbox" name="safetyRulesAgreement" required className="mt-1 h-4 w-4 shrink-0 accent-[#1F4E43]" />
-              <span>{t('partner.safetyAgreement')} <span aria-hidden="true" className="text-red-700">*</span></span>
-            </label>
+            <div className="rounded-md border border-[#E2E7E4] bg-[#F7F8F6] p-4 text-sm text-[#263330]">
+              <ul className="space-y-2.5">{['partner.safetyItemBrief', 'partner.safetyItemReady', 'partner.safetyItemEmergency'].map(key => <li key={key} className="flex items-start gap-2"><span aria-hidden="true" className="mt-0.5 text-[#1F4E43]">✓</span><span>{t(key)}</span></li>)}</ul>
+              <label className="mt-4 flex items-start gap-3 border-t border-[#E2E7E4] pt-3 font-medium leading-6"><input type="checkbox" name="safetyRulesAgreement" required className="mt-1 h-4 w-4 shrink-0 accent-[#1F4E43]" /><span>{t('partner.safetyAgreementLabel')} <span aria-hidden="true" className="text-red-700">*</span></span></label>
+            </div>
           </section>
 
           <Field id="partner-about" label={t('partner.about')}>
             <textarea id="partner-about" name="about" rows={4} maxLength={1000} placeholder={t('partner.aboutPlaceholder')} className={inputClass} />
           </Field>
 
-          <div className="border-t border-[#E6EAE7] pt-5">
+          <section aria-labelledby="partner-next-heading" className="rounded-xl border border-[#DCE8E2] bg-[#F1F6F3] p-4 md:p-5">
+            <h2 id="partner-next-heading" className="font-semibold">{t('partner.nextTitle')}</h2>
+            <ol className="mt-3 grid gap-3 text-sm leading-5 text-[#52605D] md:grid-cols-3">{['partner.nextVerify', 'partner.nextReview', 'partner.nextDecision'].map((key, index) => <li key={key} className="flex gap-2"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1F4E43] text-xs font-bold text-white">{index + 1}</span><span>{t(key)}</span></li>)}</ol>
+          </section>
+          <div id="partner-submit" className="border-t border-[#E6EAE7] pt-5">
             {error && <p role="alert" className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>}
             <button type="submit" disabled={submitting} className="w-full rounded-md bg-[#1F4E43] px-5 py-3 text-sm font-semibold text-white hover:bg-[#173C34] disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C] sm:w-auto">
               {submitting ? t('partner.sending') : t('partner.submit')}
