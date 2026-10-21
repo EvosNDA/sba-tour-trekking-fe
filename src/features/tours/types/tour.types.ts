@@ -12,6 +12,8 @@ export interface TourScheduleDto {
 export interface PublicEquipmentDto { id: number; title: string; includedItems: string; sharedItems: string | null; personalItemsToBring: string | null; }
 export interface EquipmentPackageDto { tourId: number; title: string; includedItems: string; sharedItems: string | null; personalItemsToBring: string | null; scheduleEquipmentFeeVnd: number | null; }
 export interface EquipmentPackageWriteRequest { title: string; includedItems: string; sharedItems?: string | null; personalItemsToBring?: string | null; }
+export interface CancellationRefundRule { daysBeforeDeparture: number; refundPercent: number; }
+export interface ImageUploadSignature { cloudName: string; apiKey: string; timestamp: number; folder: string; allowedFormats: string; signature: string; }
 export interface TourDetailDto {
   summary: TourSummaryDto; description: string | null; requiredExperience: string | null;
   includedServices: string | null; excludedServices: string | null; company: { id: number; name: string };
@@ -19,6 +21,7 @@ export interface TourDetailDto {
   itinerary: { dayNumber: number; title: string; description: string | null; startTime: string | null; locationId: number | null }[];
   schedules: TourScheduleDto[]; routeFileUrl: string | null;
   cancellationPolicy: { id: number; title: string; version: number; content: string } | null;
+  cancellationRefundRules: CancellationRefundRule[];
   packingList: { id: number; name: string; required: boolean; note: string | null }[];
   equipment: PublicEquipmentDto | null; averageTourRating: number | null; reviewCount: number;
 }
@@ -39,6 +42,7 @@ export interface PartnerTourDto {
   id: number; companyId: number; title: string; description: string | null; status: 'draft' | 'pending' | 'published' | 'rejected' | 'archived'; difficulty: string | null;
   durationDays: number | null; requiredExperience: string | null; includedServices: string | null;
   excludedServices: string | null; routeFileUrl: string | null; cancellationPolicyVersionId: number | null;
+  cancellationRefundRules: CancellationRefundRule[];
   reviewNote?: string | null; reviewedAt?: string | null;
   locationIds: number[]; media: { id: number; mediaType: string; url: string; caption: string | null; displayOrder: number; cover: boolean }[];
   itinerary: { dayNumber: number; displayOrder: number; title: string; description: string | null; startTime: string | null; locationId: number | null }[];
@@ -51,7 +55,7 @@ export interface CancellationPolicyVersionDto { id: number; policyTitle: string;
 export interface PartnerTourDraftRequest {
   title: string; description: string; difficulty: string; durationDays: number; requiredExperience?: string | null;
   includedServices?: string | null; excludedServices?: string | null; routeFileUrl?: string | null;
-  cancellationPolicyVersionId: number; locationIds: number[]; media: { mediaType: string; url: string; caption?: string | null; displayOrder: number; cover: boolean }[];
+  cancellationPolicyVersionId: number | null; cancellationRefundRules: CancellationRefundRule[]; locationIds: number[]; media: { mediaType: string; url: string; caption?: string | null; displayOrder: number; cover: boolean }[];
   itinerary: { dayNumber: number; displayOrder: number; title: string; description?: string | null; startTime?: string | null; locationId?: number | null }[];
   packingList: { name: string; required: boolean; note?: string | null; displayOrder: number }[];
 }

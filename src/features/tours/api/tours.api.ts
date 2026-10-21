@@ -2,7 +2,7 @@ import { apiClient } from '../../../lib/axios';
 import { ApiResponse } from '../../../types/api.types';
 import { APP_CONFIG } from '../../../constants/config';
 import { authStore } from '../../../stores/auth.store';
-import { CancellationPolicyVersionDto, EquipmentPackageWriteRequest, LocationDto, PartnerGuideDto, PartnerScheduleRequest, PartnerTourDto, PartnerTourDraftRequest, PartnerTourPageDto, TourDetailDto, TourFilter, TourPageDto, TourReviewQueueItem, TourReviewsDto, TourRosterDto } from '../types/tour.types';
+import { CancellationPolicyVersionDto, EquipmentPackageWriteRequest, ImageUploadSignature, LocationDto, PartnerGuideDto, PartnerScheduleRequest, PartnerTourDto, PartnerTourDraftRequest, PartnerTourPageDto, TourDetailDto, TourFilter, TourPageDto, TourReviewQueueItem, TourReviewsDto, TourRosterDto } from '../types/tour.types';
 
 // The backend mounts features below /api/v1. The default Vite proxy already
 // includes /api, while an explicitly configured backend URL may not.
@@ -47,6 +47,7 @@ export const toursApi = {
   getPartnerTours: (params: { page?: number; size?: number; status?: string } = {}) => get<PartnerTourPageDto>(tourPath('/partner/tours'), { params }),
   getPartnerGuides: () => get<{ items: PartnerGuideDto[] }>(tourPath('/partner/guides')),
   getCancellationPolicyVersions: () => get<{ items: CancellationPolicyVersionDto[] }>(tourPath('/partner/tours/policy-versions')),
+  getImageUploadSignature: () => post<ImageUploadSignature>(tourPath('/partner/tours/upload-signature'), {}),
   createPartnerTour: (body: PartnerTourDraftRequest) => post<PartnerTourDto>(tourPath('/partner/tours'), body),
   getPartnerTour: (id: number) => get<PartnerTourDto>(tourPath(`/partner/tours/${id}`)),
   updatePartnerTour: (id: number, body: Partial<PartnerTourDraftRequest>) => patch<PartnerTourDto>(tourPath(`/partner/tours/${id}`), body),

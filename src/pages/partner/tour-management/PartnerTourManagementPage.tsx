@@ -11,7 +11,14 @@ import {
   PartnerGuideDto,
 } from '../../../features/tours/types/tour.types';
 
-const emptyDraft: PartnerTourDraftRequest = { title: '', description: '', difficulty: 'moderate', durationDays: 1, itinerary: [], media: [], packingList: [], cancellationPolicyVersionId: 0, locationIds: [] };
+const defaultRefundRules = [{ daysBeforeDeparture: 30, refundPercent: 100 }, { daysBeforeDeparture: 7, refundPercent: 50 }, { daysBeforeDeparture: 0, refundPercent: 0 }];
+const emptyDraft: PartnerTourDraftRequest = { title: '', description: '', difficulty: 'moderate', durationDays: 1, itinerary: [], media: [], packingList: [], cancellationPolicyVersionId: null, cancellationRefundRules: defaultRefundRules, locationIds: [] };
+const validRefundRules = (rules: PartnerTourDraftRequest['cancellationRefundRules']) => {
+  if (!rules.length || rules.length > 8 || rules.filter(rule => rule.daysBeforeDeparture === 0).length !== 1
+      || new Set(rules.map(rule => rule.daysBeforeDeparture)).size !== rules.length) return false;
+  const sorted = [...rules].sort((a, b) => b.daysBeforeDeparture - a.daysBeforeDeparture);
+  return sorted.every((rule, index) => index === 0 || rule.refundPercent <= sorted[index - 1].refundPercent);
+};
 const emptyEquipment: EquipmentPackageWriteRequest = { title: '', includedItems: '', sharedItems: '', personalItemsToBring: '' };
 interface ScheduleFormState { startsAt: string; endsAt: string; capacity: string; basePriceVnd: string; equipmentFeeVnd: string; depositPercent: string; balanceDueAt: string; meetingPoint: string; contactPhone: string; }
 const emptySchedule: ScheduleFormState = { startsAt: '', endsAt: '', capacity: '', basePriceVnd: '', equipmentFeeVnd: '', depositPercent: '', balanceDueAt: '', meetingPoint: '', contactPhone: '' };
@@ -25,7 +32,7 @@ export const PartnerTourManagementPage: React.FC = () => {
   const { t } = useI18n();
   const [tours, setTours] = useState<PartnerTourItemDto[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [editorSection, setEditorSection] = useState<'details' | 'content' | 'equipment' | 'departure'>('details');
+  const [editorSection, setEditorSection] = useState<'details' | 'content' | 'refunds' | 'equipment' | 'departure'>('details');
   const [isCreating, setIsCreating] = useState(false);
   const [loadingTour, setLoadingTour] = useState(false);
   const [draft, setDraft] = useState<PartnerTourDraftRequest>(emptyDraft);
@@ -36,6 +43,7 @@ export const PartnerTourManagementPage: React.FC = () => {
   const [leadGuideId, setLeadGuideId] = useState('');
   const [supportGuideIds, setSupportGuideIds] = useState<string[]>([]);
   const [guides, setGuides] = useState<PartnerGuideDto[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +68,7 @@ export const PartnerTourManagementPage: React.FC = () => {
     setSelectedId(id); setIsCreating(false); setDraft(emptyDraft); setEquipment(emptyEquipment); setGuides([]); setLeadGuideId(''); setSupportGuideIds([]); setNotice(null); setError(null); setLoadingTour(true);
     try {
       const tour = await toursApi.getPartnerTour(id);
-      setDraft({ title: tour.title, description: tour.description || '', difficulty: tour.difficulty || 'moderate', durationDays: tour.durationDays || 1, requiredExperience: tour.requiredExperience, itinerary: tour.itinerary, media: tour.media.map(({ id: _id, ...item }) => item), includedServices: tour.includedServices, excludedServices: tour.excludedServices, packingList: tour.packingList.map(({ id: _id, ...item }) => item), cancellationPolicyVersionId: tour.cancellationPolicyVersionId || 0, routeFileUrl: tour.routeFileUrl, locationIds: tour.locationIds });
+      setDraft({ title: tour.title, description: tour.description || '', difficulty: tour.difficulty || 'moderate', durationDays: tour.durationDays || 1, requiredExperience: tour.requiredExperience, itinerary: tour.itinerary, media: tour.media.map(({ id: _id, ...item }) => item), includedServices: tour.includedServices, excludedServices: tour.excludedServices, packingList: tour.packingList.map(({ id: _id, ...item }) => item), cancellationPolicyVersionId: tour.cancellationPolicyVersionId || 0, cancellationRefundRules: tour.cancellationRefundRules?.length ? tour.cancellationRefundRules : [], routeFileUrl: tour.routeFileUrl, locationIds: tour.locationIds });
       const currentEquipment = tour.equipmentOptions?.[0];
       setEquipment(currentEquipment ? { title: currentEquipment.title, includedItems: currentEquipment.includedItems, sharedItems: currentEquipment.sharedItems, personalItemsToBring: currentEquipment.personalItemsToBring } : emptyEquipment);
       try {
@@ -91,11 +99,21 @@ export const PartnerTourManagementPage: React.FC = () => {
   const statusText = (status: string) => t(`partnerTour.status.${status}`);
   const saveTour = async () => {
     if (!draft.title.trim()) { setEditorSection('details'); setError(t('partnerTour.nameRequired')); return; }
-    if (!draft.description.trim()) { setEditorSection('content'); setError(t('partnerTour.descriptionRequired')); return; }
-    if (!draft.cancellationPolicyVersionId) { setError(t('partnerTour.selectPolicyError')); return; }
     const creating = selectedId === null;
     const saved = await mutate(() => creating ? toursApi.createPartnerTour(draft) : toursApi.updatePartnerTour(selectedId as number, draft), creating ? 'partnerTour.created' : 'partnerTour.saved');
     if (saved && creating) setIsCreating(false);
+  };
+  const submitForReview = async () => {
+    if (!draft.title.trim()) { setEditorSection('details'); setError(t('partnerTour.nameRequired')); return; }
+    if (!draft.description.trim()) { setEditorSection('content'); setError(t('partnerTour.descriptionRequired')); return; }
+    if (!draft.cancellationPolicyVersionId) { setError(t('partnerTour.selectPolicyError')); return; }
+    if (draft.media.length < 3) { setEditorSection('content'); setError(t('partnerTour.minimumImages')); return; }
+    if (draft.locationIds.length === 0) { setEditorSection('content'); setError(t('partnerTour.destinationRequired')); return; }
+    if (!validRefundRules(draft.cancellationRefundRules)) { setEditorSection('refunds'); setError(t('partnerTour.refundRulesInvalid')); return; }
+    if (!selectedId) { setError(t('partnerTour.saveBeforeSubmit')); return; }
+    const isPublished = selectedTour?.status === 'published';
+    const saved = await mutate(() => toursApi.updatePartnerTour(selectedId, draft), isPublished ? 'partnerTour.changesSentForReview' : 'partnerTour.saved');
+    if (saved && !isPublished) await mutate(() => toursApi.submitPartnerTour(selectedId), 'partnerTour.submitted');
   };
   const startArchive = async (tourId: number) => {
     if (!window.confirm(t('partnerTour.archiveConfirm'))) return;
@@ -109,6 +127,42 @@ export const PartnerTourManagementPage: React.FC = () => {
       setNotice(t('partnerTour.restoreNextSteps'));
     }
   };
+  const uploadImages = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const selectedFiles = Array.from(files);
+    if (draft.media.length + selectedFiles.length > 10) { setError(t('partnerTour.imageLimit')); return; }
+    if (selectedFiles.some(file => !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024)) { setError(t('partnerTour.imageRequirements')); return; }
+    setUploadingImages(true); setError(null);
+    try {
+      const uploaded: PartnerTourDraftRequest['media'] = [];
+      for (const file of selectedFiles) {
+        const signature = await toursApi.getImageUploadSignature();
+        const body = new FormData();
+        body.append('file', file); body.append('api_key', signature.apiKey); body.append('timestamp', String(signature.timestamp));
+        body.append('folder', signature.folder); body.append('allowed_formats', signature.allowedFormats); body.append('signature', signature.signature);
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(signature.cloudName)}/image/upload`, { method: 'POST', body });
+        const result = await response.json() as { secure_url?: string; error?: { message?: string } };
+        if (!response.ok || !result.secure_url) throw new Error(result.error?.message || t('partnerTour.imageUploadFailed'));
+        uploaded.push({ mediaType: 'image', url: result.secure_url, caption: null, displayOrder: draft.media.length + uploaded.length, cover: draft.media.length + uploaded.length === 0 });
+      }
+      setDraft(current => ({ ...current, media: [...current.media, ...uploaded].map((item, index) => ({ ...item, displayOrder: index, cover: index === 0 })) }));
+    } catch (e) { setError(errorText(e)); }
+    finally { setUploadingImages(false); }
+  };
+  const moveDestination = (index: number, direction: -1 | 1) => {
+    setDraft(current => {
+      const locationIds = [...current.locationIds];
+      const next = index + direction;
+      if (next < 0 || next >= locationIds.length) return current;
+      [locationIds[index], locationIds[next]] = [locationIds[next], locationIds[index]];
+      return { ...current, locationIds };
+    });
+  };
+  const destinationGroups = Array.from(destinations.reduce((groups, destination) => {
+    const province = destination.provinceName || t('partnerTour.otherArea');
+    groups.set(province, [...(groups.get(province) || []), destination]);
+    return groups;
+  }, new Map<string, LocationDto[]>()));
 
   return <main className="min-h-[70vh] bg-[#F7F8F6] px-4 py-8 text-[#1C2526] md:px-8 md:py-10">
     <div className="mx-auto max-w-7xl space-y-6">
@@ -131,8 +185,8 @@ export const PartnerTourManagementPage: React.FC = () => {
 
       {(isCreating || selectedId !== null) && <section ref={editorRef} className={`${cardClass} scroll-mt-6`}>
         <div className="mb-5 flex flex-col gap-2 border-b border-[#E8ECE9] pb-4 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-wider text-[#C2410C]">{selectedTour ? t('partnerTour.editing') : t('partnerTour.newTour')}</p><h2 className="mt-1 text-xl font-bold">{selectedTour?.title || t('partnerTour.tourDetails')}</h2><p className="mt-1 text-sm text-[#64716D]">{t('partnerTour.draftHelp')}</p></div>{selectedTour && <span className="self-start rounded-full bg-[#F4F6F4] px-3 py-1 text-xs font-semibold text-[#52605D]">{statusText(selectedTour.status)}</span>}</div>
-        <nav aria-label={t('partnerTour.editorSections')} className="mb-5 grid grid-cols-2 gap-2 border-b border-[#E8ECE9] pb-5 sm:grid-cols-4">
-          {(['details', 'content', 'equipment', 'departure'] as const).map((section, index) => {
+        <nav aria-label={t('partnerTour.editorSections')} className="mb-5 grid grid-cols-2 gap-2 border-b border-[#E8ECE9] pb-5 md:grid-cols-3 xl:grid-cols-5">
+          {(['details', 'content', 'refunds', 'equipment', 'departure'] as const).map((section, index) => {
             const disabled = !selectedId && (section === 'equipment' || section === 'departure');
             return <button key={section} type="button" disabled={disabled} onClick={() => setEditorSection(section)} aria-current={editorSection === section ? 'step' : undefined}
               className={`min-h-12 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C] disabled:cursor-not-allowed disabled:opacity-45 ${editorSection === section ? 'border-[#1F4E43] bg-[#F1F6F3] text-[#1F4E43]' : 'border-[#E2E7E4] bg-white text-[#52605D] hover:bg-[#F7F8F6]'}`}>
@@ -147,24 +201,36 @@ export const PartnerTourManagementPage: React.FC = () => {
           <label className={fieldClass}>{t('partnerTour.difficulty')}<select value={draft.difficulty} onChange={e => updateDraft('difficulty', e.target.value)} className={inputClass}>{['easy', 'moderate', 'hard', 'expert'].map(value => <option key={value} value={value}>{t(`tour.${value}`)}</option>)}</select></label>
           <label className={fieldClass}>{t('partnerTour.duration')}<input type="number" min="1" max="60" value={draft.durationDays} onChange={e => updateDraft('durationDays', Number(e.target.value))} className={inputClass} /></label>
           <label className={fieldClass}>{t('partnerTour.experience')}<input value={draft.requiredExperience || ''} onChange={e => updateDraft('requiredExperience', e.target.value)} className={inputClass} /></label>
-          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.policy')}<select required value={draft.cancellationPolicyVersionId || ''} onChange={e => updateDraft('cancellationPolicyVersionId', Number(e.target.value))} className={inputClass}><option value="">{t('partnerTour.selectPolicy')}</option>{policies.map(policy => <option key={policy.id} value={policy.id}>{policy.policyTitle} · v{policy.versionNumber} · {new Date(policy.effectiveFrom).toLocaleDateString()}</option>)}</select>{!policies.length && <span className="mt-1 block text-xs font-normal text-amber-800">{t('partnerTour.noPolicies')}</span>}{policies.find(policy => policy.id === draft.cancellationPolicyVersionId)?.content && <span className="mt-1 block text-xs font-normal text-[#64716D]">{policies.find(policy => policy.id === draft.cancellationPolicyVersionId)?.content}</span>}</label>
+          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.policy')}<select value={draft.cancellationPolicyVersionId || ''} onChange={e => updateDraft('cancellationPolicyVersionId', e.target.value ? Number(e.target.value) : null)} className={inputClass}><option value="">{t('partnerTour.selectPolicy')}</option>{policies.map(policy => <option key={policy.id} value={policy.id}>{policy.policyTitle} · v{policy.versionNumber} · {new Date(policy.effectiveFrom).toLocaleDateString()}</option>)}</select>{!policies.length && <span className="mt-1 block text-xs font-normal text-amber-800">{t('partnerTour.noPolicies')}</span>}{policies.find(policy => policy.id === draft.cancellationPolicyVersionId)?.content && <span className="mt-1 block text-xs font-normal text-[#64716D]">{policies.find(policy => policy.id === draft.cancellationPolicyVersionId)?.content}</span>}</label>
           </>}
           {editorSection === 'content' && <>
-          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.descriptionField')}<textarea required value={draft.description} onChange={e => updateDraft('description', e.target.value)} className={inputClass} rows={4} /></label>
+          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.descriptionField')}<textarea value={draft.description} onChange={e => updateDraft('description', e.target.value)} className={inputClass} rows={4} /></label>
           <label className={fieldClass}>{t('partnerTour.included')}<textarea value={draft.includedServices || ''} onChange={e => updateDraft('includedServices', e.target.value)} className={inputClass} rows={3} /></label>
           <label className={fieldClass}>{t('partnerTour.excluded')}<textarea value={draft.excludedServices || ''} onChange={e => updateDraft('excludedServices', e.target.value)} className={inputClass} rows={3} /></label>
           <label className={fieldClass}>{t('partnerTour.packing')}<textarea value={draft.packingList.map(item => item.name).join('\n')} onChange={e => updateDraft('packingList', e.target.value.split('\n').map(line => line.trim()).filter(Boolean).map((name, index) => ({ name, note: null, required: false, displayOrder: index })))} className={inputClass} rows={4} /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.packingHint')}</span></label>
           <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.route')}<input value={draft.routeFileUrl || ''} onChange={e => updateDraft('routeFileUrl', e.target.value || null)} className={inputClass} placeholder="https://…" /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.routeHint')}</span></label>
-          <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.media')}<textarea value={draft.media.map(item => item.url).join('\n')} onChange={e => updateDraft('media', e.target.value.split('\n').map(value => value.trim()).filter(Boolean).map((url, index) => ({ mediaType: 'image', url, displayOrder: index, cover: index === 0 })))} className={inputClass} rows={3} /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.mediaHint')}</span></label>
-          <fieldset className={`${fieldClass} md:col-span-2 rounded-lg border border-[#E2E7E4] p-3`}><legend className="px-1">{t('partnerTour.locations')}</legend>{destinations.length ? <div className="grid max-h-52 gap-2 overflow-y-auto sm:grid-cols-2">{destinations.map(destination => <label key={destination.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-normal hover:bg-[#F7F8F6]"><input type="checkbox" checked={draft.locationIds.includes(destination.id)} onChange={e => updateDraft('locationIds', e.target.checked ? [...draft.locationIds, destination.id] : draft.locationIds.filter(id => id !== destination.id))} className="h-4 w-4 accent-[#1F4E43]"/><span>{destination.name}{destination.provinceName ? `, ${destination.provinceName}` : ''}</span></label>)}</div> : <p className="text-xs font-normal text-[#75817C]">{t('partnerTour.noDestinations')}</p>}<span className="mt-2 block text-xs font-normal text-[#75817C]">{t('partnerTour.locationsHint')}</span></fieldset>
+          <fieldset className={`${fieldClass} md:col-span-2 rounded-lg border border-[#E2E7E4] p-3`}><legend className="px-1">{t('partnerTour.media')}</legend><p className="mb-3 text-xs font-normal text-[#75817C]">{t('partnerTour.mediaHint')}</p><input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploadingImages || draft.media.length >= 10} onChange={e => { void uploadImages(e.currentTarget.files); e.currentTarget.value = ''; }} className="block w-full cursor-pointer rounded-lg border border-[#D7DFDA] bg-white text-sm file:mr-3 file:border-0 file:bg-[#F1F6F3] file:px-4 file:py-2.5 file:font-semibold file:text-[#1F4E43]" aria-label={t('partnerTour.uploadImages')} />{uploadingImages && <p role="status" className="mt-2 text-sm text-[#52605D]">{t('partnerTour.uploadingImages')}</p>}{draft.media.length > 0 && <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{draft.media.map((item, index) => <figure key={`${item.url}-${index}`} className="overflow-hidden rounded-lg border border-[#E2E7E4] bg-white"><img src={item.url} alt={t('partnerTour.photoNumber', { number: index + 1 })} className="aspect-[4/3] w-full object-cover"/><figcaption className="flex items-center justify-between gap-2 p-2 text-xs"><span className="font-semibold">{index === 0 ? t('partnerTour.coverImage') : t('partnerTour.photoNumber', { number: index + 1 })}</span><div className="flex gap-1"><button type="button" disabled={index === 0} onClick={() => updateDraft('media', [item, ...draft.media.filter((_, i) => i !== index)].map((mediaItem, i) => ({ ...mediaItem, displayOrder: i, cover: i === 0 })))} className="rounded px-2 py-1 text-[#1F4E43] hover:bg-[#F1F6F3] disabled:opacity-40" aria-label={t('partnerTour.setCover')}>↑</button><button type="button" onClick={() => updateDraft('media', draft.media.filter((_, i) => i !== index).map((mediaItem, i) => ({ ...mediaItem, displayOrder: i, cover: i === 0 })))} className="rounded px-2 py-1 text-rose-700 hover:bg-rose-50" aria-label={t('partnerTour.removeImage')}>×</button></div></figcaption></figure>)}</div>}</fieldset>
+          <fieldset className={`${fieldClass} md:col-span-2 rounded-lg border border-[#E2E7E4] p-3`}><legend className="px-1">{t('partnerTour.locations')}</legend><p className="mb-3 text-xs font-normal text-[#75817C]">{t('partnerTour.locationsHint')}</p>{destinationGroups.length ? <div className="grid max-h-56 gap-x-5 gap-y-3 overflow-y-auto sm:grid-cols-2">{destinationGroups.map(([province, items]) => <div key={province}><h3 className="mb-1 text-xs font-bold uppercase tracking-wide text-[#75817C]">{province}</h3>{items.map(destination => <label key={destination.id} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-normal hover:bg-[#F7F8F6]"><input type="checkbox" checked={draft.locationIds.includes(destination.id)} onChange={e => updateDraft('locationIds', e.target.checked ? [...draft.locationIds, destination.id] : draft.locationIds.filter(id => id !== destination.id))} className="h-4 w-4 accent-[#1F4E43]"/><span>{destination.name}</span></label>)}</div>)}</div> : <p className="text-xs font-normal text-[#75817C]">{t('partnerTour.noDestinations')}</p>}{draft.locationIds.length > 0 && <ol className="mt-4 space-y-1 border-t border-[#E8ECE9] pt-3">{draft.locationIds.map((id, index) => { const destination = destinations.find(item => item.id === id); return <li key={id} className="flex items-center justify-between gap-3 rounded-md bg-[#F7F8F6] px-3 py-2 text-sm"><span>{index + 1}. {destination?.name || t('partnerTour.unknownDestination')}</span><span className="flex gap-1"><button type="button" disabled={index === 0} onClick={() => moveDestination(index, -1)} className="rounded px-2 py-1 hover:bg-white disabled:opacity-40" aria-label={t('partnerTour.moveEarlier')}>↑</button><button type="button" disabled={index === draft.locationIds.length - 1} onClick={() => moveDestination(index, 1)} className="rounded px-2 py-1 hover:bg-white disabled:opacity-40" aria-label={t('partnerTour.moveLater')}>↓</button></span></li>; })}</ol>}</fieldset>
           <label className={`${fieldClass} md:col-span-2`}>{t('partnerTour.itinerary')}<textarea value={draft.itinerary.map(item => item.title).join('\n')} onChange={e => updateDraft('itinerary', e.target.value.split('\n').map(line => line.trim()).filter(Boolean).map((title, index) => ({ dayNumber: index + 1, displayOrder: index, title, description: null, startTime: null, locationId: null })))} className={inputClass} rows={4} /><span className="mt-1 block text-xs font-normal text-[#75817C]">{t('partnerTour.itineraryHint')}</span></label>
           </>}
           <div className="md:col-span-2 flex flex-col gap-2 border-t border-[#E8ECE9] pt-4 sm:flex-row sm:flex-wrap">
-            <button disabled={busy || !policies.length || !draft.cancellationPolicyVersionId} className="rounded-lg bg-[#1F4E43] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#173C34] disabled:cursor-not-allowed disabled:opacity-50">{busy ? t('partnerTour.saving') : selectedId ? t('partnerTour.saveChanges') : t('partnerTour.createDraft')}</button>
-            {selectedId && <button type="button" disabled={busy} onClick={() => void mutate(() => toursApi.submitPartnerTour(selectedId), 'partnerTour.submitted')} className="rounded-lg border border-[#CAD4CF] bg-white px-4 py-2.5 text-sm font-semibold text-[#34413D] hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.submitReview')}</button>}
+            <button disabled={busy} className="rounded-lg bg-[#1F4E43] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#173C34] disabled:cursor-not-allowed disabled:opacity-50">{busy ? t('partnerTour.saving') : selectedId ? t('partnerTour.saveChanges') : t('partnerTour.createDraft')}</button>
+            {selectedId && <button type="button" disabled={busy} onClick={() => void submitForReview()} className="rounded-lg border border-[#CAD4CF] bg-white px-4 py-2.5 text-sm font-semibold text-[#34413D] hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.submitReview')}</button>}
             <button type="button" disabled={busy} onClick={closeEditor} className="rounded-lg border border-[#CAD4CF] bg-white px-4 py-2.5 text-sm font-semibold text-[#34413D] hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.cancelEdit')}</button>
           </div>
         </form> : null}
+      </section>}
+
+      {editorSection === 'refunds' && (isCreating || selectedId !== null) && <section className={cardClass}>
+        <div className="mb-5"><h2 className="text-xl font-bold">{t('partnerTour.refundRulesTitle')}</h2><p className="mt-1 max-w-2xl text-sm leading-6 text-[#64716D]">{t('partnerTour.refundRulesHelp')}</p></div>
+        <div className="space-y-3">{draft.cancellationRefundRules.map((rule, index) => <div key={`${rule.daysBeforeDeparture}-${index}`} className="grid gap-3 rounded-xl border border-[#E2E7E4] bg-[#FAFBFA] p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <label className={fieldClass}>{t('partnerTour.refundBeforeDays')}<input type="number" min="0" max="3650" value={rule.daysBeforeDeparture} onChange={e => updateDraft('cancellationRefundRules', draft.cancellationRefundRules.map((item, i) => i === index ? { ...item, daysBeforeDeparture: Number(e.target.value) } : item))} className={inputClass}/></label>
+          <label className={fieldClass}>{t('partnerTour.refundPercent')}<div className="relative"><input type="number" min="0" max="100" step="1" value={rule.refundPercent} onChange={e => updateDraft('cancellationRefundRules', draft.cancellationRefundRules.map((item, i) => i === index ? { ...item, refundPercent: Number(e.target.value) } : item))} className={`${inputClass} pr-10`}/><span className="absolute right-3 top-3 text-sm text-[#64716D]">%</span></div></label>
+          <button type="button" disabled={draft.cancellationRefundRules.length <= 1 || rule.daysBeforeDeparture === 0} onClick={() => updateDraft('cancellationRefundRules', draft.cancellationRefundRules.filter((_, i) => i !== index))} className="min-h-10 rounded-lg border border-[#CAD4CF] px-3 text-sm font-semibold text-[#52605D] hover:bg-white disabled:opacity-40">{t('partnerTour.removeRule')}</button>
+          <p className="text-xs text-[#64716D] sm:col-span-3">{t('partnerTour.refundRuleExample', { days: rule.daysBeforeDeparture, percent: rule.refundPercent })}</p>
+        </div>)}</div>
+        <div className="mt-4 flex flex-wrap gap-2"><button type="button" disabled={draft.cancellationRefundRules.length >= 8} onClick={() => setDraft(current => { const days = new Set(current.cancellationRefundRules.map(rule => rule.daysBeforeDeparture)); let threshold = 1; while (days.has(threshold)) threshold++; return { ...current, cancellationRefundRules: [...current.cancellationRefundRules, { daysBeforeDeparture: threshold, refundPercent: 0 }] }; })} className="rounded-lg border border-[#CAD4CF] bg-white px-4 py-2.5 text-sm font-semibold text-[#34413D] hover:bg-[#F7F8F6] disabled:opacity-50">{t('partnerTour.addRefundRule')}</button><p className="self-center text-xs text-[#64716D]">{t('partnerTour.refundRuleOrderHelp')}</p></div>
+        <div className="mt-6 flex flex-wrap gap-2 border-t border-[#E8ECE9] pt-4"><button type="button" disabled={busy} onClick={() => void saveTour()} className="rounded-lg bg-[#1F4E43] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{busy ? t('partnerTour.saving') : selectedId ? t('partnerTour.saveChanges') : t('partnerTour.createDraft')}</button>{selectedId && <button type="button" disabled={busy} onClick={() => void submitForReview()} className="rounded-lg border border-[#CAD4CF] bg-white px-4 py-2.5 text-sm font-semibold text-[#34413D]">{t('partnerTour.submitReview')}</button>}</div>
       </section>}
 
       {selectedId && editorSection === 'equipment' && <section className={cardClass}>
