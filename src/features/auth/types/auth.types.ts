@@ -7,11 +7,10 @@ export interface LoginPayload {
 }
 
 export interface RegisterPayload {
-  name: string;
   email: string;
+  password: string;
+  fullName: string;
   phone: string;
-  passport?: string;
-  agreeSafetyCharter?: boolean;
 }
 
 export interface AuthSession {
@@ -21,5 +20,19 @@ export interface AuthSession {
     name: string;
     email: string;
     role: UserRole;
+    phone?: string | null;
   };
+}
+
+export interface AccountProfile {
+  id: number;
+  email: string;
+  fullName: string;
+  phone: string | null;
+  roles: string[];
+}
+
+export interface UpdateAccountPayload {
+  fullName: string;
+  phone: string;
 }

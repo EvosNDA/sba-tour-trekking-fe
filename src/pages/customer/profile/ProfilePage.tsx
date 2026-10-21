@@ -34,8 +34,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [narrative, setNarrative] = useState(review.narrative);
   const [endorsement, setEndorsement] = useState(review.endorsement);
   const [travelerDynamic, setTravelerDynamic] = useState(review.travelerDynamic);
-  const [isSubmitted, setIsSubmitted] = useState(review.isSubmitted);
-  const [draftSaved, setDraftSaved] = useState(false);
+  const [submitNotice, setSubmitNotice] = useState<string | null>(null);
 
   const availableTags = [
     'Pristine Nature',
@@ -66,16 +65,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   };
 
   const handleAddSamplePhoto = () => {
-    const newId = `photo-${Date.now()}`;
-    setPhotos([
-      ...photos,
-      {
-        id: newId,
-        name: `bivouac_camp_${photos.length + 1}.jpg`,
-        size: '4.1MB',
-        url: '/src/assets/images/fansipan_cloud_ridge_1792001300725.jpg',
-      },
-    ]);
+    setSubmitNotice('Photo upload is not available in this frontend. Existing trip photos are shown above.');
+    setTimeout(() => setSubmitNotice(null), 5000);
   };
 
   const handleInsertHelperPrompt = (prompt: string) => {
@@ -84,23 +75,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   };
 
   const handleSaveDraft = () => {
-    setDraftSaved(true);
-    setTimeout(() => setDraftSaved(false), 2500);
+    setSubmitNotice('Drafts are kept locally only. This frontend has no review draft endpoint.');
+    setTimeout(() => setSubmitNotice(null), 5000);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
-    onUpdateReview({
-      ...review,
-      ratings,
-      selectedTags,
-      photos,
-      narrative,
-      endorsement,
-      travelerDynamic,
-      isSubmitted: true,
-    });
+    setSubmitNotice('Review submission is not available in this frontend. Field logs are published by tour operators after trip completion.');
+    setTimeout(() => setSubmitNotice(null), 5000);
   };
 
   return (
@@ -145,9 +127,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono text-[#78716C] bg-[#FAF8F5] px-2.5 py-1 rounded border border-[#E6E1D8]">
-              {draftSaved ? 'Draft Saved!' : 'Draft Auto-Saved'}
-            </span>
+            {submitNotice ? (
+              <span className="text-[11px] font-mono text-orange-950 bg-orange-50 px-2.5 py-1 rounded border border-orange-200">
+                {submitNotice}
+              </span>
+            ) : (
+              <span className="text-[11px] font-mono text-[#78716C] bg-[#FAF8F5] px-2.5 py-1 rounded border border-[#E6E1D8]">
+                Draft Auto-Saved
+              </span>
+            )}
           </div>
         </div>
 
@@ -185,11 +173,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
 
           <div className="bg-[#FAF8F5] border border-[#E6E1D8] rounded-lg p-3 text-center shrink-0 w-full sm:w-auto">
-            <span className="text-[10px] font-mono uppercase text-[#78716C] block">
-              EARN REWARD
-            </span>
-            <span className="font-editorial text-xl font-bold text-[#C2410C] flex items-center justify-center gap-1">
-              <Award className="w-4 h-4" /> +{review.rewardPoints} pts
+            <span className="text-[11px] font-mono text-[#78716C] block">
+              Review draft kept locally only
             </span>
           </div>
         </div>
@@ -556,7 +541,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   Immutable Traveler Attestation
                 </strong>
                 <p className="text-[11px] leading-relaxed mt-0.5">
-                  By submitting this log, you certify this review represents your genuine backcountry journey. Verified posts award <strong className="text-[#1C2526]">250 Wayfarer Points</strong> immediately to your account ledger.
+                  By submitting this log, you certify this review represents your genuine backcountry journey. Review publication is handled by the tour operator after trip completion.
                 </p>
               </div>
             </div>
@@ -569,7 +554,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 onClick={handleSaveDraft}
                 className="px-4 py-2 text-xs font-semibold text-[#2D3748] bg-white border border-[#E6E1D8] rounded-lg hover:bg-[#FAF8F5] transition-colors cursor-pointer"
               >
-                {draftSaved ? '✓ Draft Saved' : 'Save Draft'}
+                Save Draft
               </button>
               <button
                 type="button"
@@ -589,39 +574,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             </button>
           </div>
         </form>
-
-        {isSubmitted && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div className="bg-white border border-[#E6E1D8] rounded-xl p-8 max-w-md text-center shadow-2xl animate-in zoom-in-95 duration-200">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 text-[#1F4E43] flex items-center justify-center mx-auto mb-4">
-                <Award className="w-8 h-8" />
-              </div>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#C2410C] font-semibold block mb-1">
-                VERIFIED FIELD LOG RECORDED
-              </span>
-              <h3 className="font-editorial text-2xl font-bold text-[#1C2526] mb-2">
-                Thank you, Eleanor!
-              </h3>
-              <p className="text-xs text-[#64748B] leading-relaxed mb-6">
-                Your expedition review for <strong>Ha Long &amp; Lan Ha Bay</strong> has been permanently committed to the backcountry ledger. <span className="text-emerald-700 font-bold">+250 Wayfarer Points</span> have been deposited into your climber wallet.
-              </p>
-              <div className="flex gap-2 justify-center">
-                <button
-                  onClick={() => setIsSubmitted(false)}
-                  className="bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold px-5 py-2.5 rounded-lg cursor-pointer"
-                >
-                  View Published Logbook
-                </button>
-                <button
-                  onClick={() => onNavigate('marketplace')}
-                  className="bg-[#FAF8F5] hover:bg-[#EFECE4] text-[#1C2526] border border-[#E6E1D8] text-xs font-semibold px-5 py-2.5 rounded-lg cursor-pointer"
-                >
-                  Explore More Hikes
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

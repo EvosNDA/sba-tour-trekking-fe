@@ -33,7 +33,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         />
       )}
       <main className="flex-1">{children}</main>
-      {showFooter && <Footer />}
+      {showFooter && <Footer onNavigate={onNavigate} />}
     </div>
   );
 };

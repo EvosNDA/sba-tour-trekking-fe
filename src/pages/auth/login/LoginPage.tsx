@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ScreenId } from '../../../types/expedition';
+import { useAuth } from '../../../features/auth/hooks/useAuth';
+import { homeScreenForRole } from '../../../app/screenAccess';
+import { useI18n } from '../../../i18n/I18nProvider';
+import { authApi } from '../../../features/auth/api/auth.api';
+import { LanguageToggle } from '../../../components/LanguageToggle';
 import {
   Mountain,
   Mail,
@@ -9,8 +14,6 @@ import {
   ArrowRight,
   ShieldCheck,
   CheckCircle,
-  Radio,
-  Fingerprint,
   Quote,
 } from 'lucide-react';
 
@@ -23,16 +26,62 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onLoginSuccess = () => {},
   onNavigate = () => {},
 }) => {
-  const [email, setEmail] = useState('eleanor.vance@gmail.com');
-  const [password, setPassword] = useState('FansipanSummit2026!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [ssoMessage, setSsoMessage] = useState<string | null>(null);
+  const [googleSignInUnavailable, setGoogleSignInUnavailable] = useState(false);
   const [resetSent, setResetSent] = useState(false);
-
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetOtp, setResetOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const { login, error: authError } = useAuth();
+  const { t } = useI18n();
+  const localizedAuthError = authError
+    ? authError.includes('Email or password') ? t('auth.invalidCredentials')
+      : authError.includes('Verify your email') ? t('auth.emailNotVerified')
+        : authError.includes('Account is not active') ? t('auth.accountUnavailable')
+          : authError.includes('temporarily unavailable') ? t('auth.authUnavailable')
+            : authError.includes('Reset your password') ? t('auth.passwordResetRequired')
+              : t('auth.genericError')
+    : null;
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const requestPasswordReset = async () => {
+    if (!email.trim()) {
+      setResetError(t('auth.enterEmailFirst'));
+      return;
+    }
+    setIsResetting(true);
+    setResetError(null);
+    setResetSent(false);
+    try {
+      await authApi.forgotPassword(email.trim());
+      setResetSent(true);
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : t('auth.genericError'));
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const completePasswordReset = async () => {
+    setIsResetting(true);
+    setResetError(null);
+    try {
+      await authApi.resetPassword(email.trim(), resetOtp.trim(), newPassword);
+      setResetSent(false);
+      setResetOtp('');
+      setNewPassword('');
+      setStatusMessage('auth.passwordResetDone');
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : t('auth.genericError'));
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   // Initialize WebGL mountain sunset shader
   useEffect(() => {
@@ -169,8 +218,10 @@ void main() {
 
     const uTime = gl.getUniformLocation(prog, 'u_time');
     const uRes = gl.getUniformLocation(prog, 'u_resolution');
+    let isDisposed = false;
 
     const render = (timeMs: number) => {
+      if (isDisposed) return;
       if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
@@ -185,36 +236,45 @@ void main() {
     animationFrameId = requestAnimationFrame(render);
 
     return () => {
+      isDisposed = true;
       cancelAnimationFrame(animationFrameId);
+      gl.deleteBuffer(buf);
+      gl.deleteProgram(prog);
+      gl.deleteShader(vert);
+      gl.deleteShader(frag);
     };
   }, []);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setStatusMessage('Verifying Route Credentials...');
-
-    setTimeout(() => {
-      setStatusMessage('Welcome Back, Climber!');
-      setTimeout(() => {
-        setIsSubmitting(false);
-        onLoginSuccess(email);
-        onNavigate('eticket');
-      }, 700);
-    }, 900);
+    setStatusMessage('auth.verifying');
+    try {
+      const session = await login({ email, password });
+      setStatusMessage('auth.loginSuccess');
+      try { sessionStorage.removeItem('wetrek_partner_application_email'); } catch { /* Session storage is optional. */ }
+      onLoginSuccess(email);
+      onNavigate(homeScreenForRole(session.user.role));
+    } catch (cause) {
+      setStatusMessage(null);
+      try {
+        const errorCode = cause && typeof cause === 'object' && 'code' in cause ? cause.code : null;
+        const pendingPartnerEmail = sessionStorage.getItem('wetrek_partner_application_email');
+        if (errorCode === 'PARTNER_ACTIVATION_REQUIRED'
+          || (pendingPartnerEmail && pendingPartnerEmail === email.trim().toLowerCase())) {
+          sessionStorage.setItem('wetrek_partner_activation_email', email.trim());
+          sessionStorage.removeItem('wetrek_partner_application_email');
+          onNavigate('partner_application_submitted');
+        }
+      } catch {
+        // Keep the regular sign-in error if browser storage is unavailable.
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSimulateSSO = (provider: string) => {
-    setSsoMessage(`Connecting to ${provider}...`);
-    setTimeout(() => {
-      setSsoMessage(`Authenticated via ${provider}. Loading pass...`);
-      setTimeout(() => {
-        setSsoMessage(null);
-        onLoginSuccess(email);
-        onNavigate('eticket');
-      }, 800);
-    }, 700);
-  };
+  const handleGoogleSignIn = () => setGoogleSignInUnavailable(true);
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] flex flex-col justify-between">
@@ -238,29 +298,24 @@ void main() {
               onClick={() => onNavigate('marketplace')}
               className="hidden sm:inline-flex items-center gap-1 text-xs text-[#64748B] hover:text-[#1C2526] transition-colors cursor-pointer"
             >
-              &larr; Back to Marketplace
+              &larr; {t('auth.backMarketplace')}
             </button>
           </div>
 
           <div className="flex items-center gap-2 text-xs">
+            <LanguageToggle />
             <span className="bg-[#B9EADB]/50 text-[#1F4E43] font-semibold px-3 py-1 rounded">
-              Sign In
+              {t('auth.signIn')}
             </span>
             <button
               onClick={() => onNavigate('registration')}
               className="text-[#64748B] hover:text-[#1C2526] px-2 py-1 cursor-pointer"
             >
-              Create Account
-            </button>
-            <button
-              onClick={() => onNavigate('eticket')}
-              className="text-[#64748B] hover:text-[#1C2526] px-2 py-1 cursor-pointer hidden md:inline"
-            >
-              Verify Pass
+              {t('auth.createAccount')}
             </button>
             <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-[#F7F4EE] rounded-full text-[#1F4E43] border border-[#E6E1D8] ml-2">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-mono uppercase font-bold tracking-wider">Safety Guarantee</span>
+                  <span className="text-[10px] font-bold tracking-wider">{t('auth.safetyGuarantee')}</span>
             </div>
           </div>
         </div>
@@ -288,34 +343,34 @@ void main() {
               <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-md shadow-sm border border-white/20">
                 <Mountain className="w-4 h-4 text-[#FFB59D]" />
                 <span className="text-[11px] font-mono uppercase tracking-wider text-white font-semibold">
-                  Official Climber Portal
+                  {t('auth.officialPortal')}
                 </span>
               </div>
             </div>
 
             <div className="relative z-10 my-auto py-6 flex flex-col gap-4">
               <h1 className="font-editorial text-3xl sm:text-4xl lg:text-5xl text-white leading-tight drop-shadow-sm">
-                Climb Beyond the Fog.<br />
+                {t('auth.loginHeadline')}<br />
                 <span className="italic font-normal text-[#FFDCC3]">
-                  Your Mountain Journey Awaits.
+                  {t('auth.loginSubheadline')}
                 </span>
               </h1>
               <p className="text-xs sm:text-sm text-stone-200/90 max-w-sm leading-relaxed">
-                Access secure permits, synchronized GPS tracks, and certified mountain support before your next high-altitude departure.
+                {t('auth.loginDescription')}
               </p>
 
               <div className="flex flex-col gap-2.5 mt-2">
                 <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded bg-black/40 backdrop-blur-md border border-white/10 shadow-sm w-fit">
                   <CheckCircle className="w-4 h-4 text-[#A0D0C2]" />
-                  <span className="text-xs text-white font-medium">180+ Verified Local Mountain Guides</span>
+                  <span className="text-xs text-white font-medium">{t('auth.verifiedGuides')}</span>
                 </div>
                 <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded bg-black/40 backdrop-blur-md border border-white/10 shadow-sm w-fit">
                   <ShieldCheck className="w-4 h-4 text-[#A0D0C2]" />
-                  <span className="text-xs text-white font-medium">100% Bad-Weather Refund Escrow</span>
+                  <span className="text-xs text-white font-medium">{t('auth.weatherRefund')}</span>
                 </div>
                 <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded bg-black/40 backdrop-blur-md border border-white/10 shadow-sm w-fit">
-                  <Radio className="w-4 h-4 text-[#A0D0C2]" />
-                  <span className="text-xs text-white font-medium">Real-time Garmin Satellite SOS Sync</span>
+                  <CheckCircle className="w-4 h-4 text-[#A0D0C2]" />
+                  <span className="text-xs text-white font-medium">{t('auth.localSupport')}</span>
                 </div>
               </div>
             </div>
@@ -325,12 +380,12 @@ void main() {
                 <Quote className="w-5 h-5 text-[#FFB59D] shrink-0 rotate-180" />
                 <div className="flex flex-col">
                   <p className="text-xs text-stone-100 italic leading-relaxed">
-                    "The sea-of-clouds sunrise on Fansipan Ridge is unforgettable. Everything was organized perfectly."
+                    {t('auth.testimonial')}
                   </p>
                   <div className="flex items-center gap-2 mt-2 text-xs">
                     <span className="font-semibold text-[#FFB59D]">Elena V.</span>
                     <span className="text-stone-400">•</span>
-                    <span className="text-stone-300">Sapa Ridge Trekker</span>
+                    <span className="text-stone-300">{t('auth.trekker')}</span>
                   </div>
                 </div>
               </div>
@@ -341,33 +396,24 @@ void main() {
           <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-between bg-white">
             <div className="w-full max-w-md mx-auto flex flex-col gap-6">
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono text-[#C2410C] uppercase tracking-widest font-semibold">
-                    USER AUTHENTICATION
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[#1F4E43] bg-[#B9EADB]/40 px-2.5 py-0.5 rounded-full border border-[#B9EADB]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#1F4E43]"></span>
-                    Secure TLS 1.3
-                  </span>
-                </div>
-
                 <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-[#1C2526] tracking-tight">
-                  Welcome Back, Climber
+                  {t('auth.welcomeBack')}
                 </h2>
                 <p className="text-xs text-[#64748B]">
-                  Sign in to manage your trail permits, bookings, and gear lists.
+                  {t('auth.loginDescriptionShort')}
                 </p>
               </div>
 
               <form onSubmit={handleLoginSubmit} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-[#1C2526] flex items-center justify-between">
-                    <span>Email Address</span>
-                    <span className="text-[10px] font-mono text-[#78716C]">Required</span>
+                  <label htmlFor="login-email" className="text-xs font-semibold text-[#1C2526] flex items-center justify-between">
+                    <span>{t('auth.email')}</span>
+                    <span className="text-[10px] font-mono text-[#78716C]">{t('auth.required')}</span>
                   </label>
                   <div className="relative flex items-center">
                     <Mail className="w-4 h-4 text-[#78716C] absolute left-3 pointer-events-none" />
                     <input
+                      id="login-email"
                       type="email"
                       required
                       autoComplete="email"
@@ -379,152 +425,111 @@ void main() {
                   </div>
                 </div>
 
+                {localizedAuthError && <div>
+                  <p role="alert" aria-live="assertive" className="text-xs text-red-700 bg-red-50 border border-red-200 rounded p-3">{localizedAuthError}</p>
+                </div>}
+
                 <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-[#1C2526]">
-                      Password
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setResetSent(true)}
-                      className="text-xs text-[#C2410C] hover:underline font-semibold cursor-pointer"
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
+                  <label htmlFor="login-password" className="text-xs font-semibold text-[#1C2526]">{t('auth.password')}</label>
                   {resetSent && (
-                    <div className="text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded flex items-center justify-between">
-                      <span>Reset code dispatched to <strong>{email}</strong></span>
+                    <div role="status" aria-live="polite" className="text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded flex items-center justify-between">
+                      <span>{t('auth.resetSent', { email })}</span>
                       <button
                         type="button"
                         onClick={() => setResetSent(false)}
-                        className="text-emerald-700 hover:text-emerald-950 font-bold ml-2 cursor-pointer"
+                        aria-label={t('auth.dismissReset')}
+                        className="text-emerald-700 hover:text-emerald-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 font-bold ml-2 cursor-pointer"
                       >
                         ✕
                       </button>
                     </div>
                   )}
+                  {resetSent && (
+                    <div className="space-y-2 rounded border border-[#E6E1D8] bg-white p-3">
+                      <label className="block text-xs font-semibold" htmlFor="reset-otp">{t('auth.resetOtp')}</label>
+                      <input id="reset-otp" inputMode="numeric" autoComplete="one-time-code" value={resetOtp} onChange={e => setResetOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} className="w-full rounded border p-2 text-sm" />
+                      <label className="block text-xs font-semibold" htmlFor="reset-new-password">{t('auth.newPassword')}</label>
+                      <input id="reset-new-password" type="password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="w-full rounded border p-2 text-sm" />
+                      <button type="button" disabled={isResetting || resetOtp.length !== 6 || newPassword.length < 8} onClick={() => void completePasswordReset()} className="rounded bg-[#1F4E43] px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">{isResetting ? t('auth.sendingReset') : t('auth.resetPassword')}</button>
+                    </div>
+                  )}
                   <div className="relative flex items-center">
                     <Lock className="w-4 h-4 text-[#78716C] absolute left-3 pointer-events-none" />
                     <input
+                      id="login-password"
                       type={showPassword ? 'text' : 'password'}
                       required
                       autoComplete="current-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
+                      placeholder={t('auth.enterPassword')}
                       className="w-full pl-9 pr-10 py-2.5 bg-[#F7F4EE] text-[#1C2526] text-xs sm:text-sm rounded border border-[#E6E1D8] placeholder-[#78716C] focus:outline-none focus:bg-white focus:border-[#C2410C] transition-all"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 text-[#78716C] hover:text-[#1C2526] cursor-pointer"
+                      aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                      aria-pressed={showPassword}
+                      className="absolute right-3 rounded text-[#78716C] hover:text-[#1C2526] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C] cursor-pointer"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#C2410C] focus:ring-[#C2410C] border-stone-300 cursor-pointer"
-                    />
-                    <span className="text-xs text-[#64748B]">
-                      Remember this device for 30 days
-                    </span>
-                  </label>
+                  <button
+                    type="button"
+                    onClick={() => void requestPasswordReset()}
+                    disabled={isResetting}
+                    className="self-end text-xs text-[#C2410C] hover:underline font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C] rounded-sm cursor-pointer"
+                  >
+                    {isResetting ? t('auth.sendingReset') : t('auth.forgotPassword')}
+                  </button>
+                  {resetError && <p role="alert" className="text-xs text-red-700">{resetError}</p>}
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className={`w-full mt-2 py-3 px-6 text-white font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
-                    statusMessage === 'Welcome Back, Climber!'
+                    statusMessage === 'auth.loginSuccess'
                       ? 'bg-[#1F4E43]'
                       : 'bg-[#C2410C] hover:bg-[#9B2F00]'
                   }`}
                 >
-                  <span>{statusMessage || 'Sign In to SummitTrails'}</span>
+                  <span>{statusMessage ? t(statusMessage) : t('auth.signIn')}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
 
-              {ssoMessage && (
-                <div className="p-2.5 bg-[#FAF8F5] border border-[#E6E1D8] rounded text-center text-xs text-[#1F4E43] font-mono animate-pulse">
-                  {ssoMessage}
-                </div>
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                className="w-full py-2.5 px-4 bg-[#F7F4EE] hover:bg-[#EFECE4] text-[#1C2526] text-xs font-semibold rounded border border-[#E6E1D8] shadow-2xs hover:shadow transition-all flex items-center justify-center gap-3 cursor-pointer"
+              >
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
+                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
+                </svg>
+                <span>{t('auth.continueGoogle')}</span>
+              </button>
+              {googleSignInUnavailable && (
+                <p role="status" aria-live="polite" className="text-center text-xs text-[#64748B]">
+                  {t('auth.googleUnavailable')}
+                </p>
               )}
 
-              <div className="relative flex items-center justify-center my-1">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full bg-[#E6E1D8] h-[1px]"></div>
-                </div>
-                <span className="relative px-3 bg-white text-[11px] font-mono text-[#78716C] uppercase tracking-wider">
-                  or sign in with
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleSimulateSSO('Google')}
-                  className="w-full py-2.5 px-4 bg-[#F7F4EE] hover:bg-[#EFECE4] text-[#1C2526] text-xs font-semibold rounded border border-[#E6E1D8] shadow-2xs hover:shadow transition-all flex items-center justify-center gap-3 cursor-pointer"
-                >
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
-                  </svg>
-                  <span>Continue with Google</span>
-                </button>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleSimulateSSO('Apple')}
-                    className="py-2 px-3 bg-[#F7F4EE] hover:bg-[#EFECE4] text-[#1C2526] text-xs font-semibold rounded border border-[#E6E1D8] shadow-2xs hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span>Apple</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSimulateSSO('Passkey')}
-                    className="py-2 px-3 bg-[#F7F4EE] hover:bg-[#EFECE4] text-[#1C2526] text-xs font-semibold rounded border border-[#E6E1D8] shadow-2xs hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Fingerprint className="w-3.5 h-3.5 text-[#1F4E43]" />
-                    <span>Passkey</span>
-                  </button>
-                </div>
-              </div>
             </div>
 
             <div className="w-full max-w-md mx-auto pt-4 mt-6 bg-[#FAF8F5] rounded-lg p-4 text-center flex flex-col gap-1.5 border border-[#E6E1D8]">
               <p className="text-xs text-[#64748B]">
-                Don't have an account yet?{' '}
+                {t('auth.noAccount')}{' '}
                 <button
                   type="button"
                   onClick={() => onNavigate('registration')}
                   className="font-semibold text-[#C2410C] hover:underline cursor-pointer"
                 >
-                  Create account for free
-                </button>
-              </p>
-              <div className="h-px w-24 bg-stone-300 mx-auto my-1"></div>
-              <p className="text-xs text-[#64748B]">
-                Are you a certified mountain guide or expedition operator?
-                <br />
-                <button
-                  type="button"
-                  onClick={() => onNavigate('partner_company_info')}
-                  className="text-xs font-medium text-[#1F4E43] hover:underline underline-offset-4 cursor-pointer mt-0.5"
-                >
-                  Partner Sign In &amp; Verification
+                  {t('auth.createFree')}
                 </button>
               </p>
             </div>
@@ -532,22 +537,7 @@ void main() {
         </div>
       </div>
 
-      {/* Mountain Support Hotline Footer */}
-      <footer className="w-full bg-[#F7F4EE] border-t border-[#E6E1D8] py-4 px-4 md:px-8 text-xs text-[#64748B]">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-[#1C2526]">24/7 Mountain Support Hotline:</span>
-            <a href="tel:18005558735" className="font-mono text-[#C2410C] font-bold hover:underline">
-              +1 (800) 555-TREK
-            </a>
-            <span className="text-stone-300 hidden sm:inline">•</span>
-            <span className="hidden sm:inline">Satellite SAR dispatch coordinated</span>
-          </div>
-          <div className="font-mono text-[11px] text-[#78716C]">
-            SYS.LOC // 45.8326° N, 6.8652° E • ELEV 3,842M
-          </div>
-        </div>
-      </footer>
+      <footer className="w-full bg-[#F7F4EE] border-t border-[#E6E1D8] py-4 px-4 md:px-8 text-xs text-[#64748B]"><div className="max-w-7xl mx-auto">WeTrek</div></footer>
     </div>
   );
 };
