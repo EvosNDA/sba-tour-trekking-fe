@@ -22,7 +22,21 @@ const validRefundRules = (rules: PartnerTourDraftRequest['cancellationRefundRule
 const emptyEquipment: EquipmentPackageWriteRequest = { title: '', includedItems: '', sharedItems: '', personalItemsToBring: '' };
 interface ScheduleFormState { startsAt: string; endsAt: string; capacity: string; basePriceVnd: string; equipmentFeeVnd: string; depositPercent: string; balanceDueAt: string; meetingPoint: string; contactPhone: string; }
 const emptySchedule: ScheduleFormState = { startsAt: '', endsAt: '', capacity: '', basePriceVnd: '', equipmentFeeVnd: '', depositPercent: '', balanceDueAt: '', meetingPoint: '', contactPhone: '' };
-const errorText = (error: unknown) => typeof error === 'object' && error && 'message' in error ? String(error.message) : 'Request failed. No changes were confirmed.';
+const errorText = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object') {
+    const response = error as { message?: unknown; detail?: unknown; error?: unknown; code?: unknown; status?: unknown; fieldErrors?: unknown };
+    const message = response.message ?? response.detail ?? (typeof response.error === 'string' ? response.error : null);
+    const fields = response.fieldErrors && typeof response.fieldErrors === 'object'
+      ? Object.values(response.fieldErrors).map(String).join(' ')
+      : '';
+    const code = typeof response.code === 'string' ? `${response.code}: ` : '';
+    if (message || fields) return `${code}${[message, fields].filter(Boolean).join(' ')}`;
+    if (response.status) return `Request failed (HTTP ${String(response.status)}).`;
+  }
+  return 'Request failed. No changes were confirmed.';
+};
 const dateTimeValue = (value: string) => value ? new Date(value).toISOString().slice(0, 16) : '';
 const inputClass = 'mt-1.5 block w-full rounded-lg border border-[#D7DFDA] bg-white px-3 py-2.5 text-sm text-[#1C2526] placeholder:text-[#87918D] shadow-sm outline-none transition focus:border-[#1F4E43] focus:ring-2 focus:ring-[#1F4E43]/15';
 const fieldClass = 'block min-w-0 text-sm font-medium text-[#34413D]';
