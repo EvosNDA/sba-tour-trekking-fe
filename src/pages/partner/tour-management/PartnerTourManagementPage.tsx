@@ -37,7 +37,12 @@ const errorText = (error: unknown) => {
   }
   return 'Request failed. No changes were confirmed.';
 };
-const dateTimeValue = (value: string) => value ? new Date(value).toISOString().slice(0, 16) : '';
+const dateTimeValue = (value: string) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+};
 const inputClass = 'mt-1.5 block w-full rounded-lg border border-[#D7DFDA] bg-white px-3 py-2.5 text-sm text-[#1C2526] placeholder:text-[#87918D] shadow-sm outline-none transition focus:border-[#1F4E43] focus:ring-2 focus:ring-[#1F4E43]/15';
 const fieldClass = 'block min-w-0 text-sm font-medium text-[#34413D]';
 const cardClass = 'rounded-2xl border border-[#E2E7E4] bg-white p-5 shadow-sm md:p-6';
