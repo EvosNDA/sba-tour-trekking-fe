@@ -223,6 +223,35 @@ export const Header: React.FC<Props> = ({
     );
   }
 
+  if (user?.role === 'partner') {
+    return (
+      <header className="border-b border-[#E6E1D8] bg-white px-4 py-3 md:px-8">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3">
+          <button type="button" onClick={() => onNavigate('partner_certificates')} className="flex items-center gap-2 text-left">
+            <Mountain className="h-5 w-5 text-[#C2410C]" aria-hidden="true" />
+            <span className="font-editorial text-lg font-bold text-[#1C2526]">WeTrek</span>
+            <span className="border-l border-[#D9DDD9] pl-2 text-xs font-medium text-[#64716D]">{t('partnerNav.portal')}</span>
+          </button>
+          <nav aria-label={t('partnerNav.portal')} className="order-3 flex w-full gap-2 sm:order-2 sm:w-auto">
+            <button type="button" aria-current={currentScreen === 'partner_certificates' ? 'page' : undefined} onClick={() => onNavigate('partner_certificates')} className={`min-h-10 rounded-lg px-3 text-sm font-semibold ${currentScreen === 'partner_certificates' ? 'bg-[#F1F6F3] text-[#1F4E43]' : 'text-[#52605D] hover:bg-[#F7F8F6]'}`}>
+              {t('partnerNav.tours')}
+            </button>
+            <button type="button" aria-current={currentScreen === 'partner_bank_payouts' ? 'page' : undefined} onClick={() => onNavigate('partner_bank_payouts')} className={`min-h-10 rounded-lg px-3 text-sm font-semibold ${currentScreen === 'partner_bank_payouts' ? 'bg-[#F1F6F3] text-[#1F4E43]' : 'text-[#52605D] hover:bg-[#F7F8F6]'}`}>
+              {t('partnerNav.operations')}
+            </button>
+          </nav>
+          <div className="order-2 ml-auto flex items-center gap-2 sm:order-3">
+            <LanguageToggle />
+            <button type="button" onClick={() => void handleLogout()} disabled={isLoggingOut} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#CAD4CF] px-3 text-sm font-semibold text-[#34413D] hover:bg-[#F7F8F6] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C] disabled:opacity-50">
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+              {isLoggingOut ? t('header.loggingOut') : t('auth.signOut')}
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   // 4. MAIN MARKETPLACE HEADER (WeTrek)
   return (
     <header className="bg-white border-b border-[#E6E1D8] px-4 md:px-8 py-3">
@@ -292,13 +321,13 @@ export const Header: React.FC<Props> = ({
                       {t('partner.viewStatus')}
                     </button>
                   )}
-                  {(user.role === 'partner' || user.role === 'admin') && (
+                  {user.role === 'admin' && (
                     <button
                       type="button"
                       onClick={() => { onNavigate(homeScreenForRole(user.role)); setIsAccountMenuOpen(false); }}
                       className="mt-3 w-full rounded border border-[#1F4E43] px-3 py-2 text-left text-xs font-semibold text-[#1F4E43] hover:bg-[#F0F7F4]"
                     >
-                      {t(user.role === 'partner' ? 'header.manageTours' : 'header.reviewTours')}
+                      {t('header.reviewTours')}
                     </button>
                   )}
                   <button
