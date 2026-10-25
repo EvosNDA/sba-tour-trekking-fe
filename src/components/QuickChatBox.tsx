@@ -54,11 +54,24 @@ export const QuickChatBox: React.FC = () => {
     setInput('');
     setLoading(true);
 
+    const botMessageId = 'bot-' + Date.now();
+    // Prepare empty bot message placeholder for streaming
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: botMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ]);
+
     try {
-      const response = await fetch('/api/v1/ai/chat', {
+      const response = await fetch('/api/v1/ai/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
         },
         body: JSON.stringify({
           question: query,
@@ -70,28 +83,48 @@ export const QuickChatBox: React.FC = () => {
         throw new Error(`API responded with status: ${response.status}`);
       }
 
-      const data = await response.json();
+      if (!response.body) {
+        throw new Error('ReadableStream not supported by browser/response.');
+      }
 
-      const botMessage: Message = {
-        id: 'bot-' + Date.now(),
-        role: 'assistant',
-        content: data.answer || 'Không nhận được câu trả lời từ hệ thống.',
-        sources: data.sources || [],
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let accumulatedText = '';
 
-      setMessages((prev) => [...prev, botMessage]);
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        
+        // Parse SSE data: tokens often come as "data:token\n\n" or raw text chunks
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            accumulatedText += line.replace(/^data:\s?/, '');
+          } else if (!line.startsWith(':') && line.trim()) {
+            accumulatedText += line;
+          }
+        }
+
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === botMessageId ? { ...m, content: accumulatedText } : m
+          )
+        );
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Lỗi kết nối';
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: 'bot-err-' + Date.now(),
-          role: 'assistant',
-          content: `⚠️ Lỗi gọi API RAG: ${errorMessage}. Vui lòng kiểm tra xem backend Spring Boot đã chạy ở cổng đã cấu hình chưa.`,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === botMessageId
+            ? {
+                ...m,
+                content: `⚠️ Lỗi streaming RAG: ${errorMessage}. Vui lòng kiểm tra backend.`,
+              }
+            : m
+        )
+      );
     } finally {
       setLoading(false);
     }
@@ -110,7 +143,7 @@ export const QuickChatBox: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-semibold text-sm">RAG AI Assistant</h3>
-                <p className="text-[11px] text-emerald-200">Testing /api/v1/ai/chat</p>
+                <p className="text-[11px] text-emerald-200">Streaming /api/v1/ai/chat/stream</p>
               </div>
             </div>
             <button
