@@ -11,14 +11,19 @@ export type ScreenId =
   | 'partner_activation_help'
   | 'partner_application_submitted'
   | 'partner_application_status'
-  | 'partner_certificates'
   | 'partner_bank_payouts'
   | 'partner_final_review'
   | 'ops_moderation'
   | 'staff_escalations'
   | 'platform_analytics'
   | 'booking_payment_result'
-  | 'admin_finance';
+  | 'admin_finance'
+  | 'admin_accounts'
+  | 'admin_tours'
+  | 'admin_home'
+  | 'staff_home'
+  | 'guide_home'
+  | 'account_activation';
 
 export interface TourCompany {
   id: string;

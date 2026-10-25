@@ -22,6 +22,12 @@ export interface LoginPageProps {
   onNavigate?: (screen: ScreenId) => void;
 }
 
+declare global {
+  interface Window {
+    google?: { accounts: { id: { initialize: (options: { client_id: string; callback: (response: { credential?: string }) => void }) => void; prompt: (callback?: (notification: { isNotDisplayed: () => boolean; isSkippedMoment: () => boolean }) => void) => void } } };
+  }
+}
+
 export const LoginPage: React.FC<LoginPageProps> = ({
   onLoginSuccess = () => {},
   onNavigate = () => {},
@@ -32,12 +38,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [googleSignInUnavailable, setGoogleSignInUnavailable] = useState(false);
+  const [googleSignInLoading, setGoogleSignInLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetError, setResetError] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
   const [resetOtp, setResetOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const { login, error: authError } = useAuth();
+  const { login, loginGoogle, error: authError } = useAuth();
   const { t } = useI18n();
   const localizedAuthError = authError
     ? authError.includes('Email or password') ? t('auth.invalidCredentials')
@@ -252,29 +259,46 @@ void main() {
     try {
       const session = await login({ email, password });
       setStatusMessage('auth.loginSuccess');
-      try { sessionStorage.removeItem('wetrek_partner_application_email'); } catch { /* Session storage is optional. */ }
       onLoginSuccess(email);
       onNavigate(homeScreenForRole(session.user.role));
-    } catch (cause) {
+    } catch {
       setStatusMessage(null);
-      try {
-        const errorCode = cause && typeof cause === 'object' && 'code' in cause ? cause.code : null;
-        const pendingPartnerEmail = sessionStorage.getItem('wetrek_partner_application_email');
-        if (errorCode === 'PARTNER_ACTIVATION_REQUIRED'
-          || (pendingPartnerEmail && pendingPartnerEmail === email.trim().toLowerCase())) {
-          sessionStorage.setItem('wetrek_partner_activation_email', email.trim());
-          sessionStorage.removeItem('wetrek_partner_application_email');
-          onNavigate('partner_application_submitted');
-        }
-      } catch {
-        // Keep the regular sign-in error if browser storage is unavailable.
-      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleGoogleSignIn = () => setGoogleSignInUnavailable(true);
+  const handleGoogleSignIn = async () => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
+    if (!clientId) { setGoogleSignInUnavailable(true); return; }
+    setGoogleSignInLoading(true); setGoogleSignInUnavailable(false);
+    try {
+      if (!window.google) {
+        await new Promise<void>((resolve, reject) => {
+          const existing = document.querySelector<HTMLScriptElement>('script[data-google-identity]');
+          if (existing) {
+            existing.addEventListener('load', () => resolve(), { once: true });
+            existing.addEventListener('error', () => reject(new Error('Google sign-in could not load')), { once: true });
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = 'https://accounts.google.com/gsi/client'; script.async = true; script.defer = true;
+          script.dataset.googleIdentity = 'true'; script.onload = () => resolve(); script.onerror = () => reject(new Error('Google sign-in could not load'));
+          document.head.appendChild(script);
+        });
+      }
+      if (!window.google) throw new Error('Google sign-in is unavailable');
+      window.google.accounts.id.initialize({ client_id: clientId, callback: response => {
+        if (!response.credential) { setGoogleSignInUnavailable(true); setGoogleSignInLoading(false); return; }
+        void loginGoogle(response.credential).then(session => onLoginSuccess(session.user.email)).catch(() => setGoogleSignInUnavailable(true)).finally(() => setGoogleSignInLoading(false));
+      } });
+      window.google.accounts.id.prompt(notification => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) setGoogleSignInLoading(false);
+      });
+    } catch {
+      setGoogleSignInUnavailable(true); setGoogleSignInLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] flex flex-col justify-between">
@@ -503,7 +527,8 @@ void main() {
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                className="w-full py-2.5 px-4 bg-[#F7F4EE] hover:bg-[#EFECE4] text-[#1C2526] text-xs font-semibold rounded border border-[#E6E1D8] shadow-2xs hover:shadow transition-all flex items-center justify-center gap-3 cursor-pointer"
+                disabled={googleSignInLoading}
+                className="w-full py-2.5 px-4 bg-[#F7F4EE] hover:bg-[#EFECE4] text-[#1C2526] text-xs font-semibold rounded border border-[#E6E1D8] shadow-2xs hover:shadow transition-all flex items-center justify-center gap-3 cursor-pointer disabled:cursor-wait disabled:opacity-60"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -511,7 +536,7 @@ void main() {
                   <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
                 </svg>
-                <span>{t('auth.continueGoogle')}</span>
+                <span>{googleSignInLoading ? t('auth.verifying') : t('auth.continueGoogle')}</span>
               </button>
               {googleSignInUnavailable && (
                 <p role="status" aria-live="polite" className="text-center text-xs text-[#64748B]">
@@ -530,6 +555,12 @@ void main() {
                   className="font-semibold text-[#C2410C] hover:underline cursor-pointer"
                 >
                   {t('auth.createFree')}
+                </button>
+              </p>
+              <p className="text-xs text-[#64748B]">
+                {t('accountActivation.invitedAlready')}{' '}
+                <button type="button" onClick={() => onNavigate('account_activation')} className="font-semibold text-[#1F4E43] hover:underline">
+                  {t('accountActivation.activate')}
                 </button>
               </p>
             </div>

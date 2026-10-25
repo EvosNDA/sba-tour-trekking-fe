@@ -11,7 +11,7 @@ export const Footer: React.FC<{ onNavigate: (screen: ScreenId) => void }> = ({ o
 
   return (
     <footer className="bg-[#F7F4EE] border-t border-[#E6E1D8] mt-16 text-[#1C2526]">
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm">
+      <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
         <div>
           <h3 className="font-editorial text-lg font-bold text-[#C2410C] mb-2">WeTrek</h3>
           <p className="text-[#64748B] leading-relaxed">{t('footer.description')}</p>
@@ -24,9 +24,9 @@ export const Footer: React.FC<{ onNavigate: (screen: ScreenId) => void }> = ({ o
           </ul>
         </div>
         <div>
-          <h4 className="font-bold mb-3">{t('footer.partners')}</h4>
+          <h4 className="font-bold mb-3">{t('footer.support')}</h4>
           <ul className="space-y-2 text-[#64748B]">
-            <li><button onClick={() => onNavigate('partner_company_info')} className="hover:text-[#1C2526]">{t('auth.createAccount')}</button></li>
+            <li><button onClick={() => onNavigate('registration')} className="hover:text-[#1C2526]">{t('auth.createAccount')}</button></li>
             <li><button onClick={() => onNavigate('login')} className="hover:text-[#1C2526]">{t('header.signIn')}</button></li>
           </ul>
         </div>

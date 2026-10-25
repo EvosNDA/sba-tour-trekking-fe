@@ -11,7 +11,6 @@ import { canAccessScreen, homeScreenForRole } from './screenAccess';
 import { authApi } from '../features/auth/api/auth.api';
 import { ArrowLeft } from 'lucide-react';
 import { useI18n } from '../i18n/I18nProvider';
-import { partnerApplicationsApi } from '../features/partners/api/partnerApplications.api';
 
 function BackBar({ disabled, onBack }: { disabled: boolean; onBack: () => void }) {
   const { t } = useI18n();
@@ -30,10 +29,11 @@ function BackBar({ disabled, onBack }: { disabled: boolean; onBack: () => void }
 
 export function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenId>(() => {
-    const role = authStore.getState().user?.role ?? null;
+    const storedUser = authStore.getState().user;
+    const role = storedUser?.role ?? null;
     try {
       const params = new URLSearchParams(window.location.search);
-      if (params.has('partnerActivation')) return 'partner_activate';
+      if (params.has('activateAccount')) return 'account_activation';
       if (params.has('paymentReturn') || window.location.pathname === '/booking/payment-result') return 'booking_payment_result';
       const savedScreen = localStorage.getItem('wetrek_current_screen') as ScreenId | null;
       if (savedScreen && canAccessScreen(role, savedScreen)) return savedScreen;
@@ -47,7 +47,7 @@ export function App() {
     try {
       const saved = sessionStorage.getItem('wetrek_screen_history');
       const parsed: unknown = saved ? JSON.parse(saved) : [];
-      const validScreens: ScreenId[] = ['marketplace', 'login', 'registration', 'account_profile', 'eticket', 'paybalance', 'review', 'partner_company_info', 'partner_activate', 'partner_activation_help', 'partner_application_submitted', 'partner_application_status', 'partner_certificates', 'partner_bank_payouts', 'partner_final_review', 'ops_moderation', 'staff_escalations', 'platform_analytics', 'booking_payment_result', 'admin_finance'];
+      const validScreens: ScreenId[] = ['marketplace', 'login', 'registration', 'account_activation', 'account_profile', 'eticket', 'paybalance', 'review', 'booking_payment_result', 'admin_home', 'admin_finance', 'admin_accounts', 'admin_tours', 'staff_home', 'guide_home'];
       return Array.isArray(parsed) ? parsed.filter((screen): screen is ScreenId => typeof screen === 'string' && validScreens.includes(screen as ScreenId)) : [];
     } catch {
       return [];
@@ -64,14 +64,16 @@ export function App() {
     }
   };
   const navigate = (screen: ScreenId) => {
-    const role = authStore.getState().user?.role ?? null;
+    const currentUser = authStore.getState().user;
+    const role = currentUser?.role ?? null;
     const destination = canAccessScreen(role, screen) ? screen : 'marketplace';
     if (destination !== currentScreen) setScreenHistory((history) => [...history, currentScreen]);
     changeScreen(destination);
   };
 
   const goBack = () => {
-    const role = authStore.getState().user?.role ?? null;
+    const currentUser = authStore.getState().user;
+    const role = currentUser?.role ?? null;
     const previous = [...screenHistory];
     while (previous.length) {
       const candidate = previous.pop()!;
@@ -98,14 +100,10 @@ export function App() {
   useEffect(() => {
     if (!authStore.getState().isRestoring) return;
     void authApi.refresh()
-      .then(async (session) => {
+      .then((session) => {
         authStore.login(session.user, session.token);
-        try {
-          const application = await partnerApplicationsApi.status();
-          authStore.updateUser({ partnerApplicationStatus: application.status });
-          if (application.status === 'pending' || application.status === 'rejected') changeScreen('partner_application_status');
-        } catch {
-          // Keep the refreshed session usable if the status endpoint is temporarily unavailable.
+        if (['admin', 'staff', 'guide'].includes(session.user.role) && ['marketplace', 'login'].includes(currentScreen)) {
+          changeScreen(homeScreenForRole(session.user.role));
         }
       })
       .catch((error: unknown) => {
@@ -158,50 +156,34 @@ export function App() {
     }
   }, [review]);
 
-  const finishSignIn = async () => {
+  const finishSignIn = () => {
     setScreenHistory([]);
-    try {
-      const application = await partnerApplicationsApi.status();
-      authStore.updateUser({ partnerApplicationStatus: application.status });
-      if (application.status === 'pending' || application.status === 'rejected') {
-        changeScreen('partner_application_status');
-        return;
-      }
-      if (application.status === 'approved') {
-        changeScreen(homeScreenForRole('partner'));
-        return;
-      }
-    } catch {
-      // A temporary status lookup failure should not block sign-in.
-    }
-    changeScreen('marketplace');
+    const role = authStore.getState().user?.role;
+    changeScreen(role ? homeScreenForRole(role) : 'marketplace');
   };
   const handleRegistrationSuccess = () => finishSignIn();
   const handleLoginSuccess = () => finishSignIn();
 
   const hideHeaderScreens: ScreenId[] = [
     'login',
-    'partner_activation_help',
-    'partner_application_submitted',
-    'partner_company_info',
-    'ops_moderation',
-    'staff_escalations',
-    'platform_analytics',
+    'admin_home',
     'admin_finance',
+    'admin_accounts',
+    'admin_tours',
+    'staff_home',
+    'guide_home',
   ];
 
   const hideFooterScreens: ScreenId[] = [
     'login',
-    'partner_activation_help',
-    'partner_application_submitted',
-    'partner_certificates',
-    'partner_bank_payouts',
-    'ops_moderation',
-    'staff_escalations',
-    'platform_analytics',
+    'admin_home',
     'admin_finance',
+    'admin_accounts',
+    'admin_tours',
+    'staff_home',
+    'guide_home',
   ];
-  const showBackBar = !user || !['partner', 'admin'].includes(user.role)
+  const showBackBar = !user || !['admin', 'staff', 'guide'].includes(user.role)
     ? screenHistory.some((screen) => canAccessScreen(user?.role ?? null, screen)
       && (!user || (screen !== 'login' && screen !== 'registration')))
     : false;

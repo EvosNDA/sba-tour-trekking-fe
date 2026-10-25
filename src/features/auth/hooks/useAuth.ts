@@ -23,6 +23,21 @@ export function useAuth() {
     }
   };
 
+  const loginGoogle = async (idToken: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const session = await authApi.loginGoogle(idToken);
+      store.login(session.user, session.token);
+      return session;
+    } catch (err: any) {
+      setError(err?.message || 'Google sign-in failed');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     setIsLoading(true);
     try {
@@ -38,6 +53,7 @@ export function useAuth() {
     isLoading,
     error,
     login,
+    loginGoogle,
     logout,
   };
 }

@@ -1,38 +1,43 @@
-import React from 'react';
-import { Mountain, LayoutDashboard, Compass, Users, CreditCard, ShieldCheck, Settings, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mountain, LayoutDashboard, Compass, Users, ListChecks, LogOut } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { ScreenId } from '../../types/expedition';
 import { useI18n } from '../../i18n/I18nProvider';
+import { useAuthStore } from '../../stores/auth.store';
+import { authApi } from '../../features/auth/api/auth.api';
 
 export interface SidebarProps {
   currentScreen?: ScreenId;
   onNavigate?: (screen: ScreenId) => void;
-  role?: 'partner' | 'admin';
+  role?: 'admin' | 'staff' | 'guide';
   className?: string;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentScreen,
   onNavigate = () => {},
-  role = 'partner',
+  role = 'admin',
   className,
 }) => {
   const { t } = useI18n();
-  const partnerItems = [
-    { label: t('partnerNav.company'), screen: 'partner_company_info' as ScreenId, icon: Mountain },
-    { label: t('partnerNav.tours'), screen: 'partner_certificates' as ScreenId, icon: ShieldCheck },
-    { label: t('partnerNav.operations'), screen: 'partner_bank_payouts' as ScreenId, icon: CreditCard },
-    { label: t('partnerNav.account'), screen: 'partner_final_review' as ScreenId, icon: LayoutDashboard },
-  ];
-
+  const { user, logout } = useAuthStore();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try { await authApi.logout(); }
+    finally { logout(); onNavigate('marketplace'); setLoggingOut(false); }
+  };
   const adminItems = [
-    { label: t('adminNav.tourSubmissions'), screen: 'ops_moderation' as ScreenId, icon: ShieldCheck },
-    { label: t('adminNav.finance'), screen: 'admin_finance' as ScreenId, icon: CreditCard },
-    { label: t('adminNav.liveChats'), screen: 'staff_escalations' as ScreenId, icon: Users },
-    { label: t('adminNav.analytics'), screen: 'platform_analytics' as ScreenId, icon: LayoutDashboard },
+    { label: t('roleArea.adminHome'), screen: 'admin_home' as ScreenId, icon: LayoutDashboard },
+    { label: t('adminTour.title'), screen: 'admin_tours' as ScreenId, icon: ListChecks },
+    { label: t('adminAccounts.title'), screen: 'admin_accounts' as ScreenId, icon: Users },
   ];
+  const staffItems = [{ label: t('roleArea.staffHome'), screen: 'staff_home' as ScreenId, icon: LayoutDashboard }];
+  const guideItems = [{ label: t('roleArea.guideHome'), screen: 'guide_home' as ScreenId, icon: Mountain }];
 
-  const items = role === 'admin' ? adminItems : partnerItems;
+  const items = role === 'admin' ? adminItems : role === 'guide' ? guideItems : staffItems;
+  const roleTitle = role === 'admin' ? t('roleArea.adminBrand') : role === 'guide' ? t('roleArea.guideBrand') : t('roleArea.staffBrand');
 
   return (
     <aside className={cn('w-64 bg-[#1C2526] text-stone-200 flex flex-col min-h-screen border-r border-stone-800', className)}>
@@ -43,10 +48,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <div>
             <h2 className="font-editorial text-base font-bold text-white tracking-wide">
-              {role === 'admin' ? 'Operations HQ' : 'Partner Portal'}
+              {roleTitle}
             </h2>
             <span className="text-[10px] font-mono text-stone-400 uppercase tracking-widest">
-              {role === 'admin' ? 'Dispatch Terminal' : 'WeTrek Certified'}
+              {t('roleArea.workspaceLabel')}
             </span>
           </div>
         </div>
@@ -74,13 +79,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
         })}
       </nav>
 
-      <div className="p-3 border-t border-stone-800 space-y-1 text-xs">
+      <div className="border-t border-stone-800 p-3 text-xs">
+        {user && <div className="truncate px-3.5 pb-3 text-stone-400"><span className="block truncate font-semibold text-stone-200">{user.name}</span><span className="block truncate">{user.email}</span></div>}
         <button
           onClick={() => onNavigate('marketplace')}
-          className="w-full flex items-center gap-3 px-3.5 py-2 rounded-lg text-stone-400 hover:text-white hover:bg-stone-800 transition-colors cursor-pointer"
+          className="mb-1 flex w-full items-center gap-3 rounded-lg px-3.5 py-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-white"
         >
           <Compass className="w-4 h-4" />
-          <span>{t('partnerNav.marketplace')}</span>
+          <span>{t('header.marketplace')}</span>
+        </button>
+        <button
+          type="button"
+          disabled={loggingOut}
+          onClick={() => void handleLogout()}
+          className="flex w-full items-center gap-3 rounded-lg px-3.5 py-2 text-stone-400 transition-colors hover:bg-stone-800 hover:text-white disabled:opacity-50"
+        >
+          <LogOut className="h-4 w-4" aria-hidden="true" />
+          <span>{loggingOut ? t('header.loggingOut') : t('auth.signOut')}</span>
         </button>
       </div>
     </aside>

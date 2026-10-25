@@ -14,8 +14,7 @@ interface BackendAuthResponse {
 
 function toAuthSession(response: BackendAuthResponse): AuthSession {
   const roles = response.account.roles.map(role => role.toLowerCase());
-  const role = roles.includes('company_manager') ? 'partner'
-    : roles.includes('admin') ? 'admin'
+  const role = roles.includes('admin') ? 'admin'
     : roles.includes('guide') ? 'guide'
     : roles.some(value => value === 'support_staff' || value === 'content_staff' || value === 'accountant') ? 'staff'
     : 'customer';
@@ -119,6 +118,23 @@ export const authApi = {
       headers: { [csrf.headerName]: csrf.token },
     });
     return toAuthSession('data' in response ? response.data : response);
+  },
+
+  loginGoogle: async (idToken: string): Promise<AuthSession> => {
+    const csrfResponse = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+    const csrf = 'data' in csrfResponse ? csrfResponse.data : csrfResponse;
+    const response = await apiClient.post<BackendAuthResponse>(authPath('/google'), { idToken }, {
+      credentials: 'include', auth: false, headers: { [csrf.headerName]: csrf.token },
+    });
+    return toAuthSession('data' in response ? response.data : response);
+  },
+
+  activateInvitedAccount: async (email: string, otp: string, newPassword: string): Promise<void> => {
+    const csrfResponse = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+    const csrf = 'data' in csrfResponse ? csrfResponse.data : csrfResponse;
+    await apiClient.post<MessageResponse>(authPath('/activate-account'), { email, otp, newPassword }, {
+      credentials: 'include', auth: false, headers: { [csrf.headerName]: csrf.token },
+    });
   },
 
   refresh: refreshSession,

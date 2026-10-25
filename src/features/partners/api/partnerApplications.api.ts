@@ -24,7 +24,7 @@ export interface PartnerApplicationRequest {
 }
 
 export interface PartnerApplicationStatus {
-  status: 'none' | 'pending' | 'approved' | 'rejected';
+  status: 'none' | 'pending' | 'approved' | 'rejected' | 'suspended';
   companyId: number | null;
   businessName: string | null;
   decisionReason: string | null;

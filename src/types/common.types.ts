@@ -1,6 +1,6 @@
 export type ID = string | number;
 
-export type UserRole = 'customer' | 'partner' | 'admin' | 'staff' | 'guide';
+export type UserRole = 'customer' | 'admin' | 'staff' | 'guide';
 
 export type Status = 'idle' | 'loading' | 'success' | 'error';
 

@@ -7,7 +7,7 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   phone?: string | null;
-  partnerApplicationStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  partnerApplicationStatus?: 'none' | 'pending' | 'approved' | 'rejected' | 'suspended';
   avatar?: string;
   partnerCompany?: string;
 }

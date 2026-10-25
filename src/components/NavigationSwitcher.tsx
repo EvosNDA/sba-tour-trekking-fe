@@ -66,12 +66,6 @@ export const NavigationSwitcher: React.FC<Props> = ({
       icon: <UserCheck className="w-4 h-4" />,
     },
     {
-      id: 'partner_certificates',
-      label: '8. Partner: Step 2',
-      sub: 'Certificates & Safety',
-      icon: <Award className="w-4 h-4" />,
-    },
-    {
       id: 'partner_bank_payouts',
       label: '9. Partner: Step 3',
       sub: 'Bank Payouts',
