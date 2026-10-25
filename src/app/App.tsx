@@ -7,6 +7,7 @@ import { NavigationSwitcher } from '../components/NavigationSwitcher';
 import { Header } from '../components/layout/Header';
 import { Footer } from '../components/layout/Footer';
 import { AIRangerModal } from '../components/AIRangerModal';
+import { QuickChatBox } from '../components/QuickChatBox';
 
 export function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenId>('login');
@@ -173,6 +174,9 @@ export function App() {
           bookingRef={booking.id}
           tourName={booking.tourTitle}
         />
+
+        {/* 6. Quick Test RAG Chatbox (Bottom Right) */}
+        <QuickChatBox />
       </div>
     </Providers>
   );
