@@ -21,14 +21,15 @@ type ActivityForm = { dayNumber: string; displayOrder: string; startTime: string
 const blankTour = (): TourForm => ({ title: '', description: '', difficulty: null, durationDays: null, requiredExperience: '', includedServices: '', excludedServices: '', routeFileUrl: '' });
 const blankSchedule = (): ScheduleForm => ({ startsAt: '', endsAt: '', capacity: '', basePriceVnd: '0', depositPercent: '0', balanceDueAt: '', meetingPoint: '', contactPhone: '' });
 const blankActivity = (): ActivityForm => ({ dayNumber: '1', displayOrder: '1', startTime: '', title: '', description: '', locationId: '' });
-const errorText = (error: unknown) => {
+const errorText = (error: unknown, translate: (key: string) => string) => {
   if (error && typeof error === 'object') {
-    const body = error as { message?: string; fieldErrors?: Record<string, string>; errors?: Record<string, string[]> };
+    const body = error as { code?: string; message?: string; fieldErrors?: Record<string, string>; errors?: Record<string, string[]> };
+    if (body.code === 'TOUR_UNAVAILABLE') return translate('adminTour.unavailable');
     const fields = body.fieldErrors ? Object.entries(body.fieldErrors).map(([key, value]) => `${key}: ${value}`).join(' · ')
       : body.errors ? Object.entries(body.errors).map(([key, value]) => `${key}: ${value.join(', ')}`).join(' · ') : '';
     return [body.message, fields].filter(Boolean).join(' · ') || 'Request failed.';
   }
-  return error instanceof Error ? error.message : 'Request failed.';
+  return error instanceof Error ? error.message : translate('adminTour.error');
 };
 const localDateTime = (value?: string | null) => {
   if (!value) return '';
@@ -81,7 +82,7 @@ export default function AdminTourManagementPage() {
     try {
       const result = await tourAdminApi.list({ page, size: 10, query: query || undefined, status: status || undefined });
       setTours(result.content); setTotalPages(result.totalPages);
-    } catch (e) { setError(errorText(e)); }
+    } catch (e) { setError(errorText(e, t)); }
     finally { setLoading(false); }
   }, [page, query, status]);
 
@@ -97,7 +98,7 @@ export default function AdminTourManagementPage() {
         includedServices: detail.includedServices ?? '', excludedServices: detail.excludedServices ?? '', routeFileUrl: detail.routeFileUrl ?? '',
       });
       setMedia(detail.media || []); setCaptions({}); setTab('details');
-    } catch (e) { setError(errorText(e)); }
+    } catch (e) { setError(errorText(e, t)); }
     finally { setLoading(false); }
   };
 
@@ -143,7 +144,7 @@ export default function AdminTourManagementPage() {
             setSelectedIndividualEquipmentIds(rental.items.map((row) => row.equipmentId).filter((id) => !bundledIds.has(id)));
           }
         }
-      } catch (e) { if (active) setError(errorText(e)); }
+      } catch (e) { if (active) setError(errorText(e, t)); }
       finally { if (active && tab === 'review') setReviewLoading(false); }
     };
     void loadTab();
@@ -159,7 +160,7 @@ export default function AdminTourManagementPage() {
         : await tourAdminApi.create(body);
       setSelected(result); setIsCreating(false); setForm({ ...form, durationDays: body.durationDays ?? null }); setMedia(result.media || []);
       setNotice(t(selected ? 'adminTour.saved' : 'adminTour.created')); await loadList();
-    } catch (e) { setError(errorText(e)); }
+    } catch (e) { setError(errorText(e, t)); }
     finally { setSaving(false); }
   };
 
@@ -168,7 +169,7 @@ export default function AdminTourManagementPage() {
     if (!selected || !window.confirm(t('adminTour.deleteConfirm'))) return;
     setBusy(true); setError(''); setNotice('');
     try { await tourAdminApi.delete(selected.id); setSelected(null); setIsCreating(false); setForm(blankTour()); setMedia([]); setNotice(t('adminTour.deleted')); await loadList(); }
-    catch (e) { setError(errorText(e)); }
+    catch (e) { setError(errorText(e, t)); }
     finally { setBusy(false); }
   };
 
@@ -186,7 +187,7 @@ export default function AdminTourManagementPage() {
       else await tourAdminApi.createSchedule(selected.id, body);
       setScheduleForm(blankSchedule()); setEditingSchedule(null); setNotice(t('adminTour.scheduleSaved'));
       setSchedules((await tourAdminApi.schedules(selected.id)).content);
-    } catch (e) { setError(errorText(e)); }
+    } catch (e) { setError(errorText(e, t)); }
     finally { setBusy(false); }
   };
 
@@ -196,7 +197,7 @@ export default function AdminTourManagementPage() {
     try {
       const row: ScheduleDetailResponse = await tourAdminApi.schedule(selected.id, id);
       setEditingSchedule(id); setScheduleForm({ startsAt: localDateTime(row.startsAt), endsAt: localDateTime(row.endsAt), capacity: String(row.capacity), basePriceVnd: String(row.basePriceVnd), depositPercent: String(row.depositPercent), balanceDueAt: localDateTime(row.balanceDueAt), meetingPoint: row.meetingPoint || '', contactPhone: row.contactPhone || '' });
-    } catch (e) { setError(errorText(e)); }
+    } catch (e) { setError(errorText(e, t)); }
     finally { setBusy(false); }
   };
 
@@ -204,7 +205,7 @@ export default function AdminTourManagementPage() {
     if (!selected || !window.confirm(t('adminTour.deleteItemConfirm'))) return;
     setBusy(true); setError('');
     try { await tourAdminApi.deleteSchedule(selected.id, id); setSchedules((await tourAdminApi.schedules(selected.id)).content); setNotice(t('adminTour.scheduleDeleted')); }
-    catch (e) { setError(errorText(e)); }
+    catch (e) { setError(errorText(e, t)); }
     finally { setBusy(false); }
   };
 
@@ -216,7 +217,7 @@ export default function AdminTourManagementPage() {
       if (editingActivity) await tourAdminApi.updateActivity(selected.id, editingActivity, body);
       else await tourAdminApi.createActivity(selected.id, body);
       setActivityForm(blankActivity()); setEditingActivity(null); setActivities(await tourAdminApi.activities(selected.id)); setNotice(t('adminTour.activitySaved'));
-    } catch (e) { setError(errorText(e)); }
+    } catch (e) { setError(errorText(e, t)); }
     finally { setBusy(false); }
   };
 
@@ -227,7 +228,7 @@ export default function AdminTourManagementPage() {
     if (!selected || !window.confirm(t('adminTour.deleteItemConfirm'))) return;
     setBusy(true); setError('');
     try { await tourAdminApi.deleteActivity(selected.id, id); setActivities(await tourAdminApi.activities(selected.id)); setNotice(t('adminTour.activityDeleted')); }
-    catch (e) { setError(errorText(e)); }
+    catch (e) { setError(errorText(e, t)); }
     finally { setBusy(false); }
   };
 
@@ -236,13 +237,13 @@ export default function AdminTourManagementPage() {
     if (uploadFile.size > 5 * 1024 * 1024 || !['image/jpeg', 'image/png', 'image/webp'].includes(uploadFile.type)) { setError(t('adminTour.imageLimit')); return; }
     setBusy(true); setError(''); setNotice('');
     try { await tourAdminApi.uploadMedia(selected.id, uploadFile, caption); setUploadFile(null); setCaption(''); setMedia((await tourAdminApi.read(selected.id)).media || []); setNotice(t('adminTour.imageUploaded')); }
-    catch (e) { setError(errorText(e)); }
+    catch (e) { setError(errorText(e, t)); }
     finally { setBusy(false); }
   };
   const mediaAction = async (action: () => Promise<unknown>, success: string) => {
     if (!selected) return; setBusy(true); setError(''); setNotice('');
     try { await action(); setMedia((await tourAdminApi.read(selected.id)).media || []); setNotice(t(success)); }
-    catch (e) { setError(errorText(e)); }
+    catch (e) { setError(errorText(e, t)); }
     finally { setBusy(false); }
   };
   const moveMedia = async (index: number, delta: number) => {
@@ -260,7 +261,7 @@ export default function AdminTourManagementPage() {
         individualEquipmentIds: selectedIndividualEquipmentIds,
       });
       setNotice(t('adminEquipment.tourEquipmentSaved'));
-    } catch (e) { setError(errorText(e)); }
+    } catch (e) { setError(errorText(e, t)); }
     finally { setBusy(false); }
   };
   const returnFromEquipmentCatalog = async () => {
@@ -270,7 +271,7 @@ export default function AdminTourManagementPage() {
       setEquipmentCatalog(catalog); setRentalPackages(templates);
       const included = new Set(templates.find((item) => String(item.id) === selectedPackageTemplateId)?.items.map((item) => item.equipmentId) ?? []);
       setSelectedIndividualEquipmentIds((ids) => ids.filter((id) => !included.has(id)));
-    } catch (e) { setError(errorText(e)); }
+    } catch (e) { setError(errorText(e, t)); }
   };
   const selectedTemplate = rentalPackages.find((item) => String(item.id) === selectedPackageTemplateId);
   const templateEquipmentIds = new Set(selectedTemplate?.items.map((item) => item.equipmentId) ?? []);

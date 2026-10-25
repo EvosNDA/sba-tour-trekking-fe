@@ -13,13 +13,14 @@ const blankPackage = (): PackageForm => ({ title: '', sharedItems: '', personalI
 const inputClass = 'mt-1 w-full rounded-lg border border-[#CAD4CF] bg-white px-3 py-2.5 text-sm text-[#1C2526] outline-none focus:border-[#1F4E43] focus:ring-2 focus:ring-[#1F4E43]/15';
 const buttonClass = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#1F4E43] px-4 py-2 text-sm font-semibold text-white hover:bg-[#173B33] disabled:cursor-not-allowed disabled:opacity-50';
 const secondaryClass = 'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#CAD4CF] bg-white px-3 py-2 text-sm font-semibold text-[#34413D] hover:bg-[#F5F7F5] disabled:opacity-50';
-const errorText = (error: unknown) => {
+const errorText = (error: unknown, translate: (key: string) => string) => {
   if (error && typeof error === 'object') {
-    const body = error as { message?: string; fieldErrors?: Record<string, string> };
+    const body = error as { code?: string; message?: string; fieldErrors?: Record<string, string> };
+    if (body.code === 'TOUR_UNAVAILABLE') return translate('adminTour.unavailable');
     const fields = body.fieldErrors ? Object.entries(body.fieldErrors).map(([key, value]) => `${key}: ${value}`).join(' · ') : '';
     return [body.message, fields].filter(Boolean).join(' · ') || 'Request failed.';
   }
-  return error instanceof Error ? error.message : 'Request failed.';
+  return error instanceof Error ? error.message : translate('adminTour.error');
 };
 
 export default function AdminEquipmentCatalogPage({ onBack }: { onBack: () => void }) {
@@ -53,7 +54,7 @@ export default function AdminEquipmentCatalogPage({ onBack }: { onBack: () => vo
     try {
       const [equipmentRows, packageRows] = await Promise.all([tourAdminApi.equipmentCatalog(), tourAdminApi.rentalPackages()]);
       setEquipment(equipmentRows); setPackages(packageRows);
-    } catch (e) { setError(errorText(e)); }
+    } catch (e) { setError(errorText(e, t)); }
     finally { setLoading(false); }
   };
   useEffect(() => { void load(); }, []);
@@ -77,14 +78,14 @@ export default function AdminEquipmentCatalogPage({ onBack }: { onBack: () => vo
       setSelectedEquipment(saved.id);
       if (equipmentImageFile) await tourAdminApi.uploadEquipmentImage(saved.id, equipmentImageFile);
       resetEquipment(); await load(); setNotice(t(wasEditing ? 'adminEquipment.equipmentSaved' : 'adminEquipment.equipmentCreated'));
-    } catch (e) { setError(errorText(e)); }
+    } catch (e) { setError(errorText(e, t)); }
     finally { setSaving(false); }
   };
   const deleteEquipment = async (row: EquipmentCatalogResponse) => {
     if (!window.confirm(t('adminEquipment.deleteEquipmentConfirm', { name: row.name }))) return;
     setSaving(true); setError(''); setNotice('');
     try { await tourAdminApi.deleteEquipment(row.id); if (selectedEquipment === row.id) resetEquipment(); await load(); setNotice(t('adminEquipment.equipmentDeleted')); }
-    catch (e) { setError(errorText(e)); }
+    catch (e) { setError(errorText(e, t)); }
     finally { setSaving(false); }
   };
   const removeEquipmentImage = async () => {
@@ -92,7 +93,7 @@ export default function AdminEquipmentCatalogPage({ onBack }: { onBack: () => vo
       || !window.confirm(t('adminEquipment.removeImageConfirm'))) return;
     setSaving(true); setError(''); setNotice('');
     try { await tourAdminApi.deleteEquipmentImage(selectedEquipment); setEquipmentImageFile(null); await load(); setNotice(t('adminEquipment.imageRemoved')); }
-    catch (e) { setError(errorText(e)); }
+    catch (e) { setError(errorText(e, t)); }
     finally { setSaving(false); }
   };
 
@@ -118,14 +119,14 @@ export default function AdminEquipmentCatalogPage({ onBack }: { onBack: () => vo
       setSelectedPackage(saved.id);
       if (packageImageFile) await tourAdminApi.uploadRentalPackageImage(saved.id, packageImageFile);
       resetPackage(); await load(); setNotice(t(wasEditing ? 'adminEquipment.packageSaved' : 'adminEquipment.packageCreated'));
-    } catch (e) { setError(errorText(e)); }
+    } catch (e) { setError(errorText(e, t)); }
     finally { setSaving(false); }
   };
   const deletePackage = async (row: RentalPackageTemplateResponse) => {
     if (!window.confirm(t('adminEquipment.deletePackageConfirm', { name: row.title }))) return;
     setSaving(true); setError(''); setNotice('');
     try { await tourAdminApi.deleteRentalPackage(row.id); if (selectedPackage === row.id) resetPackage(); await load(); setNotice(t('adminEquipment.packageDeleted')); }
-    catch (e) { setError(errorText(e)); }
+    catch (e) { setError(errorText(e, t)); }
     finally { setSaving(false); }
   };
   const removePackageImage = async () => {
@@ -133,7 +134,7 @@ export default function AdminEquipmentCatalogPage({ onBack }: { onBack: () => vo
       || !window.confirm(t('adminEquipment.removeImageConfirm'))) return;
     setSaving(true); setError(''); setNotice('');
     try { await tourAdminApi.deleteRentalPackageImage(selectedPackage); setPackageImageFile(null); await load(); setNotice(t('adminEquipment.imageRemoved')); }
-    catch (e) { setError(errorText(e)); }
+    catch (e) { setError(errorText(e, t)); }
     finally { setSaving(false); }
   };
 
