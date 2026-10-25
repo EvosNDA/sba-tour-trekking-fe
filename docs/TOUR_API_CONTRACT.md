@@ -15,12 +15,12 @@ Nội dung PRD cũ chỉ cho thuê gói đã được thay bằng quyết địn
 - Enum JSON phân biệt hoa/thường: `EASY`, `MODERATE`, `HARD`, `EXPERT`; `DRAFT`, `PENDING`, `PUBLISHED`, `REJECTED`, `ARCHIVED`; `SCHEDULED`, `ONGOING`, `COMPLETED`, `CANCELLED`.
 - Tiền là số nguyên VND. Ngày giờ dùng ISO 8601 có múi giờ, ví dụ `2027-01-10T07:00:00+07:00`. Hoạt động dùng giờ `07:30:00` hoặc `null`.
 - `page` bắt đầu từ 0; `size` từ 1 đến 100. Đọc `content`, `number`, `size`, `totalElements`, `totalPages` của Spring Page. Không dùng `items` hay `totalItems`. Bỏ qua metadata Spring khác.
-- Security hiện tại yêu cầu Bearer token cho cả GET tour. Client gửi token qua client chung. Khi 401, UI hướng dẫn đăng nhập; không đổi security hay tự tạo token. Chưa thể giới thiệu đây là API xem tour ẩn danh.
+- Khách vãng lai được đọc danh sách và nội dung tour đã `PUBLISHED`, cùng lịch sắp tới, hoạt động và thông tin dụng cụ của tour đó. Các API ghi vẫn cần Bearer token. Frontend không gửi token cho các request đọc công khai.
 - CSRF hiện chỉ áp dụng cho các thao tác ghi ở `/api/v1/auth/**`; API tour không yêu cầu CSRF token.
 
 ## API đọc cho luồng khách
 
-Tái sử dụng các endpoint tour hiện có. GET danh sách bổ sung các tham số lọc tùy chọn; UI khách luôn gửi `status=PUBLISHED`. Không gửi bộ lọc vẫn giữ hành vi liệt kê mọi trạng thái cho quản lý. GET theo ID hiện chưa áp dụng quyền xem theo trạng thái ở backend; UI không trình bày tour chưa publish. Đây không thay thế phân quyền server khi đưa hệ thống lên production. Chỉ hai endpoint đọc dụng cụ là mới.
+Tái sử dụng các endpoint tour hiện có. GET danh sách bổ sung các tham số lọc tùy chọn; request không đăng nhập luôn chỉ nhận tour `PUBLISHED`, kể cả khi gửi status khác. Request đã đăng nhập vẫn giữ hành vi liệt kê cho quản lý. GET theo ID và các GET nội dung con trả 404 nếu tour chưa publish. Khách chỉ đọc được lịch `SCHEDULED` có ngày đi trong tương lai. Chỉ hai endpoint đọc dụng cụ là mới.
 
 | Method | Path | Response |
 | --- | --- | --- |
@@ -62,6 +62,7 @@ Khi gửi `upcomingOnly=true`, danh sách lịch chỉ gồm `SCHEDULED` và có
 {
   "equipmentPackage": {
     "id": 2,
+    "packageTemplateId": 1,
     "title": "Gói dụng cụ của tour",
     "includedItems": "Mô tả nội dung gói",
     "sharedItems": null,
@@ -86,13 +87,47 @@ Ví dụ trên chỉ mô tả định dạng contract, không phải dữ liệu
 - Không có gói: trả `{ "equipmentPackage": null, "items": [] }`, HTTP 200.
 - Một tour có tối đa một gói. `quantityInPackage` là số món có trong một gói.
 - `rentalPriceVnd: null` nghĩa là gói chưa có giá thuê; không cho chọn thuê cả gói. Giá `0` là giá hợp lệ.
+- `rentalPriceVnd` là giá của một gói dụng cụ cho cả chuyến; khách chọn số gói cần thuê.
 - `individualRentalPriceVnd: null` nghĩa là món đó không cho thuê lẻ; giá `0` vẫn được chọn.
+
+### Quản lý dụng cụ (chỉ ADMIN)
+
+Các API này tạo danh mục dùng chung trong package tour. Mỗi tour có thể gán một gói mẫu và thêm các món thuê lẻ:
+
+| Method | Path | Response |
+| --- | --- | --- |
+| GET | `/tours/equipment-catalog` | `EquipmentCatalogResponse[]` |
+| POST | `/tours/equipment-catalog` | Tạo một dụng cụ |
+| PUT | `/tours/equipment-catalog/{equipmentId}` | Cập nhật dụng cụ |
+| POST | `/tours/equipment-catalog/{equipmentId}/image` | Tải ảnh dụng cụ lên (`multipart/form-data`, `file`) |
+| DELETE | `/tours/equipment-catalog/{equipmentId}/image` | Xóa ảnh dụng cụ |
+| DELETE | `/tours/equipment-catalog/{equipmentId}` | Xóa dụng cụ chưa được dùng |
+| GET | `/tours/rental-packages` | `RentalPackageTemplateResponse[]` kèm dụng cụ trong gói |
+| POST | `/tours/rental-packages` | Tạo gói mẫu |
+| PUT | `/tours/rental-packages/{packageId}` | Thay thông tin và nội dung gói mẫu |
+| POST | `/tours/rental-packages/{packageId}/image` | Tải ảnh gói lên (`multipart/form-data`, `file`) |
+| DELETE | `/tours/rental-packages/{packageId}/image` | Xóa ảnh gói |
+| DELETE | `/tours/rental-packages/{packageId}` | Xóa gói chưa được gán cho tour |
+| PUT | `/tours/{tourId}/equipment` | Gán gói mẫu và danh sách món thuê lẻ cho tour |
+
+Body gán dụng cụ cho tour:
+
+```json
+{
+  "packageTemplateId": 1,
+  "individualEquipmentIds": [4, 5]
+}
+```
+
+`packageTemplateId` có thể là `null`; `individualEquipmentIds` có thể là mảng rỗng. Nếu cả hai không có lựa chọn, API xóa cấu hình thuê của tour. Backend lưu bản sao theo tour trong các bảng hiện tại để API đọc và ID món thuê hiện có không đổi. Sửa gói mẫu không tự cập nhật tour; cần lưu lại cấu hình tour để chụp nội dung mới.
 - Ba lựa chọn loại trừ nhau cho cả nhóm: `NONE`, `PACKAGE`, `ITEMS`. Phiên bản này không kết hợp gói với món lẻ để tránh tính trùng.
-- Giá gói lấy từ `tour_equipment_packages.rental_price_vnd`, tính cho một người trong cả tour. `tour_schedules.equipmentFeeVnd` là trường phí cũ; không cộng thêm lần nữa khi dùng giá gói có cấu trúc. Không dùng phí lịch thay cho giá gói `null`.
-- Thuê lẻ: `quantity` là tổng số món cả nhóm chọn, không nhân thêm số người.
-- Tổng dự kiến: `basePriceVnd × travelers.length + rentalCost`. Gói: `rentalPriceVnd × travelers.length`; món lẻ: tổng `individualRentalPriceVnd × quantity`. Không tính cọc hay tạo yêu cầu thanh toán ở luồng này.
+- Giá gói là giá một gói cho cả chuyến. `quantity` là số gói cả nhóm thuê; tiền gói = `rentalPriceVnd × quantity`, không nhân theo số người. `tour_schedules.equipmentFeeVnd` là trường phí cũ; không cộng thêm lần nữa khi dùng giá gói có cấu trúc. Không dùng phí lịch thay cho giá gói `null`.
+- Thuê lẻ: `quantity` là tổng số món cả nhóm chọn; tiền món lẻ = tổng `individualRentalPriceVnd × quantity`.
+- Tổng dự kiến: `basePriceVnd × travelers.length + rentalCost`. Không tính cọc hay tạo yêu cầu thanh toán ở luồng này.
 - Không có API tồn kho hoặc giữ dụng cụ; UI không được cam kết còn hàng. Trước màn xem lại, đọc lại lịch và giá dụng cụ. Booking phải kiểm tra lại ở thời điểm nhận bàn giao.
 - Migration 007 phải được áp dụng trên database trước khi chạy các API dụng cụ mới. Không tạo migration mới cho những cột đã có trong 007.
+- Migration 011 thêm `image_url` và `storage_key` cho `equipment` và `rental_package_templates`. Ảnh được tải qua `features.storage.ImageStorage`; giới hạn 5 MB, chỉ nhận JPEG, PNG hoặc WebP.
+- Migration 012 ghi rõ đơn vị giá thuê: một gói tính theo số gói thuê; một món lẻ tính theo số món thuê.
 
 ## Dữ liệu bàn giao cho Booking
 
@@ -100,16 +135,16 @@ Ví dụ trên chỉ mô tả định dạng contract, không phải dữ liệu
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "tourId": 3,
   "scheduleId": 10,
   "contact": {"fullName": "Tên người liên hệ", "email": "contact@example.com", "phone": "0900000000"},
   "travelers": [{"fullName": "Tên người đi", "email": "", "phone": ""}],
-  "rental": {"mode": "ITEMS", "items": [{"itemId": 8, "quantity": 2}]}
+  "rental": {"mode": "PACKAGE", "packageId": 2, "quantity": 2}
 }
 ```
 
-`rental` có thể là `{mode:"NONE"}`, `{mode:"PACKAGE",packageId:2}` hoặc `{mode:"ITEMS",items:[...]}`. `itemId` tham chiếu `tour_equipment_items.id`, không phải `equipment.id`. Chỉ số lượng nguyên dương được bàn giao, không có ID trùng. Không đưa giá/tổng do trình duyệt tính làm nguồn giá tin cậy.
+`rental` có thể là `{mode:"NONE"}`, `{mode:"PACKAGE",packageId:2,quantity:2}` hoặc `{mode:"ITEMS",items:[...]}`. `quantity` của gói là số gói cho cả nhóm; `quantity` của món là tổng số món cho cả nhóm. `itemId` tham chiếu `tour_equipment_items.id`, không phải `equipment.id`. Chỉ số lượng nguyên dương được bàn giao, không có ID trùng. Không đưa giá/tổng do trình duyệt tính làm nguồn giá tin cậy.
 
 Đây là contract bàn giao UI, **chưa phải request của một endpoint tạo booking**. `HomePage` và `TourDetailPage` nhận callback `onSelectionReady(draft)`, được gọi sau khi kiểm tra lại dữ liệu và chuyển thành công sang màn xem lại. Chủ module Booking có thể nối callback này, đồng thời xác nhận request cuối, cách lưu người liên hệ và lựa chọn thuê lẻ, kiểm tra lịch, số chỗ, giá, quan hệ món với tour và chống tính trùng. Module tour không ghi vào bảng booking/participant và không gọi các URL booking giả của giao diện cũ.
 

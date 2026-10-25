@@ -108,6 +108,7 @@ export interface RequiredItemResponse {
 }
 export interface RentalPackageResponse {
   id: number;
+  packageTemplateId: number | null;
   title: string;
   includedItems: string;
   sharedItems: string | null;
@@ -126,6 +127,45 @@ export interface TourEquipmentResponse {
   equipmentPackage: RentalPackageResponse | null;
   items: RentalItemResponse[];
 }
+export interface EquipmentCatalogResponse {
+  id: number;
+  name: string;
+  description: string | null;
+  individualRentalPriceVnd: number | null;
+  imageUrl: string | null;
+}
+export interface RentalPackageTemplateItemResponse {
+  equipmentId: number;
+  name: string;
+  description: string | null;
+  quantityInPackage: number;
+  individualRentalPriceVnd: number | null;
+}
+export interface RentalPackageTemplateResponse {
+  id: number;
+  title: string;
+  sharedItems: string | null;
+  personalItemsToBring: string | null;
+  rentalPriceVnd: number;
+  imageUrl: string | null;
+  items: RentalPackageTemplateItemResponse[];
+}
+export interface SaveEquipmentRequest {
+  name: string;
+  description?: string | null;
+  individualRentalPriceVnd?: number | null;
+}
+export interface SaveRentalPackageRequest {
+  title: string;
+  sharedItems?: string | null;
+  personalItemsToBring?: string | null;
+  rentalPriceVnd: number;
+  items: { equipmentId: number; quantityInPackage: number; individualRentalPriceVnd?: number | null }[];
+}
+export interface AssignTourEquipmentRequest {
+  packageTemplateId: number | null;
+  individualEquipmentIds: number[];
+}
 export interface TourApiError {
   code: string;
   message: string;
@@ -141,11 +181,11 @@ export interface TourSearchParams {
 export interface TravelerDraft { fullName: string; email: string; phone: string; }
 export type RentalSelection =
   | { mode: 'NONE' }
-  | { mode: 'PACKAGE'; packageId: number }
+  | { mode: 'PACKAGE'; packageId: number; quantity: number }
   | { mode: 'ITEMS'; items: { itemId: number; quantity: number }[] };
 /** Local handoff only. No booking endpoint currently accepts this contract. */
 export interface TourSelectionDraft {
-  version: 1;
+  version: 2;
   tourId: number;
   scheduleId: number;
   contact: TravelerDraft;

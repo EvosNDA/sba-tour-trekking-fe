@@ -10,9 +10,9 @@ const version = base.endsWith('/api/v1') ? '' : base.endsWith('/api') ? '/v1' : 
 const tours = `${version}/tours`;
 const idPath = (id: number | string) => `${tours}/${encodeURIComponent(id)}`;
 
-// The shared client types assume an envelope; tour controllers return the DTO directly.
+// Tour reads are public; controllers return DTOs directly rather than an envelope.
 async function get<T>(path: string, signal?: AbortSignal, params?: Record<string, unknown>): Promise<T> {
-  return await apiClient.get<T>(path, { signal, params }) as unknown as T;
+  return await apiClient.get<T>(path, { signal, params, auth: false }) as unknown as T;
 }
 
 export const tourReadApi = {

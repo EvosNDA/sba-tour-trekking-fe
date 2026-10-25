@@ -4,14 +4,15 @@ export const availablePlaces = (schedule: ScheduleSummaryResponse) => Math.max(0
 export const isUpcoming = (schedule: ScheduleSummaryResponse) => schedule.status === 'SCHEDULED' && Date.parse(schedule.startsAt) > Date.now();
 
 /** null means invalid/unpriced. A configured zero price remains valid. */
-export function rentalCost(selection: RentalSelection, equipment: TourEquipmentResponse | null, people: number): number | null {
+export function rentalCost(selection: RentalSelection, equipment: TourEquipmentResponse | null): number | null {
   if (selection.mode === 'NONE') return 0;
   if (!equipment) return null;
   let total = 0;
   if (selection.mode === 'PACKAGE') {
     const pack = equipment.equipmentPackage;
-    if (!pack || pack.id !== selection.packageId || pack.rentalPriceVnd == null) return null;
-    total = pack.rentalPriceVnd * people;
+    if (!pack || pack.id !== selection.packageId || pack.rentalPriceVnd == null
+      || !Number.isSafeInteger(selection.quantity) || selection.quantity <= 0) return null;
+    total = pack.rentalPriceVnd * selection.quantity;
   } else {
     if (!selection.items.length || new Set(selection.items.map(item => item.itemId)).size !== selection.items.length) return null;
     for (const selected of selection.items) {

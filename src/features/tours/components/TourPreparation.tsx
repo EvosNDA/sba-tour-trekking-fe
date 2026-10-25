@@ -32,7 +32,7 @@ export function TourPreparation(props: Props) {
   const [equipmentOverride, setEquipmentOverride] = useState<TourEquipmentResponse | null>(null);
   const equipment = equipmentOverride ?? props.equipment;
   const [draft, setDraft] = useState<TourSelectionDraft>(() => props.initialDraft?.scheduleId === props.schedule.id ? props.initialDraft : {
-    version: 1, tourId: props.tour.id, scheduleId: props.schedule.id,
+    version: 2, tourId: props.tour.id, scheduleId: props.schedule.id,
     contact: { fullName: user?.name ?? '', email: user?.email ?? '', phone: user?.phone ?? '' },
     travelers: [emptyTraveler()], rental: { mode: 'NONE' },
   });
@@ -46,7 +46,7 @@ export function TourPreparation(props: Props) {
   useEffect(() => { title.current?.focus(); window.scrollTo({ top: 0 }); }, [step]);
   const money = (value: number) => formatVND(value, language);
   const date = (value: string) => new Intl.DateTimeFormat(language === 'vi' ? 'vi-VN' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
-  const cost = rentalCost(draft.rental, equipment, draft.travelers.length);
+  const cost = rentalCost(draft.rental, equipment);
   const previewCost = draft.rental.mode === 'ITEMS' && draft.rental.items.length === 0 ? 0 : cost;
   const baseCost = schedule.basePriceVnd * draft.travelers.length;
   const total = previewCost == null || !Number.isSafeInteger(baseCost + previewCost) ? null : baseCost + previewCost;
@@ -109,7 +109,7 @@ export function TourPreparation(props: Props) {
       if (freshEquipment) setEquipmentOverride(freshEquipment);
       if (freshTour.status !== 'PUBLISHED' || !isUpcoming(freshSchedule)) { setError('trip.selectionInvalid'); return; }
       if (availablePlaces(freshSchedule) < draft.travelers.length) { setError('trip.seatLimit'); return; }
-      const freshRentalCost = rentalCost(draft.rental, freshEquipment, draft.travelers.length);
+      const freshRentalCost = rentalCost(draft.rental, freshEquipment);
       if (freshRentalCost == null) { setError('trip.selectionInvalid'); return; }
       if (freshSchedule.basePriceVnd !== schedule.basePriceVnd || freshRentalCost !== cost
         || freshSchedule.startsAt !== schedule.startsAt || freshSchedule.endsAt !== schedule.endsAt) {
@@ -132,6 +132,14 @@ export function TourPreparation(props: Props) {
     else if (step === 1) void review();
   };
   const itemQuantity = (id: number) => draft.rental.mode === 'ITEMS' ? draft.rental.items.find(item => item.itemId === id)?.quantity ?? 0 : 0;
+  const changePackageQuantity = (value: string) => {
+    const quantity = Number(value);
+    if (!Number.isSafeInteger(quantity) || quantity < 1) return;
+    setDraft(current => current.rental.mode === 'PACKAGE'
+      ? { ...current, rental: { ...current.rental, quantity } }
+      : current);
+    setError(null);
+  };
   const changeQuantity = (id: number, value: string) => {
     const quantity = value === '' ? 0 : Number(value);
     setDraft(current => ({ ...current, rental: { mode: 'ITEMS', items: [
@@ -173,15 +181,16 @@ export function TourPreparation(props: Props) {
                   const disabled = mode === 'PACKAGE' ? packageInfo?.rentalPriceVnd == null : mode === 'ITEMS' ? individualItems.length === 0 : false;
                   const key = mode === 'NONE' ? 'own' : mode === 'PACKAGE' ? 'package' : 'items';
                   return <label key={mode} className={`trip-rental-option ${draft.rental.mode === mode ? 'is-selected' : ''} ${disabled ? 'is-disabled' : ''}`}>
-                    <input type="radio" name="rental-mode" checked={draft.rental.mode === mode} disabled={disabled} onChange={() => { setError(null); setDraft(current => ({ ...current, rental: mode === 'PACKAGE' && packageInfo ? { mode, packageId: packageInfo.id } : mode === 'ITEMS' ? { mode, items: [] } : { mode: 'NONE' } })); }} />
+                    <input type="radio" name="rental-mode" checked={draft.rental.mode === mode} disabled={disabled} onChange={() => { setError(null); setDraft(current => ({ ...current, rental: mode === 'PACKAGE' && packageInfo ? { mode, packageId: packageInfo.id, quantity: 1 } : mode === 'ITEMS' ? { mode, items: [] } : { mode: 'NONE' } })); }} />
                     <span><strong>{t(`trip.${key}`)}</strong><small>{t(disabled ? mode === 'PACKAGE' ? 'trip.packageUnavailable' : 'trip.itemsUnavailable' : `trip.${key}Help`)}</small>
-                      {mode === 'PACKAGE' && packageInfo?.rentalPriceVnd != null && <b>{money(packageInfo.rentalPriceVnd)} <small>{t('trip.perPerson')}</small></b>}</span>
+                      {mode === 'PACKAGE' && packageInfo?.rentalPriceVnd != null && <b>{money(packageInfo.rentalPriceVnd)} <small>{t('trip.perPackage')}</small></b>}</span>
                   </label>;
                 })}
               </fieldset>
               {props.equipmentError && !equipmentOverride && <TourState errorCode={props.equipmentError} retry={props.retryEquipment} />}
               {!props.equipmentError && !packageInfo && <p className="trip-help">{t('trip.noEquipment')}</p>}
-              {draft.rental.mode === 'PACKAGE' && packageInfo && <section className="trip-form-section"><h2>{packageInfo.title}</h2>
+              {draft.rental.mode === 'PACKAGE' && packageInfo && <section className="trip-form-section"><div className="trip-rental-row"><div><h2>{packageInfo.title}</h2>{packageInfo.rentalPriceVnd !== null && <strong>{money(packageInfo.rentalPriceVnd)} <small>{t('trip.perPackage')}</small></strong>}</div>
+                <label><span>{t('trip.packageQuantity')}</span><input aria-label={t('trip.packageQuantity')} type="number" min={1} step={1} inputMode="numeric" value={draft.rental.quantity} disabled={busy} onChange={event => changePackageQuantity(event.target.value)} /></label></div>
                 {equipment?.items.length ? <ul className="trip-equipment-list">{equipment.items.map(item => <li key={item.id}><span><strong>{item.name}</strong>{item.description && <small>{item.description}</small>}</span><span>{t('trip.inPackage', { count: item.quantityInPackage })}</span></li>)}</ul> : <p className="trip-prose">{packageInfo.includedItems}</p>}
                 {packageInfo.sharedItems && <><h3>{t('trip.shared')}</h3><p className="trip-prose">{packageInfo.sharedItems}</p></>}
                 {packageInfo.personalItemsToBring && <><h3>{t('trip.personal')}</h3><p className="trip-prose">{packageInfo.personalItemsToBring}</p></>}
@@ -201,7 +210,7 @@ export function TourPreparation(props: Props) {
             <section className="trip-form-section"><div className="trip-section-title"><h2>{t('trip.contact')}</h2><button className="trip-text-button" onClick={() => setStep(0)}>{t('trip.edit')}</button></div><p className="trip-person-review"><strong>{draft.contact.fullName}</strong><span>{draft.contact.email}</span><span>{draft.contact.phone}</span></p></section>
             <section className="trip-form-section"><h2>{t('trip.travelersCount', { count: draft.travelers.length })}</h2><ol className="trip-review-travelers">{draft.travelers.map((person, index) => <li key={index}><span>{index + 1}</span><div><strong>{person.fullName}</strong>{person.email && <p>{person.email}</p>}{person.phone && <p>{person.phone}</p>}</div></li>)}</ol></section>
             <section className="trip-form-section"><div className="trip-section-title"><h2>{t('trip.rentalStep')}</h2><button className="trip-text-button" onClick={() => setStep(1)}>{t('trip.editEquipment')}</button></div>
-              {draft.rental.mode === 'NONE' ? <p>{t('trip.noRental')}</p> : draft.rental.mode === 'PACKAGE' ? <p>{packageInfo?.title} × {draft.travelers.length}</p> : <ul className="trip-equipment-list">{draft.rental.items.map(item => <li key={item.itemId}><span>{equipment?.items.find(value => value.id === item.itemId)?.name}</span><strong>× {item.quantity}</strong></li>)}</ul>}
+              {draft.rental.mode === 'NONE' ? <p>{t('trip.noRental')}</p> : draft.rental.mode === 'PACKAGE' ? <p>{packageInfo?.title} × {draft.rental.quantity}</p> : <ul className="trip-equipment-list">{draft.rental.items.map(item => <li key={item.itemId}><span>{equipment?.items.find(value => value.id === item.itemId)?.name}</span><strong>× {item.quantity}</strong></li>)}</ul>}
             </section>
             <div className="trip-form-actions"><button className="trip-text-button" onClick={() => setStep(1)}><ArrowLeft size={17} aria-hidden="true" />{t('trip.previous')}</button><button className="trip-button trip-button-secondary" onClick={props.onBrowse}>{t('trip.browse')}<ArrowRight size={18} aria-hidden="true" /></button></div>
           </>}
