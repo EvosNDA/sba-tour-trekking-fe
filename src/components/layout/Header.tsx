@@ -82,7 +82,7 @@ export const Header: React.FC<Props> = ({
   }
 
   // 2. E-TICKET & PAY BALANCE HEADER (WeTrek Expeditions)
-  if (currentScreen === 'eticket' || currentScreen === 'paybalance') {
+  if (currentScreen === 'paybalance') {
     return (
       <header className="bg-white border-b border-[#E6E1D8] px-4 md:px-8 py-3.5">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
@@ -286,6 +286,10 @@ export const Header: React.FC<Props> = ({
                     className="mt-3 w-full rounded border border-[#1F4E43] px-3 py-2 text-left text-xs font-semibold text-[#1F4E43] hover:bg-[#F0F7F4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C2410C]">
                     {t('account.editProfile')}
                   </button>
+                  {user.role === 'customer' && <button type="button" onClick={() => { onNavigate('eticket'); setIsAccountMenuOpen(false); }}
+                    className="mt-3 w-full rounded border border-[#1F4E43] px-3 py-2 text-left text-xs font-semibold text-[#1F4E43] hover:bg-[#F0F7F4]">
+                    {t('bookingFlow.myBookings')}
+                  </button>}
                   {['admin', 'staff', 'guide'].includes(user.role) && (
                     <button
                       type="button"

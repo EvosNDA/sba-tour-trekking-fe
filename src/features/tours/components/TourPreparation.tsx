@@ -7,6 +7,10 @@ import { tourReadApi } from '../api/tourRead.api';
 import { availablePlaces, cleanTraveler, isUpcoming, rentalCost, travelerErrors } from '../tourSelection';
 import type { RequiredItemResponse, ScheduleDetailResponse, TourDetailResponse, TourEquipmentResponse, TourSelectionDraft, TravelerDraft } from '../types/tour-contract.types';
 import { TourState } from './TourState';
+import type { ScreenId } from '../../../types/expedition';
+import type { BookingDetail } from '../../bookings/types/booking.types';
+import { bookingErrorKey, bookingsApi } from '../../bookings/api/bookings.api';
+import { BookingDetails } from '../../bookings/components/BookingDetails';
 
 const emptyTraveler = (): TravelerDraft => ({ fullName: '', email: '', phone: '' });
 type Props = {
@@ -21,6 +25,7 @@ type Props = {
   initialDraft?: TourSelectionDraft | null;
   onExit: (draft: TourSelectionDraft) => void;
   onBrowse: () => void;
+  onNavigate?: (screen: ScreenId) => void;
   onSelectionReady?: (draft: TourSelectionDraft) => void;
 };
 
@@ -28,6 +33,10 @@ export function TourPreparation(props: Props) {
   const { t, language } = useI18n();
   const { user } = useAuthStore();
   const [step, setStep] = useState(0);
+  const [created, setCreated] = useState<BookingDetail | null>(null);
+  const submitting = useRef(false);
+  const accountId = useRef(user?.id);
+  const contact = { fullName: user?.name ?? '', email: user?.email ?? '', phone: user?.phone ?? '' };
   const [schedule, setSchedule] = useState(props.schedule);
   const [equipmentOverride, setEquipmentOverride] = useState<TourEquipmentResponse | null>(null);
   const equipment = equipmentOverride ?? props.equipment;
@@ -43,7 +52,15 @@ export function TourPreparation(props: Props) {
   const title = useRef<HTMLHeadingElement>(null);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  useEffect(() => { title.current?.focus(); window.scrollTo({ top: 0 }); }, [step]);
+  useEffect(() => { title.current?.focus(); window.scrollTo({ top: 0 }); }, [step, created]);
+  useEffect(() => {
+    if (accountId.current === user?.id) return;
+    accountId.current = user?.id;
+    setCreated(null); setStep(0); setCopyContact(false); setErrors({}); setError(null);
+    setDraft({ version: 2, tourId: props.tour.id, scheduleId: props.schedule.id,
+      contact: { fullName: user?.name ?? '', email: user?.email ?? '', phone: user?.phone ?? '' },
+      travelers: [emptyTraveler()], rental: { mode: 'NONE' } });
+  }, [user?.id]);
   const money = (value: number) => formatVND(value, language);
   const date = (value: string) => new Intl.DateTimeFormat(language === 'vi' ? 'vi-VN' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
   const cost = rentalCost(draft.rental, equipment);
@@ -53,21 +70,15 @@ export function TourPreparation(props: Props) {
   const packageInfo = equipment?.equipmentPackage;
   const individualItems = equipment?.items.filter(item => item.individualRentalPriceVnd !== null) ?? [];
 
-  const updatePerson = (index: number | 'contact', field: keyof TravelerDraft, value: string) => {
+  const updatePerson = (index: number, field: keyof TravelerDraft, value: string) => {
     setErrors(current => { const next = { ...current }; delete next[`${index}.${field}`]; return next; });
-    setDraft(current => {
-      if (index === 'contact') {
-        const contact = { ...current.contact, [field]: value };
-        return { ...current, contact, travelers: copyContact ? current.travelers.map((person, i) => i === 0 ? { ...contact } : person) : current.travelers };
-      }
-      return { ...current, travelers: current.travelers.map((person, i) => i === index ? { ...person, [field]: value } : person) };
-    });
+    setDraft(current => ({ ...current, travelers: current.travelers.map((person, i) => i === index ? { ...person, [field]: value } : person) }));
   };
-  const fields = (person: TravelerDraft, index: number | 'contact', contact = false) => <div className="trip-person-fields">
+  const fields = (person: TravelerDraft, index: number) => <div className="trip-person-fields">
     {(['fullName', 'email', 'phone'] as const).map(field => {
       const id = `trip-${index}-${field}`;
       const fieldError = errors[`${index}.${field}`];
-      const required = contact || field === 'fullName';
+      const required = field === 'fullName';
       return <label key={field} className={field === 'fullName' ? 'trip-field-name' : ''} htmlFor={id}>
         <span>{t(field === 'fullName' ? 'trip.name' : `trip.${field}`)} {!required && <small>{t('trip.optional')}</small>}{required && <span aria-hidden="true"> *</span>}</span>
         <input id={id} type={field === 'email' ? 'email' : field === 'phone' ? 'tel' : 'text'} autoComplete={field === 'fullName' ? 'name' : field === 'phone' ? 'tel' : 'email'}
@@ -81,7 +92,6 @@ export function TourPreparation(props: Props) {
 
   const validateTravelers = () => {
     const next: Record<string, string> = {};
-    Object.entries(travelerErrors(draft.contact, true)).forEach(([key, value]) => { next[`contact.${key}`] = value; });
     draft.travelers.forEach((person, index) => Object.entries(travelerErrors(person)).forEach(([key, value]) => { next[`${index}.${key}`] = value; }));
     setErrors(next);
     if (Object.keys(next).length) {
@@ -93,10 +103,10 @@ export function TourPreparation(props: Props) {
     return true;
   };
 
-  const review = async () => {
-    if (!validateTravelers()) { setStep(0); return; }
-    if (cost === null) { setError(draft.rental.mode === 'ITEMS' && !draft.rental.items.length ? 'trip.chooseItems' : 'trip.rentalInvalid'); return; }
-    if (total === null) { setError('trip.tooLarge'); return; }
+  const review = async (): Promise<TourSelectionDraft | null> => {
+    if (!validateTravelers()) { setStep(0); return null; }
+    if (cost === null) { setError(draft.rental.mode === 'ITEMS' && !draft.rental.items.length ? 'trip.chooseItems' : 'trip.rentalInvalid'); return null; }
+    if (total === null) { setError('trip.tooLarge'); return null; }
     setBusy(true); setError(null);
     try {
       const [freshSchedule, freshEquipment, freshTour] = await Promise.all([
@@ -104,19 +114,21 @@ export function TourPreparation(props: Props) {
         draft.rental.mode === 'NONE' ? Promise.resolve(equipment) : tourReadApi.equipment(props.tour.id),
         tourReadApi.detail(props.tour.id),
       ]);
-      if (!mounted.current) return;
+      if (!mounted.current) return null;
       setSchedule(freshSchedule);
       if (freshEquipment) setEquipmentOverride(freshEquipment);
-      if (freshTour.status !== 'PUBLISHED' || !isUpcoming(freshSchedule)) { setError('trip.selectionInvalid'); return; }
-      if (availablePlaces(freshSchedule) < draft.travelers.length) { setError('trip.seatLimit'); return; }
+      if (freshTour.status !== 'PUBLISHED' || !isUpcoming(freshSchedule)) { setError('trip.selectionInvalid'); return null; }
+      if (availablePlaces(freshSchedule) < draft.travelers.length) { setError('trip.seatLimit'); return null; }
       const freshRentalCost = rentalCost(draft.rental, freshEquipment);
-      if (freshRentalCost == null) { setError('trip.selectionInvalid'); return; }
+      if (freshRentalCost == null) { setError('trip.selectionInvalid'); return null; }
       if (freshSchedule.basePriceVnd !== schedule.basePriceVnd || freshRentalCost !== cost
+        || freshSchedule.depositPercent !== schedule.depositPercent || freshSchedule.balanceDueAt !== schedule.balanceDueAt
         || freshSchedule.startsAt !== schedule.startsAt || freshSchedule.endsAt !== schedule.endsAt) {
-        setError('trip.priceChanged'); return;
+        setError('trip.priceChanged'); return null;
       }
-      const cleaned = { ...draft, contact: cleanTraveler(draft.contact), travelers: draft.travelers.map(cleanTraveler) };
+      const cleaned = { ...draft, contact, travelers: draft.travelers.map(cleanTraveler) };
       setDraft(cleaned); setStep(2); props.onSelectionReady?.(cleaned);
+      return cleaned;
     } catch (cause: unknown) {
       if (mounted.current) {
         const code = cause && typeof cause === 'object' && 'code' in cause ? String(cause.code) : '';
@@ -124,6 +136,34 @@ export function TourPreparation(props: Props) {
       }
     }
     finally { if (mounted.current) setBusy(false); }
+    return null;
+  };
+
+  const openBookings = () => props.onNavigate?.('eticket');
+  const placeBooking = async () => {
+    if (submitting.current) return;
+    if (!user) { props.onNavigate?.('login'); return; }
+    if (user.role !== 'customer') { setError('bookingFlow.error.FORBIDDEN'); return; }
+    submitting.current = true;
+    try {
+      const selection = await review();
+      if (!selection) return;
+      setBusy(true);
+      const result = await bookingsApi.create({ scheduleId: selection.scheduleId, travelers: selection.travelers, rental: selection.rental });
+      if (!mounted.current) return;
+      const url = new URL(window.location.href);
+      url.searchParams.set('bookingId', String(result.id));
+      window.history.replaceState(null, '', url);
+      setCreated(result); window.scrollTo({ top: 0 });
+    } catch (cause) {
+      if (!mounted.current) return;
+      setError(bookingErrorKey(cause));
+      const refreshed = await Promise.allSettled([tourReadApi.schedule(props.tour.id, schedule.id), tourReadApi.equipment(props.tour.id)]);
+      if (!mounted.current) return;
+      if (refreshed[0].status === 'fulfilled') setSchedule(refreshed[0].value);
+      if (refreshed[1].status === 'fulfilled') setEquipmentOverride(refreshed[1].value);
+      setStep(1);
+    } finally { submitting.current = false; if (mounted.current) setBusy(false); }
   };
 
   const submit = (event: React.FormEvent) => {
@@ -149,6 +189,15 @@ export function TourPreparation(props: Props) {
     setError(null);
   };
 
+  if (created) return <main className="tour-flow booking-page"><div className="trip-container">
+    <h1 ref={title} tabIndex={-1} className="booking-heading">{t('bookingFlow.created')}</h1>
+    <BookingDetails key={created.id} bookingId={created.id} initialBooking={created} />
+    <div className="booking-actions"><button className="trip-button" onClick={openBookings}>{t('bookingFlow.myBookings')}</button>
+      <button className="trip-button trip-button-secondary" onClick={() => {
+        const url = new URL(window.location.href); url.searchParams.delete('bookingId'); window.history.replaceState(null, '', url); props.onBrowse();
+      }}>{t('bookingFlow.browse')}</button></div>
+  </div></main>;
+
   return <main className="tour-flow trip-preparation">
     <div className="trip-container">
       <nav aria-label={t('trip.progress')} className="trip-steps"><ol>{['trip.travelersStep', 'trip.rentalStep', 'trip.reviewStep'].map((key, index) => <li key={key} className={index === step ? 'is-current' : index < step ? 'is-done' : ''}>
@@ -160,11 +209,12 @@ export function TourPreparation(props: Props) {
           {error && <p className="trip-alert" role="alert">{t(error)}</p>}
           {step !== 2 ? <form onSubmit={submit} noValidate>
             {step === 0 && <>
-              <section className="trip-form-section"><h2>{t('trip.contact')}</h2><p className="trip-help">{t('trip.contactHelp')}</p>{fields(draft.contact, 'contact', true)}
+              <section className="trip-form-section"><h2>{t('trip.contact')}</h2><p className="trip-help">{t('bookingFlow.accountContact')}</p>
+                <p className="trip-person-review"><strong>{contact.fullName}</strong><span>{contact.email}</span><span>{contact.phone}</span></p>
                 <label className="trip-checkbox"><input type="checkbox" checked={copyContact} onChange={event => {
                   setCopyContact(event.target.checked); setError(null);
                   setErrors(current => Object.fromEntries(Object.entries(current).filter(([key]) => !key.startsWith('0.'))));
-                  if (event.target.checked) setDraft(current => ({ ...current, travelers: current.travelers.map((person, i) => i === 0 ? { ...current.contact } : person) }));
+                  if (event.target.checked) setDraft(current => ({ ...current, travelers: current.travelers.map((person, i) => i === 0 ? { ...contact } : person) }));
                 }} />{t('trip.copyContact')}</label>
               </section>
               <section className="trip-form-section"><div className="trip-section-title"><h2><Users size={20} aria-hidden="true" />{t('trip.travelersCount', { count: draft.travelers.length })}</h2></div>
@@ -206,13 +256,15 @@ export function TourPreparation(props: Props) {
             <div className="trip-form-actions"><button type="button" disabled={busy} className="trip-text-button" onClick={() => { setError(null); step === 0 ? props.onExit(draft) : setStep(0); }}><ArrowLeft size={17} aria-hidden="true" />{t(step === 0 ? 'trip.changeTour' : 'trip.previous')}</button>
               <button className="trip-button" disabled={busy}>{t(busy ? 'trip.checking' : step === 0 ? 'trip.continue' : 'trip.review')}<ArrowRight size={18} aria-hidden="true" /></button></div>
           </form> : <>
-            <div className="trip-ready" role="status"><CheckCircle2 size={24} aria-hidden="true" /><div><strong>{t('trip.notBooked')}</strong><p>{t('trip.handoff')}</p></div></div>
-            <section className="trip-form-section"><div className="trip-section-title"><h2>{t('trip.contact')}</h2><button className="trip-text-button" onClick={() => setStep(0)}>{t('trip.edit')}</button></div><p className="trip-person-review"><strong>{draft.contact.fullName}</strong><span>{draft.contact.email}</span><span>{draft.contact.phone}</span></p></section>
+            <div className="trip-ready" role="status"><CheckCircle2 size={24} aria-hidden="true" /><div><strong>{t('bookingFlow.reviewReady')}</strong><p>{t('bookingFlow.reviewHelp')}</p></div></div>
+            <section className="trip-form-section"><div className="trip-section-title"><h2>{t('trip.contact')}</h2><span className="trip-help">{t('bookingFlow.accountContact')}</span></div><p className="trip-person-review"><strong>{contact.fullName}</strong><span>{contact.email}</span><span>{contact.phone}</span></p></section>
             <section className="trip-form-section"><h2>{t('trip.travelersCount', { count: draft.travelers.length })}</h2><ol className="trip-review-travelers">{draft.travelers.map((person, index) => <li key={index}><span>{index + 1}</span><div><strong>{person.fullName}</strong>{person.email && <p>{person.email}</p>}{person.phone && <p>{person.phone}</p>}</div></li>)}</ol></section>
-            <section className="trip-form-section"><div className="trip-section-title"><h2>{t('trip.rentalStep')}</h2><button className="trip-text-button" onClick={() => setStep(1)}>{t('trip.editEquipment')}</button></div>
+            <section className="trip-form-section"><div className="trip-section-title"><h2>{t('trip.rentalStep')}</h2><button className="trip-text-button" disabled={busy} onClick={() => setStep(1)}>{t('trip.editEquipment')}</button></div>
               {draft.rental.mode === 'NONE' ? <p>{t('trip.noRental')}</p> : draft.rental.mode === 'PACKAGE' ? <p>{packageInfo?.title} × {draft.rental.quantity}</p> : <ul className="trip-equipment-list">{draft.rental.items.map(item => <li key={item.itemId}><span>{equipment?.items.find(value => value.id === item.itemId)?.name}</span><strong>× {item.quantity}</strong></li>)}</ul>}
             </section>
-            <div className="trip-form-actions"><button className="trip-text-button" onClick={() => setStep(1)}><ArrowLeft size={17} aria-hidden="true" />{t('trip.previous')}</button><button className="trip-button trip-button-secondary" onClick={props.onBrowse}>{t('trip.browse')}<ArrowRight size={18} aria-hidden="true" /></button></div>
+            <div className="trip-form-actions"><button className="trip-text-button" disabled={busy} onClick={() => setStep(1)}><ArrowLeft size={17} aria-hidden="true" />{t('trip.previous')}</button>
+              <button className="trip-button" disabled={busy || Boolean(user && user.role !== 'customer')} onClick={() => void placeBooking()}>{t(busy ? 'bookingFlow.creating' : !user ? 'bookingFlow.signIn' : 'bookingFlow.reserve')}<ArrowRight size={18} aria-hidden="true" /></button></div>
+            {user?.role === 'customer' && <button className="trip-text-button" disabled={busy} onClick={openBookings}>{t('bookingFlow.myBookings')}</button>}
           </>}
         </div>
         <aside className="trip-summary"><h2>{t('trip.summary')}</h2><h3>{props.tour.title}</h3><p className="trip-summary-dates">{date(schedule.startsAt)}<span>— {date(schedule.endsAt)}</span></p>

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, ChevronDown, Clock3, ExternalLink, Mountain } from 'lucide-react';
 import { useI18n } from '../../../i18n/I18nProvider';
 import { formatVND } from '../../../lib/utils';
+import { useAuthStore } from '../../../stores/auth.store';
 import type { ScreenId } from '../../../types/expedition';
 import { tourReadApi } from '../../../features/tours/api/tourRead.api';
 import { useTourResource } from '../../../features/tours/hooks/useTourData';
@@ -20,12 +21,14 @@ export interface TourDetailPageProps {
 
 export function TourDetailPage({ tourId, onBack = () => {}, onNavigate, onSelectionReady }: TourDetailPageProps) {
   const { t, language } = useI18n();
+  const { user } = useAuthStore();
   const id = tourId ?? '';
   const [schedulePage, setSchedulePage] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [tab, setTab] = useState<'about' | 'plan' | 'packing'>('about');
   const [preparing, setPreparing] = useState(false);
   const [savedDraft, setSavedDraft] = useState<TourSelectionDraft | null>(null);
+  useEffect(() => { setSavedDraft(null); }, [user?.id]);
   const tour = useTourResource(`tour:${id}`, signal => tourReadApi.detail(id, signal));
   const schedules = useTourResource(`schedules:${id}:${schedulePage}`, signal => tourReadApi.schedules(id, schedulePage, signal));
   const selected = useTourResource(`schedule:${id}:${selectedId}`, signal => selectedId === null ? Promise.resolve(null) : tourReadApi.schedule(id, selectedId, signal));
@@ -40,7 +43,7 @@ export function TourDetailPage({ tourId, onBack = () => {}, onNavigate, onSelect
   const data = tour.data;
   if (preparing && selected.data && isUpcoming(selected.data)) return <TourPreparation key={selected.data.id} tour={data} schedule={selected.data}
     equipment={equipment.data} equipmentError={equipment.errorCode} retryEquipment={equipment.retry}
-    requiredItems={required.data} requiredError={required.errorCode} retryRequired={required.retry} initialDraft={savedDraft}
+    requiredItems={required.data} requiredError={required.errorCode} retryRequired={required.retry} initialDraft={savedDraft} onNavigate={onNavigate}
     onExit={draft => { setSavedDraft(draft); setPreparing(false); tour.retry(); selected.retry(); schedules.retry(); window.scrollTo({ top: 0 }); }} onBrowse={onBack} onSelectionReady={onSelectionReady} />;
 
   const days = [...new Set(activities.data?.map(activity => activity.dayNumber) ?? [])];

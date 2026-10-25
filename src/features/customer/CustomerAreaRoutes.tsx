@@ -20,7 +20,7 @@ export function CustomerAreaRoutes({ screen, onNavigate, booking, review, onUpda
     case 'account_profile':
       return <AccountProfilePage />;
     case 'eticket':
-      return <MyBookingsPage booking={booking} onUpdateBooking={onUpdateBooking} onNavigate={onNavigate} onOpenAIRanger={onOpenAIRanger} />;
+      return <MyBookingsPage onNavigate={onNavigate} />;
     case 'paybalance':
       return <CheckoutPage booking={booking} onUpdateBooking={onUpdateBooking} onNavigate={onNavigate} onOpenAIRanger={onOpenAIRanger} />;
     case 'review':

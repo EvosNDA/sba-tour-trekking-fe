@@ -33,6 +33,7 @@ export function App() {
     const role = storedUser?.role ?? null;
     try {
       const params = new URLSearchParams(window.location.search);
+      if (params.has('bookingId')) return 'eticket';
       if (params.has('activateAccount')) return 'account_activation';
       if (params.has('paymentReturn') || window.location.pathname === '/booking/payment-result') return 'booking_payment_result';
       const savedScreen = localStorage.getItem('wetrek_current_screen') as ScreenId | null;
@@ -56,6 +57,11 @@ export function App() {
   const [isAIRangerOpen, setIsAIRangerOpen] = useState(false);
   const { user, isRestoring } = useAuthStore();
   const changeScreen = (screen: ScreenId) => {
+    if (screen !== 'eticket') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('bookingId');
+      window.history.replaceState(null, '', url);
+    }
     setCurrentScreen(screen);
     try {
       localStorage.setItem('wetrek_current_screen', screen);
