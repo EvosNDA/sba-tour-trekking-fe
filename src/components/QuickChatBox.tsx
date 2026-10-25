@@ -90,20 +90,24 @@ export const QuickChatBox: React.FC = () => {
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let accumulatedText = '';
+      let buffer = '';
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
+        buffer += decoder.decode(value, { stream: true });
         
-        // Parse SSE data: tokens often come as "data:token\n\n" or raw text chunks
-        const lines = chunk.split('\n');
+        // Split by lines but keep uncompleted line in buffer
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
         for (const line of lines) {
-          if (line.startsWith('data:')) {
-            accumulatedText += line.replace(/^data:\s?/, '');
-          } else if (!line.startsWith(':') && line.trim()) {
-            accumulatedText += line;
+          const trimmed = line.replace(/\r$/, '');
+          if (trimmed.startsWith('data:')) {
+            // Spring WebFlux SSE formats as "data:<token>"
+            // Slice 5 to preserve leading spaces of tokens (e.g., " word" -> "data: word")
+            accumulatedText += trimmed.slice(5);
           }
         }
 
