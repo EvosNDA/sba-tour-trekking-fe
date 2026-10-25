@@ -55,8 +55,7 @@ export const QuickChatBox: React.FC = () => {
     setLoading(true);
 
     try {
-      const baseUrl = APP_CONFIG.API_BASE_URL.replace(/\/+$/, '');
-      const response = await fetch(`${baseUrl}/api/v1/ai/chat`, {
+      const response = await fetch('/api/v1/ai/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
