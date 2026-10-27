@@ -1,51 +1,164 @@
 import { apiClient } from '../../../lib/axios';
-import { LoginPayload, RegisterPayload, AuthSession } from '../types/auth.types';
+import { APP_CONFIG } from '../../../constants/config';
+import { LoginPayload, RegisterPayload, AuthSession, AccountProfile, UpdateAccountPayload } from '../types/auth.types';
+
+const API_BASE = APP_CONFIG.API_BASE_URL.replace(/\/$/, '');
+const API_V1 = API_BASE.endsWith('/api/v1') ? '' : API_BASE.endsWith('/api') ? '/v1' : '/api/v1';
+const authPath = (path: string) => `${API_V1}/auth${path}`;
+interface CsrfResponse { headerName: string; token: string; }
+interface MessageResponse { message: string; }
+interface BackendAuthResponse {
+  accessToken: string;
+  account: { id: number; email: string; fullName: string; phone: string | null; roles: string[] };
+}
+
+function toAuthSession(response: BackendAuthResponse): AuthSession {
+  const roles = response.account.roles.map(role => role.toLowerCase());
+  const role = roles.includes('admin') ? 'admin'
+    : roles.includes('guide') ? 'guide'
+    : roles.some(value => value === 'support_staff' || value === 'content_staff' || value === 'accountant') ? 'staff'
+    : 'customer';
+  return {
+    token: response.accessToken,
+    user: {
+      id: String(response.account.id),
+      name: response.account.fullName,
+      email: response.account.email,
+      role,
+      phone: response.account.phone,
+    },
+  };
+}
+
+let refreshInFlight: Promise<AuthSession> | null = null;
+
+function refreshSession(): Promise<AuthSession> {
+  if (!refreshInFlight) {
+    const requestRefresh = async () => {
+      const csrfResponse = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+      const csrf = 'data' in csrfResponse ? csrfResponse.data : csrfResponse;
+      const response = await apiClient.post<BackendAuthResponse>(authPath('/refresh'), undefined, {
+        credentials: 'include',
+        auth: false,
+        headers: { [csrf.headerName]: csrf.token },
+      });
+      return toAuthSession('data' in response ? response.data : response);
+    };
+    const locks = (navigator as Navigator & {
+      locks?: { request<T>(name: string, callback: () => Promise<T>): Promise<T> };
+    }).locks;
+    refreshInFlight = (locks
+      ? locks.request('wetrek-auth-refresh', requestRefresh)
+      : requestRefresh()
+    ).finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  return refreshInFlight;
+}
 
 export const authApi = {
-  login: async (payload: LoginPayload): Promise<AuthSession> => {
-    try {
-      const res = await apiClient.post<AuthSession>('/auth/login', payload);
-      return res.data;
-    } catch {
-      // Mock fallback
-      const derivedName = payload.email.includes('@')
-        ? payload.email.split('@')[0].replace('.', ' ').replace(/(^\w|\s\w)/g, (m) => m.toUpperCase())
-        : 'Eleanor Vance';
-
-      return {
-        token: 'mock_jwt_token_auth',
-        user: {
-          id: 'user_1',
-          name: derivedName,
-          email: payload.email,
-          role: 'customer',
-        },
-      };
-    }
+  requestOtp: async (payload: RegisterPayload): Promise<void> => {
+    // Public auth endpoints must not inherit an expired bearer token from localStorage.
+    const response = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+    const csrf = 'data' in response ? response.data : response;
+    await apiClient.post<MessageResponse>(authPath('/register'), payload, {
+      credentials: 'include',
+      auth: false,
+      headers: { [csrf.headerName]: csrf.token },
+    });
   },
 
-  register: async (payload: RegisterPayload): Promise<AuthSession> => {
-    try {
-      const res = await apiClient.post<AuthSession>('/auth/register', payload);
-      return res.data;
-    } catch {
-      return {
-        token: 'mock_jwt_token_auth',
-        user: {
-          id: 'user_' + Date.now(),
-          name: payload.name,
-          email: payload.email,
-          role: 'customer',
-        },
-      };
-    }
+  resendVerification: async (email: string): Promise<void> => {
+    const response = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+    const csrf = 'data' in response ? response.data : response;
+    await apiClient.post<MessageResponse>(authPath('/resend-verification'), { email }, {
+      credentials: 'include',
+      auth: false,
+      headers: { [csrf.headerName]: csrf.token },
+    });
+  },
+
+  forgotPassword: async (email: string): Promise<void> => {
+    const response = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+    const csrf = 'data' in response ? response.data : response;
+    await apiClient.post<MessageResponse>(authPath('/forgot-password'), { email }, {
+      credentials: 'include',
+      auth: false,
+      headers: { [csrf.headerName]: csrf.token },
+    });
+  },
+
+  resetPassword: async (email: string, otp: string, newPassword: string): Promise<void> => {
+    const response = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+    const csrf = 'data' in response ? response.data : response;
+    await apiClient.post<MessageResponse>(authPath('/reset-password'), { email, otp, newPassword }, {
+      credentials: 'include',
+      auth: false,
+      headers: { [csrf.headerName]: csrf.token },
+    });
+  },
+
+  verifyEmail: async (email: string, otp: string): Promise<void> => {
+    const response = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+    const csrf = 'data' in response ? response.data : response;
+    await apiClient.post<MessageResponse>(authPath('/verify-email'), { email, otp }, {
+      credentials: 'include',
+      auth: false,
+      headers: { [csrf.headerName]: csrf.token },
+    });
+  },
+
+  login: async (payload: LoginPayload): Promise<AuthSession> => {
+    const csrfResponse = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+    const csrf = 'data' in csrfResponse ? csrfResponse.data : csrfResponse;
+    const response = await apiClient.post<BackendAuthResponse>(authPath('/login'), payload, {
+      credentials: 'include',
+      auth: false,
+      headers: { [csrf.headerName]: csrf.token },
+    });
+    return toAuthSession('data' in response ? response.data : response);
+  },
+
+  loginGoogle: async (idToken: string): Promise<AuthSession> => {
+    const csrfResponse = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+    const csrf = 'data' in csrfResponse ? csrfResponse.data : csrfResponse;
+    const response = await apiClient.post<BackendAuthResponse>(authPath('/google'), { idToken }, {
+      credentials: 'include', auth: false, headers: { [csrf.headerName]: csrf.token },
+    });
+    return toAuthSession('data' in response ? response.data : response);
+  },
+
+  activateInvitedAccount: async (email: string, otp: string, newPassword: string): Promise<void> => {
+    const csrfResponse = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+    const csrf = 'data' in csrfResponse ? csrfResponse.data : csrfResponse;
+    await apiClient.post<MessageResponse>(authPath('/activate-account'), { email, otp, newPassword }, {
+      credentials: 'include', auth: false, headers: { [csrf.headerName]: csrf.token },
+    });
+  },
+
+  refresh: refreshSession,
+
+  updateMe: async (payload: UpdateAccountPayload): Promise<AccountProfile> => {
+    const csrfResponse = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+    const csrf = 'data' in csrfResponse ? csrfResponse.data : csrfResponse;
+    const response = await apiClient.put<AccountProfile>(authPath('/me'), payload, {
+      credentials: 'include', headers: { [csrf.headerName]: csrf.token },
+    });
+    return 'data' in response ? response.data : response;
   },
 
   logout: async (): Promise<void> => {
     try {
-      await apiClient.post('/auth/logout');
+      const response = await apiClient.get<CsrfResponse>(authPath('/csrf'), { credentials: 'include', auth: false });
+      const csrf = 'data' in response ? response.data : response;
+      await apiClient.post(authPath('/logout'), undefined, {
+        credentials: 'include',
+        auth: false,
+        headers: { [csrf.headerName]: csrf.token },
+      });
     } catch {
-      // Ignore
+      // Ignore — local session is cleared by the store regardless.
     }
   },
 };

@@ -1,9 +1,11 @@
 import { APP_CONFIG } from '../constants/config';
 import { ApiResponse } from '../types/api.types';
+import { authStore } from '../stores/auth.store';
 
 interface RequestConfig extends RequestInit {
   params?: Record<string, any>;
   data?: any;
+  auth?: boolean;
 }
 
 class HttpClient {
@@ -29,20 +31,21 @@ class HttpClient {
   }
 
   async request<T = any>(endpoint: string, config: RequestConfig = {}): Promise<ApiResponse<T>> {
-    const { params, data, headers, ...customConfig } = config;
+    const { params, data, headers, auth = true, ...customConfig } = config;
 
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(headers as Record<string, string>),
     };
 
-    const token = localStorage.getItem('auth_token');
-    if (token) {
+    const token = authStore.getState().token;
+    if (auth && token) {
       requestHeaders['Authorization'] = `Bearer ${token}`;
     }
 
     const res = await fetch(this.buildURL(endpoint, params), {
       ...customConfig,
+      credentials: customConfig.credentials || 'include',
       headers: requestHeaders,
       body: data ? JSON.stringify(data) : undefined,
     });

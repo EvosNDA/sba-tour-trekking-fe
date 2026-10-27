@@ -2,8 +2,8 @@ export function cn(...classes: any[]): string {
   return classes.filter(Boolean).join(' ');
 }
 
-export function formatVND(amount: number): string {
-  return new Intl.NumberFormat('vi-VN', {
+export function formatVND(amount: number, language: 'vi' | 'en' = 'vi'): string {
+  return new Intl.NumberFormat(language === 'vi' ? 'vi-VN' : 'en-US', {
     style: 'currency',
     currency: 'VND',
     maximumFractionDigits: 0,

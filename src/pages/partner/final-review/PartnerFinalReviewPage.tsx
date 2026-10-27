@@ -32,15 +32,10 @@ export const PartnerFinalReviewPage: React.FC<PartnerFinalReviewPageProps> = ({
       return;
     }
 
-    setIsSigning(true);
-    setTimeout(() => {
-      setIsSigning(false);
-      setIsSigned(true);
-      showToast(
-        'Expedition Contract Dispatched',
-        'Ref #ST-VN-8842 sent to Safety Desk. Mai Nguyen will reach out within 24 hours.'
-      );
-    }, 1400);
+    showToast(
+      'Not submitted to server',
+      'Partner applications are reviewed by the operations team offline. This frontend does not submit partner contracts.',
+    );
   };
 
   return (
@@ -94,7 +89,7 @@ export const PartnerFinalReviewPage: React.FC<PartnerFinalReviewPageProps> = ({
             {/* Step 2: Certificates */}
             <button
               type="button"
-              onClick={() => onNavigate('partner_certificates')}
+              onClick={() => onNavigate('partner_company_info')}
               className="flex items-center gap-3.5 p-3 rounded-lg bg-[#ecf5f6] hover:bg-[#e0eaeb] transition-colors text-left cursor-pointer"
             >
               <div className="w-8 h-8 rounded-full bg-[#39675b] text-white flex items-center justify-center shrink-0 shadow-xs text-xs">
@@ -231,7 +226,7 @@ export const PartnerFinalReviewPage: React.FC<PartnerFinalReviewPageProps> = ({
                 </div>
                 <button
                   type="button"
-                  onClick={() => onNavigate('partner_certificates')}
+                  onClick={() => onNavigate('partner_company_info')}
                   className="inline-flex items-center gap-1 text-xs font-bold text-[#9b2f00] hover:text-[#c2410c] transition-colors bg-[#ecf5f6] px-3 py-1.5 rounded-lg border border-[#dbe4e5] cursor-pointer"
                 >
                   Edit Step 2

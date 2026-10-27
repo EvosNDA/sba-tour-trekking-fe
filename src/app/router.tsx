@@ -1,41 +1,30 @@
 import React from 'react';
-import { ScreenId, Booking, ExpeditionReview, Tour } from '../types/expedition';
+import { ScreenId, Booking, ExpeditionReview } from '../types/expedition';
 
 // Public pages
 import HomePage from '../pages/public/home/HomePage';
-import TourListPage from '../pages/public/tour-list/TourListPage';
-import TourDetailPage from '../pages/public/tour-detail/TourDetailPage';
+import CustomerPaymentResultPage from '../pages/public/tour-detail/CustomerPaymentResultPage';
 
 // Auth pages
 import LoginPage from '../pages/auth/login/LoginPage';
 import RegisterPage from '../pages/auth/register/RegisterPage';
-
-// Customer pages
-import ProfilePage from '../pages/customer/profile/ProfilePage';
-import MyBookingsPage from '../pages/customer/my-bookings/MyBookingsPage';
-import CheckoutPage from '../pages/customer/checkout/CheckoutPage';
-
-// Partner pages
-import PartnerDashboardPage from '../pages/partner/dashboard/PartnerDashboardPage';
-import PartnerTourManagementPage from '../pages/partner/tour-management/PartnerTourManagementPage';
-import PartnerBookingManagementPage from '../pages/partner/booking-management/PartnerBookingManagementPage';
+import ActivateInvitedAccountPage from '../pages/auth/ActivateInvitedAccountPage';
 
 // Admin pages
-import AdminDashboardPage from '../pages/admin/dashboard/AdminDashboardPage';
-import AdminUserManagementPage from '../pages/admin/user-management/AdminUserManagementPage';
-import AdminPartnerManagementPage from '../pages/admin/partner-management/AdminPartnerManagementPage';
-
-// Layout & Switcher
-import PartnerFinalReviewPage from '../pages/partner/final-review/PartnerFinalReviewPage';
+import { AdminAreaRoutes } from '../features/admin/AdminAreaRoutes';
+import { StaffAreaRoutes } from '../features/staff/StaffAreaRoutes';
+import { GuideAreaRoutes } from '../features/guides/GuideAreaRoutes';
+import { CustomerAreaRoutes } from '../features/customer/CustomerAreaRoutes';
 
 export interface AppRouterProps {
   currentScreen: ScreenId;
   onNavigate: (screen: ScreenId) => void;
+  searchTerm?: string;
+  onSearch?: (term: string) => void;
   booking: Booking;
   review: ExpeditionReview;
   onUpdateBooking: (booking: Booking | ((prev: Booking) => Booking)) => void;
   onUpdateReview: (review: ExpeditionReview | ((prev: ExpeditionReview) => ExpeditionReview)) => void;
-  onBookTour: (tour: Tour) => void;
   onLoginSuccess: (email: string) => void;
   onRegistrationSuccess: (userData: { name: string; email: string; phone: string }) => void;
   onOpenAIRanger: () => void;
@@ -44,18 +33,29 @@ export interface AppRouterProps {
 export const AppRouter: React.FC<AppRouterProps> = ({
   currentScreen,
   onNavigate,
+  searchTerm,
+  onSearch,
   booking,
   review,
   onUpdateBooking,
   onUpdateReview,
-  onBookTour,
   onLoginSuccess,
   onRegistrationSuccess,
   onOpenAIRanger,
 }) => {
+  if (['admin_home', 'admin_accounts', 'admin_tours'].includes(currentScreen)) {
+    return <AdminAreaRoutes screen={currentScreen} onNavigate={onNavigate} />;
+  }
+  if (currentScreen === 'staff_home') return <StaffAreaRoutes screen={currentScreen} onNavigate={onNavigate} />;
+  if (currentScreen === 'guide_home') return <GuideAreaRoutes screen={currentScreen} onNavigate={onNavigate} />;
+  if (['account_profile', 'eticket', 'paybalance', 'review'].includes(currentScreen)) {
+    return <CustomerAreaRoutes screen={currentScreen} onNavigate={onNavigate} booking={booking} review={review} onUpdateBooking={onUpdateBooking} onUpdateReview={onUpdateReview} onOpenAIRanger={onOpenAIRanger} />;
+  }
   switch (currentScreen) {
+    case 'booking_payment_result':
+      return <CustomerPaymentResultPage onNavigate={onNavigate} />;
     case 'marketplace':
-      return <HomePage onBookTour={onBookTour} onNavigate={onNavigate} />;
+      return <HomePage onNavigate={onNavigate} searchTerm={searchTerm} onSearch={onSearch} />;
 
     case 'login':
       return <LoginPage onLoginSuccess={onLoginSuccess} onNavigate={onNavigate} />;
@@ -63,57 +63,10 @@ export const AppRouter: React.FC<AppRouterProps> = ({
     case 'registration':
       return <RegisterPage onSuccess={onRegistrationSuccess} onNavigate={onNavigate} />;
 
-    case 'eticket':
-      return (
-        <MyBookingsPage
-          booking={booking}
-          onUpdateBooking={onUpdateBooking}
-          onNavigate={onNavigate}
-          onOpenAIRanger={onOpenAIRanger}
-        />
-      );
-
-    case 'paybalance':
-      return (
-        <CheckoutPage
-          booking={booking}
-          onUpdateBooking={onUpdateBooking}
-          onNavigate={onNavigate}
-          onOpenAIRanger={onOpenAIRanger}
-        />
-      );
-
-    case 'review':
-      return (
-        <ProfilePage
-          review={review}
-          onUpdateReview={onUpdateReview}
-          onNavigate={onNavigate}
-        />
-      );
-
-    case 'partner_company_info':
-      return <PartnerDashboardPage onNavigate={onNavigate} />;
-
-    case 'partner_certificates':
-      return <PartnerTourManagementPage onNavigate={onNavigate} />;
-
-    case 'partner_bank_payouts':
-      return <PartnerBookingManagementPage onNavigate={onNavigate} />;
-
-    case 'partner_final_review':
-      return <PartnerFinalReviewPage onNavigate={onNavigate} />;
-
-    case 'ops_moderation':
-      return <AdminDashboardPage onNavigate={onNavigate} />;
-
-    case 'staff_escalations':
-      return <AdminUserManagementPage onNavigate={onNavigate} />;
-
-    case 'platform_analytics':
-      return <AdminPartnerManagementPage onNavigate={onNavigate} />;
+    case 'account_activation':
+      return <ActivateInvitedAccountPage onNavigate={onNavigate} />;
 
     default:
-      return <HomePage onBookTour={onBookTour} onNavigate={onNavigate} />;
+      return <HomePage onNavigate={onNavigate} searchTerm={searchTerm} onSearch={onSearch} />;
   }
 };

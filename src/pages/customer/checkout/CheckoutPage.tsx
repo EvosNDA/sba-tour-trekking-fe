@@ -33,8 +33,7 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<'vietqr' | 'card' | 'bank' | 'wallet'>('vietqr');
   const [hasPorter, setHasPorter] = useState(booking.hasExtraPorter);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(booking.paymentStatus === 'FULLY_SETTLED');
+  const [paymentUnavailable, setPaymentUnavailable] = useState(false);
   const [sendConfirmation, setSendConfirmation] = useState(true);
 
   const porterCost = 400000;
@@ -50,17 +49,10 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
     });
   };
 
+  // There is no payment backend in this service. Executing a payment here would
+  // only pretend to settle the balance, so the action is marked unavailable.
   const handleExecutePayment = () => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      setPaymentSuccess(true);
-      onUpdateBooking({
-        ...booking,
-        paymentStatus: 'FULLY_SETTLED',
-        hasExtraPorter: hasPorter,
-      });
-    }, 1800);
+    setPaymentUnavailable(true);
   };
 
   return (
@@ -252,28 +244,20 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                       <span>System checks receipt every 3 seconds. Average clearing time: 4.2 seconds.</span>
                     </div>
 
+                    {paymentUnavailable ? (
+                      <div role="alert" className="p-2.5 bg-orange-50 border border-orange-200 rounded text-[11px] text-orange-950 flex items-start gap-1.5 leading-tight">
+                        <span className="text-orange-600 font-bold">!</span>
+                        <span>Online payment is not available in this frontend. Please settle the remaining balance with your tour operator or at the park gate.</span>
+                      </div>
+                    ) : null}
                     <button
                       type="button"
                       onClick={handleExecutePayment}
-                      disabled={isProcessing || paymentSuccess}
-                      className="w-full bg-[#1F4E43] hover:bg-[#15372F] text-white py-2 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                      disabled={paymentUnavailable}
+                      className="w-full bg-[#C2410C] text-white py-2 rounded text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isProcessing ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          <span>Simulating QR App Payment Verification...</span>
-                        </>
-                      ) : paymentSuccess ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 text-emerald-300" />
-                          <span>Payment Received &amp; Verified!</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Simulate Bank App Scan &amp; Pay</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </>
-                      )}
+                      <span>{paymentUnavailable ? 'Pay balance — unavailable in frontend' : 'Simulate Bank App Scan &amp; Pay'}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -286,12 +270,18 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   <p className="text-xs text-[#64748B] max-w-sm mx-auto">
                     Secure 256-bit payment gateway integration. Your card credentials are encrypted under PCI-DSS Level 1.
                   </p>
+                  {paymentUnavailable ? (
+                    <div role="alert" className="p-3 bg-orange-50 border border-orange-200 rounded text-[11px] text-orange-950 flex items-start gap-1.5 leading-tight">
+                      <span className="text-orange-600 font-bold">!</span>
+                      <span>Online payment is not available in this frontend. Please settle the remaining balance with your tour operator or at the park gate.</span>
+                    </div>
+                  ) : null}
                   <button
                     onClick={handleExecutePayment}
-                    disabled={isProcessing || paymentSuccess}
-                    className="bg-[#C2410C] hover:bg-[#9B2F00] text-white text-xs font-semibold px-6 py-2.5 rounded transition-colors cursor-pointer"
+                    disabled={paymentUnavailable}
+                    className="bg-[#C2410C] text-white text-xs font-semibold px-6 py-2.5 rounded transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isProcessing ? 'Authorizing Payment...' : paymentSuccess ? 'Payment Settled' : `Pay ${formatVND(currentRemaining)}`}
+                    {paymentUnavailable ? 'Pay balance — unavailable in frontend' : `Pay ${formatVND(currentRemaining)}`}
                   </button>
                 </div>
               )}
@@ -478,30 +468,17 @@ export const CheckoutPage: React.FC<CheckoutPageProps> = ({
                   </span>
                 </div>
                 <div className="font-editorial text-3xl font-bold text-[#C2410C] font-mono-numbers">
-                  {paymentSuccess ? '0 VND' : formatVND(currentRemaining)}
+                  {formatVND(currentRemaining)}
                 </div>
               </div>
 
-              {paymentSuccess ? (
-                <button
-                  onClick={() => onNavigate('eticket')}
-                  className="w-full bg-[#1F4E43] hover:bg-[#15372F] text-white py-3 rounded-lg font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-                >
-                  <Check className="w-4 h-4 text-emerald-300" />
-                  <span>Return to E-Ticket with Active Pass</span>
-                </button>
-              ) : (
-                <button
-                  onClick={handleExecutePayment}
-                  disabled={isProcessing}
-                  className="w-full bg-[#C2410C] hover:bg-[#9B2F00] text-white py-3 rounded-lg font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>
-                    {isProcessing ? 'Processing Secure Escrow...' : `Pay ${formatVND(currentRemaining)} Now`}
-                  </span>
-                </button>
-              )}
+              <button
+                onClick={() => onNavigate('eticket')}
+                className="w-full bg-[#1F4E43] hover:bg-[#15372F] text-white py-3 rounded-lg font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Return to E-Ticket</span>
+              </button>
 
               <div className="text-center pt-2">
                 <button

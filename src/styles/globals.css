@@ -1,10 +1,16 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Roboto', Arial, sans-serif;
+  --font-serif: 'Roboto', Arial, sans-serif;
+  --font-mono: 'Roboto', Arial, sans-serif;
+}
+
 @layer base {
   :root {
-    --font-serif: 'Newsreader', Georgia, serif;
-    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+    --font-serif: 'Roboto', Arial, sans-serif;
+    --font-sans: 'Roboto', Arial, sans-serif;
+    --font-mono: 'Roboto', Arial, sans-serif;
   }
 
   body {
@@ -16,11 +22,14 @@
   }
 
   h1, h2, h3, .font-editorial {
-    font-family: var(--font-serif);
+    font-family: 'Roboto', Arial, sans-serif;
+  }
+
+  .font-mono, .font-serif, .font-mono-numbers {
+    font-family: 'Roboto', Arial, sans-serif;
   }
 
   .font-mono-numbers {
-    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuthStore } from '../../../stores/auth.store';
 import { authApi } from '../api/auth.api';
-import { LoginPayload, RegisterPayload } from '../types/auth.types';
+import { LoginPayload } from '../types/auth.types';
 
 export function useAuth() {
   const store = useAuthStore();
@@ -23,15 +23,15 @@ export function useAuth() {
     }
   };
 
-  const register = async (payload: RegisterPayload) => {
+  const loginGoogle = async (idToken: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const session = await authApi.register(payload);
+      const session = await authApi.loginGoogle(idToken);
       store.login(session.user, session.token);
       return session;
     } catch (err: any) {
-      setError(err?.message || 'Registration failed');
+      setError(err?.message || 'Google sign-in failed');
       throw err;
     } finally {
       setIsLoading(false);
@@ -53,7 +53,7 @@ export function useAuth() {
     isLoading,
     error,
     login,
-    register,
+    loginGoogle,
     logout,
   };
 }

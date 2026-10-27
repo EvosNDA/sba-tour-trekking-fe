@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScreenId } from '../types/expedition';
 import { Compass, UserCheck, Ticket, CreditCard, Award, RotateCcw, LogIn } from 'lucide-react';
+import { useI18n } from '../i18n/I18nProvider';
 
 interface Props {
   currentScreen: ScreenId;
@@ -17,6 +18,7 @@ export const NavigationSwitcher: React.FC<Props> = ({
   bookingStatus,
   reviewSubmitted,
 }) => {
+  const { language, setLanguage } = useI18n();
   const screens: { id: ScreenId; label: string; sub: string; icon: React.ReactNode; badge?: string }[] = [
     {
       id: 'marketplace',
@@ -62,12 +64,6 @@ export const NavigationSwitcher: React.FC<Props> = ({
       label: '7. Partner: Step 1',
       sub: 'Company Info',
       icon: <UserCheck className="w-4 h-4" />,
-    },
-    {
-      id: 'partner_certificates',
-      label: '8. Partner: Step 2',
-      sub: 'Certificates & Safety',
-      icon: <Award className="w-4 h-4" />,
     },
     {
       id: 'partner_bank_payouts',
@@ -118,6 +114,10 @@ export const NavigationSwitcher: React.FC<Props> = ({
         </div>
 
         <nav aria-label="Expedition View Switcher" className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+          <div className="flex items-center rounded bg-white/10 p-0.5 mr-1" aria-label="Language">
+            <button type="button" onClick={() => setLanguage('vi')} aria-pressed={language === 'vi'} className={`px-2 py-1 rounded text-[11px] ${language === 'vi' ? 'bg-white text-[#1C2526]' : 'text-white'}`}>VI</button>
+            <button type="button" onClick={() => setLanguage('en')} aria-pressed={language === 'en'} className={`px-2 py-1 rounded text-[11px] ${language === 'en' ? 'bg-white text-[#1C2526]' : 'text-white'}`}>EN</button>
+          </div>
           {screens.map((s) => {
             const isActive = currentScreen === s.id;
             return (

@@ -6,6 +6,8 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  phone?: string | null;
+  partnerApplicationStatus?: 'none' | 'pending' | 'approved' | 'rejected' | 'suspended';
   avatar?: string;
   partnerCompany?: string;
 }
@@ -14,6 +16,7 @@ interface AuthState {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
+  isRestoring: boolean;
 }
 
 const STORAGE_KEY = 'wetrek_auth_v1';
@@ -22,6 +25,7 @@ let globalState: AuthState = {
   user: null,
   token: null,
   isAuthenticated: false,
+  isRestoring: false,
 };
 
 // Initialize from localStorage if present
@@ -33,6 +37,7 @@ try {
       user: parsed.user || null,
       token: parsed.token || null,
       isAuthenticated: Boolean(parsed.token || parsed.user),
+      isRestoring: Boolean(parsed.user && parsed.token),
     };
   }
 } catch {
@@ -58,6 +63,7 @@ export const authStore = {
       user,
       token,
       isAuthenticated: true,
+      isRestoring: false,
     };
     notify();
   },
@@ -67,6 +73,7 @@ export const authStore = {
       user: null,
       token: null,
       isAuthenticated: false,
+      isRestoring: false,
     };
     try {
       localStorage.removeItem(STORAGE_KEY);
@@ -85,6 +92,11 @@ export const authStore = {
       notify();
     }
   },
+
+  setRestoring: (isRestoring: boolean) => {
+    globalState = { ...globalState, isRestoring };
+    notify();
+  },
 };
 
 export function useAuthStore() {
@@ -102,5 +114,6 @@ export function useAuthStore() {
     login: authStore.login,
     logout: authStore.logout,
     updateUser: authStore.updateUser,
+    setRestoring: authStore.setRestoring,
   };
 }

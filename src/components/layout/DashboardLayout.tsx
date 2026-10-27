@@ -6,7 +6,7 @@ export interface DashboardLayoutProps {
   children: React.ReactNode;
   currentScreen?: ScreenId;
   onNavigate?: (screen: ScreenId) => void;
-  role?: 'partner' | 'admin';
+  role?: 'admin' | 'staff' | 'guide';
   title?: string;
   subtitle?: string;
 }
@@ -15,7 +15,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
   currentScreen,
   onNavigate = () => {},
-  role = 'partner',
+  role = 'admin',
   title,
   subtitle,
 }) => {

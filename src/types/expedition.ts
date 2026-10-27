@@ -2,16 +2,28 @@ export type ScreenId =
   | 'marketplace'
   | 'login'
   | 'registration'
+  | 'account_profile'
   | 'eticket'
   | 'paybalance'
   | 'review'
   | 'partner_company_info'
-  | 'partner_certificates'
+  | 'partner_activate'
+  | 'partner_activation_help'
+  | 'partner_application_submitted'
+  | 'partner_application_status'
   | 'partner_bank_payouts'
   | 'partner_final_review'
   | 'ops_moderation'
   | 'staff_escalations'
-  | 'platform_analytics';
+  | 'platform_analytics'
+  | 'booking_payment_result'
+  | 'admin_finance'
+  | 'admin_accounts'
+  | 'admin_tours'
+  | 'admin_home'
+  | 'staff_home'
+  | 'guide_home'
+  | 'account_activation';
 
 export interface TourCompany {
   id: string;

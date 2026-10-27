@@ -129,8 +129,8 @@ export const AIRangerModal: React.FC<Props> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-[#B9EADB] hidden sm:flex items-center gap-1">
-              <Radio className="w-3 h-3" /> 147.425 MHz
+            <span className="text-[10px] font-mono text-[#9B2F00] hidden sm:flex items-center gap-1">
+              <Radio className="w-3 h-3" /> 147.425 MHz · DISPATCH CHAT OFFLINE
             </span>
             <button
               onClick={onClose}
@@ -139,6 +139,15 @@ export const AIRangerModal: React.FC<Props> = ({
               <X className="w-5 h-5" />
             </button>
           </div>
+        </div>
+
+        {/* Unavailable notice — /api/ranger-chat has no backend */}
+        <div className="bg-orange-50 border border-orange-200 p-3 text-[11px] text-orange-950 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-orange-600 shrink-0" />
+          <span>
+            Live ranger dispatch chat is not connected to a backend in this frontend. No AI replies are sent. Contact Hoang Lien Son Basecamp at
+            <span className="font-mono font-bold">+84 24 3942 9999</span>.
+          </span>
         </div>
 
         {/* Advisory banner */}
@@ -189,8 +198,8 @@ export const AIRangerModal: React.FC<Props> = ({
             <button
               key={idx}
               onClick={() => handleSend(p)}
-              disabled={isLoading}
-              className="text-[11px] bg-white border border-[#E6E1D8] text-[#2D3748] hover:border-[#C2410C] hover:text-[#C2410C] px-2.5 py-1 rounded whitespace-nowrap cursor-pointer transition-colors"
+              disabled
+              className="text-[11px] bg-[#F7F4EE] border border-[#E6E1D8] text-[#78716C] px-2.5 py-1 rounded whitespace-nowrap cursor-not-allowed"
             >
               {p}
             </button>
@@ -206,14 +215,14 @@ export const AIRangerModal: React.FC<Props> = ({
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSend();
             }}
-            placeholder="Ask A Pao about weather, packing, or meeting point..."
-            disabled={isLoading}
-            className="flex-1 bg-[#F7F4EE] border border-[#E6E1D8] rounded px-3 py-2 text-xs sm:text-sm text-[#1C2526] placeholder-[#78716C] focus:outline-none focus:border-[#C2410C]"
+            placeholder="Ranger dispatch chat is not connected in this frontend."
+            disabled
+            className="flex-1 bg-[#F7F4EE] border border-[#E6E1D8] rounded px-3 py-2 text-xs sm:text-sm text-[#78716C] placeholder-[#78716C] cursor-not-allowed"
           />
           <button
             onClick={() => handleSend()}
-            disabled={isLoading || !inputValue.trim()}
-            className="bg-[#C2410C] hover:bg-[#9B2F00] text-white px-3.5 py-2 rounded text-xs font-semibold flex items-center gap-1.5 disabled:opacity-50 transition-colors cursor-pointer"
+            disabled
+            className="bg-[#C2410C] text-white px-3.5 py-2 rounded text-xs font-semibold flex items-center gap-1.5 opacity-50 cursor-not-allowed"
           >
             <Send className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Send</span>

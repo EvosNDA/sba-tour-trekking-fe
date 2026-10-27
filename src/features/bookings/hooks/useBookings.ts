@@ -1,39 +1,24 @@
-import { useState, useEffect } from 'react';
-import { Booking } from '../../../types/expedition';
-import { bookingsApi } from '../api/bookings.api';
-import { INITIAL_BOOKING } from '../../../data/mockData';
+import { useCallback, useEffect, useState } from 'react';
+import { useAuthStore } from '../../../stores/auth.store';
+import { bookingErrorKey, bookingsApi } from '../api/bookings.api';
+import type { BookingPage } from '../types/booking.types';
 
-export function useBookings() {
-  const [booking, setBooking] = useState<Booking>(() => {
-    try {
-      const saved = localStorage.getItem('wetrek_booking_v1');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // Ignore
-    }
-    return INITIAL_BOOKING;
-  });
-
+export function useBookings(page: number) {
+  const { user } = useAuthStore();
+  const [data, setData] = useState<BookingPage | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
+  const refresh = useCallback(() => setRevision(value => value + 1), []);
   useEffect(() => {
-    bookingsApi.saveBooking(booking);
-  }, [booking]);
-
-  const updateBooking = (updated: Booking | ((prev: Booking) => Booking)) => {
-    setBooking(updated);
-  };
-
-  const resetBooking = () => {
-    setBooking(INITIAL_BOOKING);
-    try {
-      localStorage.removeItem('wetrek_booking_v1');
-    } catch {
-      // Ignore
-    }
-  };
-
-  return {
-    booking,
-    updateBooking,
-    resetBooking,
-  };
+    const controller = new AbortController();
+    setLoading(true); setError(null); setData(null);
+    bookingsApi.list(page, controller.signal).then(result => {
+      if (!controller.signal.aborted) setData(result);
+    }).catch(cause => {
+      if (!controller.signal.aborted) setError(bookingErrorKey(cause));
+    }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [page, revision, user?.id]);
+  return { data, error, loading, refresh };
 }
