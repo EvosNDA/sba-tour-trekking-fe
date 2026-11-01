@@ -1,44 +1,76 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ScreenId } from '../../../types/expedition';
-import {
-  Mountain,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle,
-  Radio,
-  Fingerprint,
-  Quote,
-} from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { Mountain, ShieldCheck, CheckCircle, Radio, Quote, Compass } from 'lucide-react';
+import { AuthForm, type AuthFormMode } from '../../../features/auth/components/AuthForm';
+import { useLocation, useSearchParams, navigateTo } from '../../../lib/navigation';
+import { useAuth } from '../../../features/auth/hooks/useAuth';
+import { authStore } from '../../../stores/auth.store';
+import { ROUTES } from '../../../constants/routes';
 
 export interface LoginPageProps {
+  initialMode?: AuthFormMode;
   onLoginSuccess?: (email: string) => void;
-  onNavigate?: (screen: ScreenId) => void;
+  onNavigate?: (screen: any) => void;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({
-  onLoginSuccess = () => {},
-  onNavigate = () => {},
-}) => {
-  const [email, setEmail] = useState('eleanor.vance@gmail.com');
-  const [password, setPassword] = useState('FansipanSummit2026!');
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [ssoMessage, setSsoMessage] = useState<string | null>(null);
-  const [resetSent, setResetSent] = useState(false);
-
+export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
+  const { pathname } = useLocation();
+  const [searchParams] = useSearchParams();
+  const { isAuthenticated, isInitializing, bookingIntent, setBookingIntent } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Initialize WebGL mountain sunset shader
+  const redirectParam = searchParams.get('redirect');
+  const emailParam = searchParams.get('email') || '';
+
+  // Determine mode from path if not explicitly passed
+  const resolvedMode: AuthFormMode = initialMode
+    ? initialMode
+    : pathname === ROUTES.AUTH.VERIFY_EMAIL
+    ? 'verify-email'
+    : pathname === ROUTES.AUTH.FORGOT_PASSWORD
+    ? 'forgot-password'
+    : pathname === ROUTES.AUTH.RESET_PASSWORD
+    ? 'reset-password'
+    : pathname === ROUTES.AUTH.REGISTER
+    ? 'register'
+    : 'login';
+
+  const isCurrentUserAdmin = () => {
+    const state = authStore.getState();
+    return (
+      state.xRole === 'ADMIN' ||
+      state.user?.role === 'admin' ||
+      state.account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'ADMIN')
+    );
+  };
+
+  // Only consider booking redirect valid if explicitly specified in the query parameter
+  const hasBookingRedirect = Boolean(redirectParam && redirectParam.startsWith('/booking/'));
+
+  // If user navigates directly to login/register without a booking redirect, clear any leftover stale bookingIntent
+  useEffect(() => {
+    if (!redirectParam && bookingIntent) {
+      setBookingIntent(null);
+    }
+  }, [redirectParam, bookingIntent, setBookingIntent]);
+
+  // If already logged in and not in verify/reset mode, redirect to admin dashboard, explicit redirect, or home
+  useEffect(() => {
+    if (!isInitializing && isAuthenticated && (resolvedMode === 'login' || resolvedMode === 'register')) {
+      if (isCurrentUserAdmin()) {
+        navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+        return;
+      }
+      const target = redirectParam || ROUTES.PUBLIC.HOME;
+      navigateTo(target, { replace: true });
+    }
+  }, [isInitializing, isAuthenticated, resolvedMode, redirectParam]);
+
+  // Initialize WebGL mountain sunset shader with prefers-reduced-motion support
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const gl = (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
     if (!gl) return;
 
@@ -87,7 +119,7 @@ void main() {
 
     float t = u_time * 0.12;
 
-    vec3 skyTop = vec3(0.06, 0.09, 0.16);
+    vec3 skyTop = vec3(0.09, 0.18, 0.15);
     vec3 skyHorizon = vec3(0.76, 0.25, 0.05);
     vec3 sunGlow = vec3(1.0, 0.82, 0.62);
 
@@ -107,7 +139,7 @@ void main() {
     m3_y += fbm(vec2(st.x * 1.8, 1.0)) * 0.08;
     if (uv.y < m3_y) {
         float depth = (m3_y - uv.y) * 3.5;
-        vec3 m3Col = mix(vec3(0.65, 0.30, 0.18), vec3(0.18, 0.15, 0.25), clamp(depth, 0.0, 1.0));
+        vec3 m3Col = mix(vec3(0.65, 0.30, 0.18), vec3(0.12, 0.24, 0.20), clamp(depth, 0.0, 1.0));
         col = mix(col, m3Col, smoothstep(m3_y, m3_y - 0.005, uv.y));
     }
 
@@ -117,7 +149,7 @@ void main() {
     if (uv.y < m2_y) {
         float facet = sin(st.x * 25.0 + uv.y * 15.0) * 0.5 + 0.5;
         vec3 litSide = vec3(0.85, 0.38, 0.15);
-        vec3 shadowSide = vec3(0.12, 0.12, 0.22);
+        vec3 shadowSide = vec3(0.09, 0.18, 0.16);
         vec3 m2Col = mix(shadowSide, litSide, facet * 0.7 + 0.2);
         col = mix(col, m2Col, smoothstep(m2_y, m2_y - 0.005, uv.y));
     }
@@ -126,7 +158,7 @@ void main() {
     float m1_y = 0.25 + 0.22 * abs(cos(st.x * 1.8 + 0.4)) + 0.08 * sin(st.x * 4.2);
     m1_y += fbm(vec2(st.x * 4.0, 5.0)) * 0.04;
     if (uv.y < m1_y) {
-        vec3 m1Col = vec3(0.05, 0.07, 0.11);
+        vec3 m1Col = vec3(0.05, 0.09, 0.08);
         float rim = smoothstep(m1_y - 0.015, m1_y, uv.y);
         m1Col += vec3(0.7, 0.3, 0.1) * rim * 0.6;
         col = mix(col, m1Col, smoothstep(m1_y, m1_y - 0.004, uv.y));
@@ -170,7 +202,7 @@ void main() {
     const uTime = gl.getUniformLocation(prog, 'u_time');
     const uRes = gl.getUniformLocation(prog, 'u_resolution');
 
-    const render = (timeMs: number) => {
+    const drawFrame = (timeMs: number) => {
       if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
@@ -179,6 +211,15 @@ void main() {
       if (uTime) gl.uniform1f(uTime, timeMs * 0.001);
       if (uRes) gl.uniform2f(uRes, canvas.width, canvas.height);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    };
+
+    if (prefersReducedMotion) {
+      drawFrame(1500);
+      return;
+    }
+
+    const render = (timeMs: number) => {
+      drawFrame(timeMs);
       animationFrameId = requestAnimationFrame(render);
     };
 
@@ -189,365 +230,129 @@ void main() {
     };
   }, []);
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setStatusMessage('Verifying Route Credentials...');
-
-    setTimeout(() => {
-      setStatusMessage('Welcome Back, Climber!');
-      setTimeout(() => {
-        setIsSubmitting(false);
-        onLoginSuccess(email);
-        onNavigate('eticket');
-      }, 700);
-    }, 900);
+  const handleSuccess = () => {
+    if (isCurrentUserAdmin()) {
+      navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+      return;
+    }
+    const target = redirectParam || ROUTES.PUBLIC.HOME;
+    navigateTo(target, { replace: true });
   };
 
-  const handleSimulateSSO = (provider: string) => {
-    setSsoMessage(`Connecting to ${provider}...`);
-    setTimeout(() => {
-      setSsoMessage(`Authenticated via ${provider}. Loading pass...`);
-      setTimeout(() => {
-        setSsoMessage(null);
-        onLoginSuccess(email);
-        onNavigate('eticket');
-      }, 800);
-    }, 700);
+  const handleModeChange = (nextMode: AuthFormMode, email?: string) => {
+    const params = new URLSearchParams();
+    if (redirectParam) params.set('redirect', redirectParam);
+    if (email) params.set('email', email);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+
+    if (nextMode === 'register') navigateTo(`${ROUTES.AUTH.REGISTER}${qs}`);
+    else if (nextMode === 'verify-email') navigateTo(`${ROUTES.AUTH.VERIFY_EMAIL}${qs}`);
+    else if (nextMode === 'forgot-password') navigateTo(`${ROUTES.AUTH.FORGOT_PASSWORD}${qs}`);
+    else if (nextMode === 'reset-password') navigateTo(`${ROUTES.AUTH.RESET_PASSWORD}${qs}`);
+    else navigateTo(`${ROUTES.AUTH.LOGIN}${qs}`);
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] flex flex-col justify-between">
-      {/* Top Banner Navigation Bar */}
-      <div className="border-b border-[#E6E1D8] bg-white/80 backdrop-blur-md px-4 md:px-8 py-3 sticky top-10 z-20">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => onNavigate('marketplace')}
-              className="flex items-center gap-2 cursor-pointer text-left"
-            >
-              <div className="w-7 h-7 rounded bg-[#C2410C] text-white flex items-center justify-center font-bold text-sm">
-                W
-              </div>
-              <span className="font-editorial text-xl font-bold tracking-tight text-[#1C2526]">
-                WeTrek
-              </span>
-            </button>
-            <span className="text-stone-300 hidden sm:inline">|</span>
-            <button
-              onClick={() => onNavigate('marketplace')}
-              className="hidden sm:inline-flex items-center gap-1 text-xs text-[#64748B] hover:text-[#1C2526] transition-colors cursor-pointer"
-            >
-              &larr; Back to Marketplace
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs">
-            <span className="bg-[#B9EADB]/50 text-[#1F4E43] font-semibold px-3 py-1 rounded">
-              Sign In
-            </span>
-            <button
-              onClick={() => onNavigate('registration')}
-              className="text-[#64748B] hover:text-[#1C2526] px-2 py-1 cursor-pointer"
-            >
-              Create Account
-            </button>
-            <button
-              onClick={() => onNavigate('eticket')}
-              className="text-[#64748B] hover:text-[#1C2526] px-2 py-1 cursor-pointer hidden md:inline"
-            >
-              Verify Pass
-            </button>
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-[#F7F4EE] rounded-full text-[#1F4E43] border border-[#E6E1D8] ml-2">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-mono uppercase font-bold tracking-wider">Safety Guarantee</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Login Workspace */}
-      <div className="relative w-full py-8 sm:py-12 px-4 md:px-8 flex-1 flex items-center justify-center">
-        <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(#c2410c_0.75px,transparent_0.75px)] [background-size:24px_24px]"></div>
-
-        <div className="relative z-10 w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 rounded-xl shadow-xl overflow-hidden bg-white border border-[#E6E1D8]">
-          {/* Left Column: Shader Panel */}
-          <div className="lg:col-span-5 relative min-h-[460px] lg:min-h-[720px] bg-[#141D1E] overflow-hidden flex flex-col justify-between p-6 sm:p-10 text-white">
-            <div className="absolute inset-0 w-full h-full object-cover">
+    <div className="min-h-[calc(100vh-80px)] bg-[#FDFBF7] text-[#1C2526] flex flex-col justify-between py-8 sm:py-12 px-4 md:px-8">
+      <div className="relative w-full flex-1 flex items-center justify-center">
+        <div className="relative z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 rounded-2xl shadow-lg overflow-hidden bg-white border border-[#E6E1D8]">
+          {/* Left Column: Nature & Mountain Shader */}
+          <div className="lg:col-span-5 relative min-h-[340px] lg:min-h-[620px] bg-[#141D1E] overflow-hidden flex flex-col justify-between p-6 sm:p-9 text-white">
+            <div className="absolute inset-0 w-full h-full">
               <canvas
                 ref={canvasRef}
                 className="w-full h-full block"
                 style={{ width: '100%', height: '100%' }}
+                aria-hidden="true"
               />
             </div>
 
-            <div className="absolute inset-0 bg-gradient-to-t from-[#141D1E] via-[#141D1E]/60 to-[#141D1E]/30 mix-blend-multiply pointer-events-none"></div>
-            <div className="absolute inset-0 bg-gradient-to-b from-[#C2410C]/20 via-transparent to-[#141D1E]/90 pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#141D1E] via-[#141D1E]/55 to-[#141D1E]/25 pointer-events-none" />
 
             <div className="relative z-10 flex flex-col items-start gap-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-md shadow-sm border border-white/20">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20">
                 <Mountain className="w-4 h-4 text-[#FFB59D]" />
                 <span className="text-[11px] font-mono uppercase tracking-wider text-white font-semibold">
-                  Official Climber Portal
+                  Hành trình Trekking Việt Nam
                 </span>
               </div>
             </div>
 
             <div className="relative z-10 my-auto py-6 flex flex-col gap-4">
-              <h1 className="font-editorial text-3xl sm:text-4xl lg:text-5xl text-white leading-tight drop-shadow-sm">
-                Climb Beyond the Fog.<br />
+              <h1 className="font-editorial text-3xl sm:text-4xl text-white leading-tight drop-shadow-sm">
+                Chinh phục những đỉnh cao.<br />
                 <span className="italic font-normal text-[#FFDCC3]">
-                  Your Mountain Journey Awaits.
+                  An toàn và có tổ chức.
                 </span>
               </h1>
               <p className="text-xs sm:text-sm text-stone-200/90 max-w-sm leading-relaxed">
-                Access secure permits, synchronized GPS tracks, and certified mountain support before your next high-altitude departure.
+                Đặt chỗ trực tuyến với tình trạng chỗ thời gian thực, giữ chỗ 15 phút và xác nhận đặt cọc nhanh chóng trực tuyến.
               </p>
 
               <div className="flex flex-col gap-2.5 mt-2">
-                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded bg-black/40 backdrop-blur-md border border-white/10 shadow-sm w-fit">
-                  <CheckCircle className="w-4 h-4 text-[#A0D0C2]" />
-                  <span className="text-xs text-white font-medium">180+ Verified Local Mountain Guides</span>
+                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-black/35 backdrop-blur-md border border-white/10 w-fit">
+                  <CheckCircle className="w-4 h-4 text-[#A0D0C2] shrink-0" />
+                  <span className="text-xs text-white font-medium">Lịch khởi hành & số chỗ cập nhật chuẩn xác</span>
                 </div>
-                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded bg-black/40 backdrop-blur-md border border-white/10 shadow-sm w-fit">
-                  <ShieldCheck className="w-4 h-4 text-[#A0D0C2]" />
-                  <span className="text-xs text-white font-medium">100% Bad-Weather Refund Escrow</span>
+                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-black/35 backdrop-blur-md border border-white/10 w-fit">
+                  <ShieldCheck className="w-4 h-4 text-[#A0D0C2] shrink-0" />
+                  <span className="text-xs text-white font-medium">Giữ chỗ 15 phút trong lúc thanh toán cọc</span>
                 </div>
-                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded bg-black/40 backdrop-blur-md border border-white/10 shadow-sm w-fit">
-                  <Radio className="w-4 h-4 text-[#A0D0C2]" />
-                  <span className="text-xs text-white font-medium">Real-time Garmin Satellite SOS Sync</span>
+                <div className="inline-flex items-center gap-2.5 px-3.5 py-2 rounded-lg bg-black/35 backdrop-blur-md border border-white/10 w-fit">
+                  <Radio className="w-4 h-4 text-[#A0D0C2] shrink-0" />
+                  <span className="text-xs text-white font-medium">Quản lý danh sách đoàn linh hoạt trước giờ đi</span>
                 </div>
               </div>
             </div>
 
-            <div className="relative z-10 pt-4 bg-black/35 backdrop-blur-sm rounded-lg p-4 border border-white/10 shadow-sm">
+            <div className="relative z-10 bg-black/35 backdrop-blur-sm rounded-xl p-4 border border-white/10">
               <div className="flex items-start gap-2.5">
                 <Quote className="w-5 h-5 text-[#FFB59D] shrink-0 rotate-180" />
                 <div className="flex flex-col">
                   <p className="text-xs text-stone-100 italic leading-relaxed">
-                    "The sea-of-clouds sunrise on Fansipan Ridge is unforgettable. Everything was organized perfectly."
+                    "Biển mây lúc bình minh trên đỉnh Lảo Thẩn và Ky Quan San thực sự xứng đáng từng bước chân."
                   </p>
                   <div className="flex items-center gap-2 mt-2 text-xs">
-                    <span className="font-semibold text-[#FFB59D]">Elena V.</span>
+                    <span className="font-semibold text-[#FFB59D]">Cộng đồng WeTrek</span>
                     <span className="text-stone-400">•</span>
-                    <span className="text-stone-300">Sapa Ridge Trekker</span>
+                    <span className="text-stone-300">Tây Bắc & Tây Nguyên</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Form */}
-          <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-between bg-white">
-            <div className="w-full max-w-md mx-auto flex flex-col gap-6">
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-mono text-[#C2410C] uppercase tracking-widest font-semibold">
-                    USER AUTHENTICATION
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-mono text-[#1F4E43] bg-[#B9EADB]/40 px-2.5 py-0.5 rounded-full border border-[#B9EADB]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#1F4E43]"></span>
-                    Secure TLS 1.3
-                  </span>
-                </div>
-
-                <h2 className="font-editorial text-2xl sm:text-3xl font-bold text-[#1C2526] tracking-tight">
-                  Welcome Back, Climber
-                </h2>
-                <p className="text-xs text-[#64748B]">
-                  Sign in to manage your trail permits, bookings, and gear lists.
-                </p>
-              </div>
-
-              <form onSubmit={handleLoginSubmit} className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-[#1C2526] flex items-center justify-between">
-                    <span>Email Address</span>
-                    <span className="text-[10px] font-mono text-[#78716C]">Required</span>
-                  </label>
-                  <div className="relative flex items-center">
-                    <Mail className="w-4 h-4 text-[#78716C] absolute left-3 pointer-events-none" />
-                    <input
-                      type="email"
-                      required
-                      autoComplete="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@example.com"
-                      className="w-full pl-9 pr-4 py-2.5 bg-[#F7F4EE] text-[#1C2526] text-xs sm:text-sm rounded border border-[#E6E1D8] placeholder-[#78716C] focus:outline-none focus:bg-white focus:border-[#C2410C] transition-all"
-                    />
+          {/* Right Column: AuthForm */}
+          <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-center bg-white">
+            <div className="w-full max-w-md mx-auto">
+              {/* Booking Intent Banner (Only show when intentionally redirected from booking flow) */}
+              {bookingIntent && hasBookingRedirect && (
+                <div className="mb-6 rounded-xl bg-[#1F4E43]/8 border border-[#1F4E43]/25 p-4 flex items-start gap-3">
+                  <Compass className="w-5 h-5 text-[#1F4E43] shrink-0 mt-0.5" />
+                  <div className="text-xs text-[#1C2526]">
+                    <p className="font-semibold text-[#1F4E43]">
+                      Đã lưu lựa chọn lịch trình của bạn
+                    </p>
+                    <p className="text-stone-600 mt-0.5">
+                      {bookingIntent.tourTitle
+                        ? `Tour "${bookingIntent.tourTitle}"`
+                        : 'Tour đã chọn'}
+                      . Sau khi xác thực tài khoản, hệ thống sẽ đưa bạn quay lại bước đặt chỗ ngay lập tức.
+                    </p>
                   </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-[#1C2526]">
-                      Password
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setResetSent(true)}
-                      className="text-xs text-[#C2410C] hover:underline font-semibold cursor-pointer"
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-                  {resetSent && (
-                    <div className="text-[11px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded flex items-center justify-between">
-                      <span>Reset code dispatched to <strong>{email}</strong></span>
-                      <button
-                        type="button"
-                        onClick={() => setResetSent(false)}
-                        className="text-emerald-700 hover:text-emerald-950 font-bold ml-2 cursor-pointer"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  )}
-                  <div className="relative flex items-center">
-                    <Lock className="w-4 h-4 text-[#78716C] absolute left-3 pointer-events-none" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter your password"
-                      className="w-full pl-9 pr-10 py-2.5 bg-[#F7F4EE] text-[#1C2526] text-xs sm:text-sm rounded border border-[#E6E1D8] placeholder-[#78716C] focus:outline-none focus:bg-white focus:border-[#C2410C] transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 text-[#78716C] hover:text-[#1C2526] cursor-pointer"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#C2410C] focus:ring-[#C2410C] border-stone-300 cursor-pointer"
-                    />
-                    <span className="text-xs text-[#64748B]">
-                      Remember this device for 30 days
-                    </span>
-                  </label>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`w-full mt-2 py-3 px-6 text-white font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer ${
-                    statusMessage === 'Welcome Back, Climber!'
-                      ? 'bg-[#1F4E43]'
-                      : 'bg-[#C2410C] hover:bg-[#9B2F00]'
-                  }`}
-                >
-                  <span>{statusMessage || 'Sign In to SummitTrails'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </form>
-
-              {ssoMessage && (
-                <div className="p-2.5 bg-[#FAF8F5] border border-[#E6E1D8] rounded text-center text-xs text-[#1F4E43] font-mono animate-pulse">
-                  {ssoMessage}
                 </div>
               )}
 
-              <div className="relative flex items-center justify-center my-1">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full bg-[#E6E1D8] h-[1px]"></div>
-                </div>
-                <span className="relative px-3 bg-white text-[11px] font-mono text-[#78716C] uppercase tracking-wider">
-                  or sign in with
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleSimulateSSO('Google')}
-                  className="w-full py-2.5 px-4 bg-[#F7F4EE] hover:bg-[#EFECE4] text-[#1C2526] text-xs font-semibold rounded border border-[#E6E1D8] shadow-2xs hover:shadow transition-all flex items-center justify-center gap-3 cursor-pointer"
-                >
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335" />
-                  </svg>
-                  <span>Continue with Google</span>
-                </button>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleSimulateSSO('Apple')}
-                    className="py-2 px-3 bg-[#F7F4EE] hover:bg-[#EFECE4] text-[#1C2526] text-xs font-semibold rounded border border-[#E6E1D8] shadow-2xs hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <span>Apple</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSimulateSSO('Passkey')}
-                    className="py-2 px-3 bg-[#F7F4EE] hover:bg-[#EFECE4] text-[#1C2526] text-xs font-semibold rounded border border-[#E6E1D8] shadow-2xs hover:shadow transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Fingerprint className="w-3.5 h-3.5 text-[#1F4E43]" />
-                    <span>Passkey</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full max-w-md mx-auto pt-4 mt-6 bg-[#FAF8F5] rounded-lg p-4 text-center flex flex-col gap-1.5 border border-[#E6E1D8]">
-              <p className="text-xs text-[#64748B]">
-                Don't have an account yet?{' '}
-                <button
-                  type="button"
-                  onClick={() => onNavigate('registration')}
-                  className="font-semibold text-[#C2410C] hover:underline cursor-pointer"
-                >
-                  Create account for free
-                </button>
-              </p>
-              <div className="h-px w-24 bg-stone-300 mx-auto my-1"></div>
-              <p className="text-xs text-[#64748B]">
-                Are you a certified mountain guide or expedition operator?
-                <br />
-                <button
-                  type="button"
-                  onClick={() => onNavigate('partner_company_info')}
-                  className="text-xs font-medium text-[#1F4E43] hover:underline underline-offset-4 cursor-pointer mt-0.5"
-                >
-                  Partner Sign In &amp; Verification
-                </button>
-              </p>
+              <AuthForm
+                initialMode={resolvedMode}
+                initialEmail={emailParam}
+                onModeChange={handleModeChange}
+                onAuthSuccess={handleSuccess}
+              />
             </div>
           </div>
         </div>
       </div>
-
-      {/* Mountain Support Hotline Footer */}
-      <footer className="w-full bg-[#F7F4EE] border-t border-[#E6E1D8] py-4 px-4 md:px-8 text-xs text-[#64748B]">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-[#1C2526]">24/7 Mountain Support Hotline:</span>
-            <a href="tel:18005558735" className="font-mono text-[#C2410C] font-bold hover:underline">
-              +1 (800) 555-TREK
-            </a>
-            <span className="text-stone-300 hidden sm:inline">•</span>
-            <span className="hidden sm:inline">Satellite SAR dispatch coordinated</span>
-          </div>
-          <div className="font-mono text-[11px] text-[#78716C]">
-            SYS.LOC // 45.8326° N, 6.8652° E • ELEV 3,842M
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };
