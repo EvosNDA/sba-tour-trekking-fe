@@ -1,35 +1,28 @@
 import React from 'react';
-import { QrCode, CreditCard, ShieldCheck } from 'lucide-react';
-import { PaymentMethod } from '../types/payment.types';
+import { QrCode } from 'lucide-react';
+import type { PaymentProvider } from '../types/payment.types';
 import { cn } from '../../../lib/utils';
 
 interface PaymentMethodSelectorProps {
-  selected: PaymentMethod;
-  onChange: (method: PaymentMethod) => void;
+  selected: PaymentProvider;
+  onChange: (provider: PaymentProvider) => void;
 }
 
 export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   selected,
   onChange,
 }) => {
-  const methods = [
+  const methods: Array<{
+    id: PaymentProvider;
+    title: string;
+    desc: string;
+    icon: typeof QrCode;
+  }> = [
     {
-      id: 'VIETQR' as PaymentMethod,
-      title: 'VietQR Direct Transfer',
-      desc: 'Instant zero-fee banking app QR code scan',
+      id: 'PAYOS',
+      title: 'Cổng thanh toán trực tuyến (VietQR)',
+      desc: 'Quét mã QR chuyển khoản ngân hàng nội địa — Tự động xác nhận thanh toán',
       icon: QrCode,
-    },
-    {
-      id: 'WEATHER_ESCROW' as PaymentMethod,
-      title: 'SafePay Alpine Escrow',
-      desc: '100% weather disruption refund protected',
-      icon: ShieldCheck,
-    },
-    {
-      id: 'CREDIT_CARD' as PaymentMethod,
-      title: 'International Visa / Mastercard',
-      desc: 'Multi-currency settlement',
-      icon: CreditCard,
     },
   ];
 
@@ -43,16 +36,16 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
             key={m.id}
             onClick={() => onChange(m.id)}
             className={cn(
-              'flex items-center gap-3 p-3.5 rounded-lg border cursor-pointer transition-all',
+              'flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all',
               isSelected
-                ? 'border-[#C2410C] bg-[#FFF8F5] ring-1 ring-[#C2410C]'
+                ? 'border-[#1F4E43] bg-[#1F4E43]/5 ring-1 ring-[#1F4E43]'
                 : 'border-stone-200 bg-white hover:border-stone-300'
             )}
           >
             <div
               className={cn(
                 'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
-                isSelected ? 'bg-[#C2410C] text-white' : 'bg-stone-100 text-stone-600'
+                isSelected ? 'bg-[#1F4E43] text-white' : 'bg-stone-100 text-stone-600'
               )}
             >
               <Icon className="w-5 h-5" />
@@ -65,7 +58,7 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
               type="radio"
               checked={isSelected}
               onChange={() => onChange(m.id)}
-              className="accent-[#C2410C]"
+              className="accent-[#1F4E43]"
             />
           </div>
         );

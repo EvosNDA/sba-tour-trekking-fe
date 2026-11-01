@@ -1,7 +1,30 @@
-import { PaymentTransaction, PaymentMethod } from '../types/payment.types';
+import { apiClient } from '../../../lib/axios';
+import {
+  CreatePaymentLinkRequest,
+  PaymentLinkResponse,
+  PaymentTransaction,
+  PaymentMethod,
+} from '../types/payment.types';
 
 export const paymentsApi = {
-  createTransaction: async (bookingId: string, amountVND: number, method: PaymentMethod): Promise<PaymentTransaction> => {
+  createPaymentLink: async (
+    bookingId: number | string,
+    payload: CreatePaymentLinkRequest,
+    signal?: AbortSignal
+  ): Promise<PaymentLinkResponse> => {
+    return apiClient.post<PaymentLinkResponse>(
+      `/api/v1/bookings/${bookingId}/payments`,
+      payload,
+      { signal }
+    );
+  },
+
+  // Legacy helper kept for compatibility
+  createTransaction: async (
+    bookingId: string,
+    amountVND: number,
+    method: PaymentMethod
+  ): Promise<PaymentTransaction> => {
     return {
       id: 'tx_' + Date.now(),
       bookingId,
