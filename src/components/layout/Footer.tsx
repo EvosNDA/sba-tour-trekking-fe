@@ -1,23 +1,33 @@
 import React from 'react';
-import { Shield, Sparkles, CheckCircle, Radio } from 'lucide-react';
+import { Shield, Sparkles, CheckCircle, Radio, Mountain } from 'lucide-react';
+import { navigateTo } from '../../lib/navigation';
+import { ROUTES } from '../../constants/routes';
+import { APP_CONFIG } from '../../constants/config';
+import { useAuthStore } from '../../stores/auth.store';
 
 export const Footer: React.FC = () => {
+  const { account, user, xRole, isAuthenticated } = useAuthStore();
+  const isAdmin =
+    isAuthenticated &&
+    (xRole === 'ADMIN' ||
+      user?.role === 'admin' ||
+      account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'ADMIN'));
   return (
     <footer className="bg-[#F7F4EE] border-t border-[#E6E1D8] mt-16 text-[#1C2526]">
       {/* Three Pillars Certification Badges */}
       <div className="border-b border-[#E6E1D8] py-8 px-4 md:px-8">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="flex items-start gap-3">
             <Shield className="w-5 h-5 text-[#1F4E43] shrink-0 mt-0.5" />
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-[#1C2526] mb-1">
-                Safety Rules
+                An toàn là ưu tiên số 1
               </h4>
               <p className="text-xs text-[#64748B] leading-relaxed mb-1.5">
-                We follow all international mountain safety standards and carry emergency satellite radios on every trip.
+                Mọi tuyến trekking đều tuân thủ quy chuẩn an toàn đường rừng, trang bị liên lạc vệ tinh và sơ cứu y tế tiêu chuẩn.
               </p>
               <span className="text-[10px] font-mono font-medium text-[#78716C] bg-white px-2 py-0.5 rounded border border-[#E6E1D8]">
-                CERT ID: MRA-AL-2024-884
+                SAFETY STANDARD: VN-ALPINE
               </span>
             </div>
           </div>
@@ -26,13 +36,13 @@ export const Footer: React.FC = () => {
             <Sparkles className="w-5 h-5 text-[#1F4E43] shrink-0 mt-0.5" />
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-[#1C2526] mb-1">
-                Nature Care
+                Trekking bền vững (Leave No Trace)
               </h4>
               <p className="text-xs text-[#64748B] leading-relaxed mb-1.5">
-                We protect nature and leave no trash behind. All waste is safely packed out from the mountain.
+                Tôn trọng hệ sinh thái rừng quốc gia, không xả rác nhựa và đồng hành cùng cộng đồng bản địa phát triển bền vững.
               </p>
               <span className="text-[10px] font-mono font-medium text-[#78716C] bg-white px-2 py-0.5 rounded border border-[#E6E1D8]">
-                STEWARDSHIP GRADE: CLASS-I
+                ECO STEWARDSHIP: CLASS-I
               </span>
             </div>
           </div>
@@ -41,13 +51,13 @@ export const Footer: React.FC = () => {
             <CheckCircle className="w-5 h-5 text-[#1F4E43] shrink-0 mt-0.5" />
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-[#1C2526] mb-1">
-                Official Licenses
+                Thanh toán & Giữ chỗ minh bạch
               </h4>
               <p className="text-xs text-[#64748B] leading-relaxed mb-1.5">
-                Certified tour guides with verified permits from the National Park and Forest Department.
+                Giữ chỗ tự động 15 phút, thanh toán trực tuyến an toàn và xác nhận trạng thái từ máy chủ theo thời gian thực.
               </p>
               <span className="text-[10px] font-mono font-medium text-[#78716C] bg-white px-2 py-0.5 rounded border border-[#E6E1D8]">
-                GOVERNANCE REGISTRY #7719
+                SECURE PAYMENT GATEWAY
               </span>
             </div>
           </div>
@@ -55,88 +65,117 @@ export const Footer: React.FC = () => {
       </div>
 
       {/* Main Links Grid */}
-      <div className="py-12 px-4 md:px-8 max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 text-xs">
-        <div>
-          <h3 className="font-editorial text-lg font-bold text-[#C2410C] mb-2">
-            TrekMarket
-          </h3>
-          <p className="text-[#64748B] leading-relaxed mb-4">
-            An easy website to find and book mountain hiking trips with trusted local guides, verified companies, and 100% safe payments.
+      <div className="py-10 px-4 md:px-8 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 text-xs">
+        <div className="md:col-span-2">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-7 h-7 rounded-lg bg-[#1F4E43] text-[#B9EADB] flex items-center justify-center">
+              <Mountain className="w-4 h-4" />
+            </div>
+            <h3 className="font-editorial text-xl font-bold text-[#1C2526]">
+              WeTrek Vietnam
+            </h3>
+          </div>
+          <p className="text-[#64748B] leading-relaxed mb-4 max-w-md">
+            Nền tảng đặt tour trekking và khám phá thiên nhiên có tổ chức. Lịch trình rõ ràng, kiểm tra số chỗ trực tiếp và quản lý hành khách thuận tiện cho từng chuyến đi.
           </p>
-          <div className="flex items-center gap-2 text-[10px] font-mono text-[#78716C]">
-            <span className="bg-white border border-[#E6E1D8] px-2 py-0.5 rounded">Clear Maps</span>
-            <span className="bg-white border border-[#E6E1D8] px-2 py-0.5 rounded">Safe Money</span>
+          <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-[#78716C]">
+            <span className="bg-white border border-[#E6E1D8] px-2.5 py-1 rounded">Giữ chỗ 15 phút</span>
+            <span className="bg-white border border-[#E6E1D8] px-2.5 py-1 rounded">Giờ Việt Nam (GMT+7)</span>
+            <span className="bg-white border border-[#E6E1D8] px-2.5 py-1 rounded">Quét mã VietQR</span>
           </div>
         </div>
 
         <div>
           <h4 className="font-bold text-[#1C2526] mb-3 uppercase tracking-wider text-[11px]">
-            For Travelers
+            Điều hướng
           </h4>
-          <ul className="space-y-2 text-[#64748B]">
-            <li><a href="#tours" className="hover:text-[#1C2526]">Find Mountain Tours</a></li>
-            <li><a href="#safety" className="hover:text-[#1C2526]">Compare Guide Safety</a></li>
-            <li><a href="#weather" className="hover:text-[#1C2526]">Weather & Trail Info</a></li>
-            <li><a href="#insurance" className="hover:text-[#1C2526]">Trip Insurance Info</a></li>
-            <li><a href="#checklist" className="hover:text-[#1C2526]">What to Bring Checklist</a></li>
+          <ul className="space-y-2.5 text-[#64748B]">
+            <li>
+              <button
+                type="button"
+                onClick={() => navigateTo(isAdmin ? ROUTES.ADMIN.DASHBOARD : ROUTES.PUBLIC.HOME)}
+                className="hover:text-[#1C2526] cursor-pointer"
+              >
+                Trang chủ Khám phá
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                onClick={() => navigateTo(ROUTES.PUBLIC.TOURS)}
+                className="hover:text-[#1C2526] cursor-pointer"
+              >
+                Danh sách Tour Trekking
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                onClick={() => navigateTo(ROUTES.ACCOUNT.BOOKINGS)}
+                className="hover:text-[#1C2526] cursor-pointer"
+              >
+                Đặt chỗ của tôi
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                onClick={() => navigateTo(ROUTES.AUTH.LOGIN)}
+                className="hover:text-[#1C2526] cursor-pointer"
+              >
+                Đăng nhập / Đăng ký
+              </button>
+            </li>
           </ul>
         </div>
 
         <div>
           <h4 className="font-bold text-[#1C2526] mb-3 uppercase tracking-wider text-[11px]">
-            For Tour Partners
+            Hỗ trợ điều hành
           </h4>
-          <ul className="space-y-2 text-[#64748B]">
-            <li><a href="#join" className="hover:text-[#1C2526]">Join as a Tour Guide</a></li>
-            <li><a href="#rules" className="hover:text-[#1C2526]">Guide Safety Rules</a></li>
-            <li><a href="#payouts" className="hover:text-[#1C2526]">How Payouts Work</a></li>
-            <li><a href="#manage" className="hover:text-[#1C2526]">Manage Your Tours</a></li>
-            <li><a href="#partner-login" className="hover:text-[#1C2526]">Partner Log In</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 className="font-bold text-[#1C2526] mb-3 uppercase tracking-wider text-[11px]">
-            Help & Support
-          </h4>
-          <div className="space-y-2 text-[#64748B]">
+          <div className="space-y-2.5 text-[#64748B]">
             <div>
               <span className="block text-[10px] uppercase font-mono text-[#78716C]">
-                24/7 Emergency Phone
+                Hotline Hỗ trợ 24/7
               </span>
-              <a href="tel:18002574630" className="font-bold text-[#C2410C] hover:underline font-mono">
-                1-800-ALPINE-0
+              <a
+                href={`tel:${APP_CONFIG.SUPPORT_PHONE}`}
+                className="font-bold text-[#C2410C] hover:underline font-mono"
+              >
+                {APP_CONFIG.SUPPORT_PHONE}
+              </a>
+            </div>
+            <div>
+              <span className="block text-[10px] uppercase font-mono text-[#78716C]">
+                Email Điều phối & Đối soát
+              </span>
+              <a
+                href={`mailto:${APP_CONFIG.SUPPORT_EMAIL}`}
+                className="font-mono text-[#1C2526] hover:underline"
+              >
+                {APP_CONFIG.SUPPORT_EMAIL}
               </a>
             </div>
             <div className="pt-1">
               <span className="block text-[10px] uppercase font-mono text-[#78716C]">
-                VHF Field Frequency
+                Tần số bộ đàm trạm rừng
               </span>
               <span className="font-mono text-[#1C2526] flex items-center gap-1">
-                <Radio className="w-3 h-3 text-[#1F4E43]" /> 147.425 MHz
+                <Radio className="w-3 h-3 text-[#1F4E43]" /> {APP_CONFIG.EMERGENCY_VHF_FREQ}
               </span>
-            </div>
-            <div className="pt-1">
-              <span className="block text-[10px] uppercase font-mono text-[#78716C]">
-                Payment Safety Rules
-              </span>
-              <p className="text-[11px] text-[#64748B] leading-tight">
-                We hold your money safely until your mountain tour starts as promised.
-              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Editorial System Telemetry Bar */}
+      {/* Bottom Bar */}
       <div className="border-t border-[#E6E1D8] py-4 px-4 md:px-8 text-[11px] text-[#78716C] font-mono">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-          <div>
-            © 2026 WeTrek Expeditions Inc. Registered Alpine Outfitter.
-          </div>
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div>© 2026 WeTrek Expeditions Vietnam. All rights reserved.</div>
           <div className="flex items-center gap-4">
-            <span>TELEMETRY STATUS: <strong className="text-[#1F4E43]">NOMINAL</strong></span>
-            <span>GRID DATUM: <strong>WGS84</strong></span>
+            <span>
+              MÚI GIỜ: <strong className="text-[#1F4E43]">Giờ Việt Nam (GMT+7)</strong>
+            </span>
           </div>
         </div>
       </div>
