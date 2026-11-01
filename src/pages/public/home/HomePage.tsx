@@ -1,776 +1,423 @@
-import React, { useState } from 'react';
-import { TourCompany, DiscountVoucher, Destination, Tour, ScreenId } from '../../../types/expedition';
+import React, { useState, useEffect } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import {
-  TOUR_COMPANIES,
-  DISCOUNT_VOUCHERS,
-  POPULAR_DESTINATIONS,
-  EXPLORE_TOURS,
-} from '../../../data/mockData';
-import {
-  Compass,
-  Star,
-  ShieldCheck,
-  Calendar,
   Search,
-  Check,
-  Copy,
+  Mountain,
+  Calendar,
+  Compass,
+  ShieldCheck,
+  Clock,
+  CreditCard,
+  Headphones,
   ArrowRight,
-  TrendingUp,
-  Users,
-  Backpack,
-  ChevronDown,
-  Sparkles,
-  MapPin,
-  ExternalLink,
-  Radio,
-  DollarSign,
-  HeartHandshake,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
+import { toursApi } from '../../../features/tours/api/tours.api';
+import { TourSummaryResponse, DifficultyLevel } from '../../../features/tours/types/tour.types';
+import { TourCard } from '../../../features/tours/components/TourCard';
+import { navigateTo } from '../../../lib/navigation';
+import { ROUTES } from '../../../constants/routes';
+import { useAuthStore } from '../../../stores/auth.store';
+import heroRidgeImg from '../../../assets/images/fansipan_cloud_ridge_1792001300725.jpg';
 
 export interface HomePageProps {
-  companies?: TourCompany[];
-  vouchers?: DiscountVoucher[];
-  destinations?: Destination[];
-  tours?: Tour[];
-  onBookTour?: (tour: Tour) => void;
-  onNavigate?: (screen: ScreenId) => void;
+  onBookTour?: (tour: any) => void;
+  onNavigate?: (screen: any) => void;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({
-  companies = TOUR_COMPANIES,
-  vouchers = DISCOUNT_VOUCHERS,
-  destinations = POPULAR_DESTINATIONS,
-  tours = EXPLORE_TOURS,
-  onBookTour = () => {},
-  onNavigate = () => {},
-}) => {
-  const [selectedDestination, setSelectedDestination] = useState<string>('all');
-  const [selectedCompany, setSelectedCompany] = useState<string>('all');
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<string>('safety');
+export const HomePage: React.FC<HomePageProps> = () => {
+  const { account, user, xRole, isAuthenticated, isInitializing } = useAuthStore();
+  const isAdmin =
+    (isAuthenticated &&
+      (xRole === 'ADMIN' ||
+        user?.role === 'admin' ||
+        account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'ADMIN'))) ||
+    (!isInitializing && xRole === 'ADMIN');
 
-  const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    setTimeout(() => setCopiedCode(null), 2000);
+  useEffect(() => {
+    if (!isInitializing && isAdmin) {
+      navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+    }
+  }, [isInitializing, isAdmin]);
+
+  const prefersReducedMotion = useReducedMotion();
+
+  const [query, setQuery] = useState('');
+  const [difficulty, setDifficulty] = useState<DifficultyLevel | ''>('');
+  const [durationDays, setDurationDays] = useState<string>('');
+
+  const [featuredTours, setFeaturedTours] = useState<TourSummaryResponse[]>([]);
+  const [totalElements, setTotalElements] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    if (!isInitializing && isAdmin) return;
+
+    const controller = new AbortController();
+    setIsLoading(true);
+    setError(null);
+
+    toursApi
+      .listTours({ page: 0, size: 6 }, controller.signal)
+      .then((pageData) => {
+        setFeaturedTours(pageData.content || []);
+        setTotalElements(pageData.totalElements ?? (pageData.content?.length || 0));
+      })
+      .catch((err: any) => {
+        if (err?.name === 'AbortError') return;
+        setError(err?.message || 'Không thể tải danh sách tour nổi bật.');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
+  }, [reloadKey]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams();
+    if (query.trim()) params.set('query', query.trim());
+    if (difficulty) params.set('difficulty', difficulty);
+    if (durationDays) params.set('durationDays', durationDays);
+
+    const qs = params.toString();
+    navigateTo(`${ROUTES.PUBLIC.TOURS}${qs ? `?${qs}` : ''}`);
   };
 
-  const filteredTours = tours.filter((t) => {
-    if (selectedDestination !== 'all' && t.destinationId !== selectedDestination) return false;
-    if (selectedCompany !== 'all' && !t.operatorName.toLowerCase().includes(selectedCompany.toLowerCase())) return false;
-    if (selectedDifficulty !== 'all') {
-      if (selectedDifficulty === 'hard' && !t.difficulty.toLowerCase().includes('hard')) return false;
-      if (selectedDifficulty === 'medium' && !t.difficulty.toLowerCase().includes('medium')) return false;
-      if (selectedDifficulty === 'easy' && !t.difficulty.toLowerCase().includes('easy')) return false;
-    }
-    return true;
-  });
+  // Prioritize real API cover image for hero if available; fallback to high-res local mountain landscape
+  const heroTourImage =
+    featuredTours.find((t) => Boolean(t.coverImageUrl))?.coverImageUrl || heroRidgeImg;
+
+  if (!isInitializing && isAdmin) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526]">
       {/* 1. HERO SECTION */}
-      <section className="relative pt-12 pb-16 px-4 md:px-8 border-b border-[#E6E1D8] bg-radial from-[#F2FBFC] via-[#FDFBF7] to-[#FDFBF7]">
-        <div className="max-w-5xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white border border-[#E6E1D8] rounded-full text-[11px] font-mono text-[#1F4E43] mb-6 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#1F4E43]"></span>
-            <span className="font-semibold tracking-wider uppercase">TRUSTED MOUNTAIN MARKETPLACE</span>
-            <span className="text-stone-300">|</span>
-            <span className="text-[#C2410C]">100% Safe Payments</span>
-          </div>
+      <section className="relative overflow-hidden border-b border-[#E6E1D8]">
+        <div className="absolute inset-0 z-0">
+          <img
+            src={heroTourImage}
+            alt="Phong cảnh núi rừng trekking Việt Nam"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#14231F]/90 via-[#14231F]/75 to-[#14231F]/45" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#14231F] via-transparent to-transparent opacity-80" />
+        </div>
 
-          <h1 className="font-editorial text-4xl sm:text-5xl md:text-6xl text-[#1C2526] leading-tight max-w-4xl mx-auto tracking-tight mb-4">
-            Find and Book Mountain Trips with <br className="hidden sm:inline" />
-            <span className="text-[#C2410C] italic font-normal">180+ Verified</span> Local Guides
-          </h1>
+        <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 pt-14 pb-20 md:pt-20 md:pb-24">
+          <motion.div
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="max-w-3xl text-white space-y-5"
+          >
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-xs font-mono text-[#B9EADB]">
+              <Mountain className="w-4 h-4 text-[#FFB59D]" />
+              <span className="uppercase tracking-wider font-semibold">
+                KHÁM PHÁ THIÊN NHIÊN & TREKKING CÓ TỔ CHỨC
+              </span>
+            </div>
 
-          <p className="text-sm md:text-base text-[#64748B] max-w-2xl mx-auto leading-relaxed mb-8">
-            One easy website. Compare prices, safety checks, gear options, and real reviews from other travelers. Your money is 100% safe.
-          </p>
+            <h1 className="font-editorial text-4xl sm:text-5xl md:text-6xl font-bold leading-tight tracking-tight text-white">
+              Chinh phục những cung đường rừng & đỉnh cao hùng vĩ.
+            </h1>
 
-          {/* Search Console */}
-          <div className="bg-white border border-[#E6E1D8] rounded-xl shadow-lg p-3 max-w-4xl mx-auto mb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-left">
-              <div className="p-2.5 rounded-lg hover:bg-[#F7F4EE] transition-colors">
-                <label className="block text-[10px] font-mono tracking-wider uppercase text-[#78716C] mb-1">
-                  <MapPin className="w-3 h-3 inline mr-1 text-[#C2410C]" /> WHERE TO?
+            <p className="text-sm sm:text-base text-stone-200 max-w-2xl leading-relaxed">
+              Lịch khởi hành minh bạch, kiểm tra tình trạng chỗ trống theo thời gian thực, giữ chỗ 15 phút và xác nhận đặt cọc nhanh chóng trực tuyến.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => navigateTo(ROUTES.PUBLIC.TOURS)}
+                className="bg-[#C2410C] hover:bg-[#9B2F00] text-white font-semibold px-6 py-3.5 rounded-xl text-sm flex items-center gap-2 shadow-lg transition-all cursor-pointer"
+              >
+                <span>Tìm chuyến đi</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="bg-white/10 hover:bg-white/20 backdrop-blur-xs text-white border border-white/30 font-semibold px-5 py-3.5 rounded-xl text-sm transition-all cursor-pointer"
+              >
+                Quy trình đặt chỗ
+              </button>
+            </div>
+          </motion.div>
+
+          {/* Simple Search Bar: Keyword, Difficulty, DurationDays */}
+          <motion.form
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.1 }}
+            onSubmit={handleSearchSubmit}
+            aria-label="Tìm kiếm hành trình trekking"
+            className="mt-10 bg-white border border-[#E6E1D8] rounded-2xl shadow-xl p-3 sm:p-4 max-w-5xl"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+              {/* Keyword */}
+              <div className="lg:col-span-5 p-2 rounded-xl hover:bg-[#F7F4EE] transition-colors">
+                <label
+                  htmlFor="home-search-query"
+                  className="block text-[10px] font-mono uppercase tracking-wider text-[#78716C] mb-1"
+                >
+                  <Search className="w-3 h-3 inline mr-1 text-[#C2410C]" /> Từ khóa tuyến đường
+                </label>
+                <input
+                  id="home-search-query"
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Tên đỉnh núi, cung đường (VD: Fansipan, Tà Xùa...)"
+                  className="w-full bg-transparent text-xs sm:text-sm font-semibold text-[#1C2526] placeholder:text-stone-400 placeholder:font-normal focus:outline-none"
+                />
+              </div>
+
+              {/* Difficulty */}
+              <div className="lg:col-span-3 p-2 rounded-xl hover:bg-[#F7F4EE] transition-colors sm:border-l border-[#E6E1D8]">
+                <label
+                  htmlFor="home-search-difficulty"
+                  className="block text-[10px] font-mono uppercase tracking-wider text-[#78716C] mb-1"
+                >
+                  <Mountain className="w-3 h-3 inline mr-1 text-[#1F4E43]" /> Độ khó
                 </label>
                 <select
-                  value={selectedDestination}
-                  onChange={(e) => setSelectedDestination(e.target.value)}
-                  className="w-full bg-transparent text-xs font-semibold text-[#1C2526] focus:outline-none cursor-pointer"
+                  id="home-search-difficulty"
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value as DifficultyLevel | '')}
+                  className="w-full bg-transparent text-xs sm:text-sm font-semibold text-[#1C2526] focus:outline-none cursor-pointer"
                 >
-                  <option value="all">All Mountain Trips</option>
-                  <option value="sapa-fansipan">Sapa & Fansipan Ridge</option>
-                  <option value="bach-moc">Ky Quan San (Bach Moc)</option>
-                  <option value="ta-xua">Ta Xua Cloud Sea Ridge</option>
-                  <option value="ta-nang">Ta Nang - Phan Dung</option>
-                  <option value="pu-luong">Pu Luong Nature Reserve</option>
-                  <option value="bidoup">Langbiang & Bidoup Peaks</option>
+                  <option value="">Tất cả độ khó</option>
+                  <option value="EASY">Dễ</option>
+                  <option value="MODERATE">Trung bình</option>
+                  <option value="HARD">Khó</option>
+                  <option value="EXPERT">Chuyên gia</option>
                 </select>
               </div>
 
-              <div className="p-2.5 rounded-lg hover:bg-[#F7F4EE] transition-colors border-t sm:border-t-0 sm:border-l border-[#E6E1D8]">
-                <label className="block text-[10px] font-mono tracking-wider uppercase text-[#78716C] mb-1">
-                  <ShieldCheck className="w-3 h-3 inline mr-1 text-[#1F4E43]" /> TOUR COMPANY
+              {/* Duration Days */}
+              <div className="lg:col-span-2 p-2 rounded-xl hover:bg-[#F7F4EE] transition-colors lg:border-l border-[#E6E1D8]">
+                <label
+                  htmlFor="home-search-duration"
+                  className="block text-[10px] font-mono uppercase tracking-wider text-[#78716C] mb-1"
+                >
+                  <Calendar className="w-3 h-3 inline mr-1 text-[#C2410C]" /> Số ngày
                 </label>
                 <select
-                  value={selectedCompany}
-                  onChange={(e) => setSelectedCompany(e.target.value)}
-                  className="w-full bg-transparent text-xs font-semibold text-[#1C2526] focus:outline-none cursor-pointer"
+                  id="home-search-duration"
+                  value={durationDays}
+                  onChange={(e) => setDurationDays(e.target.value)}
+                  className="w-full bg-transparent text-xs sm:text-sm font-semibold text-[#1C2526] focus:outline-none cursor-pointer"
                 >
-                  <option value="all">All 180+ Local Guides</option>
-                  <option value="wayfarer">Wayfarer Alpine Guild</option>
-                  <option value="highland">Highland Nomads Outfitter</option>
-                  <option value="indochina">Indochina Summiters Guild</option>
-                  <option value="pu luong">Pu Luong Forest Wardens</option>
+                  <option value="">Mọi thời lượng</option>
+                  <option value="1">1 ngày</option>
+                  <option value="2">2 ngày 1 đêm</option>
+                  <option value="3">3 ngày 2 đêm</option>
+                  <option value="4">4 ngày 3 đêm</option>
+                  <option value="5">5 ngày</option>
                 </select>
               </div>
 
-              <div className="p-2.5 rounded-lg hover:bg-[#F7F4EE] transition-colors border-t lg:border-t-0 lg:border-l border-[#E6E1D8]">
-                <label className="block text-[10px] font-mono tracking-wider uppercase text-[#78716C] mb-1">
-                  <TrendingUp className="w-3 h-3 inline mr-1 text-[#D97706]" /> DIFFICULTY
-                </label>
-                <select
-                  value={selectedDifficulty}
-                  onChange={(e) => setSelectedDifficulty(e.target.value)}
-                  className="w-full bg-transparent text-xs font-semibold text-[#1C2526] focus:outline-none cursor-pointer"
-                >
-                  <option value="all">Any Difficulty</option>
-                  <option value="easy">Easy (Nature / Forest)</option>
-                  <option value="medium">Medium (Good Fitness)</option>
-                  <option value="hard">Hard (Multi-Day Trek)</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2 p-1 border-t sm:border-t-0 sm:border-l border-[#E6E1D8]">
-                <div className="flex-1 p-1.5">
-                  <label className="block text-[10px] font-mono tracking-wider uppercase text-[#78716C] mb-1">
-                    <Calendar className="w-3 h-3 inline mr-1 text-[#64748B]" /> DATES
-                  </label>
-                  <span className="text-xs font-semibold text-[#1C2526] block">
-                    Nov - Jan 2025
-                  </span>
-                </div>
+              {/* Submit Button */}
+              <div className="lg:col-span-2 flex items-center">
                 <button
-                  onClick={() => {
-                    const el = document.getElementById('explore-tours');
-                    el?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="bg-[#1F4E43] hover:bg-[#15372F] text-white px-4 py-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shrink-0 transition-colors shadow-sm cursor-pointer"
+                  type="submit"
+                  className="w-full bg-[#1F4E43] hover:bg-[#15372F] text-white py-3.5 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer"
                 >
-                  <Search className="w-3.5 h-3.5" />
-                  <span>Search Trips</span>
+                  <Search className="w-4 h-4" />
+                  <span>Tìm chuyến đi</span>
                 </button>
               </div>
             </div>
-          </div>
-
-          {/* Popular Search Pills */}
-          <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-[#64748B] mb-10">
-            <span className="font-mono text-[11px] uppercase tracking-wider text-[#78716C]">
-              Popular Trips:
-            </span>
-            <button
-              onClick={() => setSelectedDestination('bach-moc')}
-              className="bg-white border border-[#E6E1D8] hover:border-[#C2410C] px-2.5 py-1 rounded text-xs transition-colors cursor-pointer"
-            >
-              Bach Moc Cloud Walk <span className="text-amber-600 font-semibold">4.9★</span>
-            </button>
-            <button
-              onClick={() => setSelectedDestination('sapa-fansipan')}
-              className="bg-white border border-[#E6E1D8] hover:border-[#C2410C] px-2.5 py-1 rounded text-xs transition-colors cursor-pointer"
-            >
-              Fansipan Peak Hike <span className="text-amber-600 font-semibold">4.8★</span>
-            </button>
-            <button
-              onClick={() => setSelectedDestination('ta-nang')}
-              className="bg-white border border-[#E6E1D8] hover:border-[#C2410C] px-2.5 py-1 rounded text-xs transition-colors cursor-pointer"
-            >
-              Ta Nang Hill Trail <span className="text-[#1F4E43] font-medium text-[11px]">Safe Booking</span>
-            </button>
-            <button
-              onClick={() => setSelectedDestination('pu-luong')}
-              className="bg-white border border-[#E6E1D8] hover:border-[#C2410C] px-2.5 py-1 rounded text-xs transition-colors cursor-pointer"
-            >
-              Pu Luong Valley Walk
-            </button>
-          </div>
-
-          {/* Four Metric Badges */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto">
-            <div className="bg-white border border-[#E6E1D8] rounded-lg p-3 text-left flex items-start gap-3 shadow-2xs">
-              <div className="w-8 h-8 rounded bg-[#B9EADB]/40 text-[#1F4E43] flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="block font-bold text-sm text-[#1C2526] font-mono-numbers">180+</span>
-                <span className="text-[11px] text-[#64748B] leading-tight">180+ Verified Local Tour Guides</span>
-              </div>
-            </div>
-
-            <div className="bg-white border border-[#E6E1D8] rounded-lg p-3 text-left flex items-start gap-3 shadow-2xs">
-              <div className="w-8 h-8 rounded bg-[#B9EADB]/40 text-[#1F4E43] flex items-center justify-center shrink-0">
-                <Star className="w-4 h-4 text-amber-600 fill-amber-500" />
-              </div>
-              <div>
-                <span className="block font-bold text-sm text-[#1C2526] font-mono-numbers">12,400+</span>
-                <span className="text-[11px] text-[#64748B] leading-tight">12,400+ Real Traveler Reviews</span>
-              </div>
-            </div>
-
-            <div className="bg-white border border-[#E6E1D8] rounded-lg p-3 text-left flex items-start gap-3 shadow-2xs">
-              <div className="w-8 h-8 rounded bg-orange-100 text-[#C2410C] flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="block font-bold text-sm text-[#1C2526] font-mono-numbers">100%</span>
-                <span className="text-[11px] text-[#64748B] leading-tight">100% Safe Payments (Escrow)</span>
-              </div>
-            </div>
-
-            <div className="bg-white border border-[#E6E1D8] rounded-lg p-3 text-left flex items-start gap-3 shadow-2xs">
-              <div className="w-8 h-8 rounded bg-stone-100 text-[#2D3748] flex items-center justify-center shrink-0">
-                <DollarSign className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="block font-bold text-sm text-[#1C2526] font-mono-numbers">0% Markup</span>
-                <span className="text-[11px] text-[#64748B] leading-tight">No Extra Fees (Same Price)</span>
-              </div>
-            </div>
-          </div>
+          </motion.form>
         </div>
       </section>
 
-      {/* 2. TOP TOUR COMPANIES */}
-      <section className="py-12 px-4 md:px-8 max-w-6xl mx-auto border-b border-[#E6E1D8]">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-2">
+      {/* 2. FEATURED TOURS FROM REAL API */}
+      <section className="py-14 px-4 md:px-8 max-w-7xl mx-auto border-b border-[#E6E1D8]">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
-            <div className="flex items-center gap-2 text-xs font-mono text-[#1F4E43] mb-1">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span className="uppercase tracking-wider font-semibold">TRUSTED LOCAL GUIDES</span>
+            <div className="flex items-center gap-1.5 text-xs font-mono text-[#1F4E43] mb-1">
+              <Compass className="w-4 h-4 text-[#C2410C]" />
+              <span className="uppercase tracking-wider font-semibold">TUYẾN TREKKING NỔI BẬT</span>
             </div>
-            <h2 className="font-editorial text-2xl md:text-3xl font-bold text-[#1C2526]">
-              Top Tour Companies & Local Guides
+            <h2 className="font-editorial text-3xl sm:text-4xl font-bold text-[#1C2526]">
+              Hành trình đang mở đăng ký
             </h2>
-            <p className="text-xs text-[#64748B]">
-              Choose licensed local guides with top ratings and certified first-aid training.
+            <p className="text-xs sm:text-sm text-[#64748B] mt-1">
+              Dữ liệu trực tiếp từ hệ thống điều hành tour ({totalElements} tuyến hiện có).
             </p>
           </div>
+
           <button
-            onClick={() => onNavigate('registration')}
-            className="text-xs font-semibold text-[#C2410C] hover:underline flex items-center gap-1 cursor-pointer"
+            type="button"
+            onClick={() => navigateTo(ROUTES.PUBLIC.TOURS)}
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#C2410C] hover:text-[#9B2F00] cursor-pointer"
           >
-            <span>See All 180+ Guides</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <span>Xem tất cả hành trình</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {companies.map((c) => (
-            <div
-              key={c.id}
-              className="bg-white border border-[#E6E1D8] rounded-lg p-5 hover:shadow-md transition-shadow flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded bg-[#F7F4EE] border border-[#E6E1D8] flex items-center justify-center text-[#1F4E43]">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-1 text-xs font-bold text-[#1C2526]">
-                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                      <span>{c.rating}</span>
-                      <span className="text-[#78716C] font-normal">({c.reviewCount})</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-[#78716C] block">{c.license}</span>
-                  </div>
-                </div>
-
-                <h3 className="font-editorial text-lg font-bold text-[#1C2526] mb-1">
-                  {c.name}
-                </h3>
-                <p className="text-xs text-[#64748B] leading-relaxed mb-4">
-                  {c.description}
-                </p>
-
-                <div className="grid grid-cols-2 gap-2 py-2 px-3 bg-[#F7F4EE] rounded text-xs mb-4">
-                  <div>
-                    <span className="text-[10px] uppercase font-mono text-[#78716C] block">ACTIVE TOURS</span>
-                    <strong className="text-xs text-[#1C2526] font-mono-numbers">{c.activeRoutes} routes</strong>
-                  </div>
-                  <div>
-                    <span className="text-[10px] uppercase font-mono text-[#78716C] block">ON-TIME STARTS</span>
-                    <strong className="text-xs text-[#1C2526] font-mono-numbers">{c.onTimeRate}%</strong>
-                  </div>
-                </div>
-
-                <div className="space-y-1 mb-4">
-                  {c.badges.map((b, i) => (
-                    <div key={i} className="flex items-center gap-1.5 text-[11px] text-[#1F4E43]">
-                      <Check className="w-3 h-3 text-[#1F4E43] shrink-0" />
-                      <span>{b}</span>
-                    </div>
-                  ))}
-                </div>
+        {/* Loading Skeleton */}
+        {isLoading && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className="bg-white rounded-2xl border border-[#E6E1D8] overflow-hidden p-4 space-y-4 animate-pulse"
+              >
+                <div className="h-52 bg-stone-200 rounded-xl" />
+                <div className="h-4 bg-stone-200 rounded w-1/3" />
+                <div className="h-6 bg-stone-200 rounded w-3/4" />
+                <div className="h-14 bg-stone-100 rounded-xl" />
+                <div className="h-10 bg-stone-200 rounded-xl" />
               </div>
-
-              <div className="pt-3 border-t border-[#E6E1D8] flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-[#78716C] block">About</span>
-                  <span className="text-xs font-bold text-[#1C2526]">{c.aboutPrice}</span>
-                </div>
-                <button
-                  onClick={() => {
-                    const matched = tours.find((t) => t.operatorName.includes(c.name.split(' ')[0]));
-                    if (matched) onBookTour(matched);
-                  }}
-                  className="px-3 py-1.5 text-xs font-medium bg-[#F7F4EE] hover:bg-[#EFECE4] text-[#1C2526] border border-[#E6E1D8] rounded transition-colors cursor-pointer"
-                >
-                  View Details
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 3. VOUCHERS */}
-      <section className="py-10 px-4 md:px-8 max-w-6xl mx-auto border-b border-[#E6E1D8]">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-[#C2410C]" />
-            <h2 className="font-editorial text-xl font-bold text-[#1C2526]">
-              Special Discounts & Gift Vouchers
-            </h2>
+            ))}
           </div>
-          <span className="text-[11px] font-mono text-[#C2410C] uppercase tracking-wider font-semibold">
-            Valid This Season
-          </span>
-        </div>
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {vouchers.map((v) => (
-            <div
-              key={v.id}
-              className="bg-white border border-[#E6E1D8] rounded-lg p-4 flex flex-col justify-between relative overflow-hidden"
-            >
-              <div>
-                <span className="text-[10px] font-mono text-[#78716C] uppercase tracking-wider block mb-1">
-                  {v.title}
-                </span>
-                <div className="font-editorial text-2xl font-bold text-[#C2410C] mb-1">
-                  {v.discountText}
-                </div>
-                <p className="text-xs text-[#64748B] leading-relaxed mb-4">
-                  {v.description}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between bg-[#F7F4EE] border border-[#E6E1D8] rounded p-1.5">
-                <span className="font-mono text-xs font-bold text-[#1C2526] px-2">
-                  {v.code}
-                </span>
-                <button
-                  onClick={() => handleCopyCode(v.code)}
-                  className="bg-white hover:bg-stone-100 text-[#1C2526] text-[11px] font-semibold px-2.5 py-1 rounded border border-[#E6E1D8] flex items-center gap-1 transition-colors cursor-pointer"
-                >
-                  {copiedCode === v.code ? (
-                    <>
-                      <Check className="w-3 h-3 text-emerald-600" />
-                      <span className="text-emerald-700">COPIED</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3 h-3 text-[#78716C]" />
-                      <span>COPY</span>
-                    </>
-                  )}
-                </button>
-              </div>
+        {/* Network Error State */}
+        {!isLoading && error && (
+          <div className="bg-white border border-red-200 rounded-2xl p-8 text-center max-w-xl mx-auto space-y-3 shadow-2xs">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+              <AlertCircle className="w-6 h-6" />
             </div>
-          ))}
-        </div>
-      </section>
+            <h3 className="font-editorial text-xl font-bold text-[#1C2526]">
+              Không thể tải danh sách tour
+            </h3>
+            <p className="text-xs sm:text-sm text-[#64748B]">{error}</p>
+            <button
+              type="button"
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs sm:text-sm font-semibold cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Thử tải lại</span>
+            </button>
+          </div>
+        )}
 
-      {/* 4. DESTINATIONS */}
-      <section className="py-12 px-4 md:px-8 max-w-6xl mx-auto border-b border-[#E6E1D8]">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-2">
-          <div>
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[#78716C] block mb-1">
-              EXPLORE REGIONS
-            </span>
-            <h2 className="font-editorial text-2xl md:text-3xl font-bold text-[#1C2526]">
-              Popular Mountain Destinations
-            </h2>
-            <p className="text-xs text-[#64748B]">
-              Choose a place to see all tours and compare guide prices.
+        {/* Empty State (No hardcoded fake results when API returns empty) */}
+        {!isLoading && !error && featuredTours.length === 0 && (
+          <div className="bg-white border border-[#E6E1D8] rounded-2xl p-10 text-center max-w-xl mx-auto space-y-3">
+            <div className="w-12 h-12 rounded-full bg-[#F7F4EE] text-[#1F4E43] flex items-center justify-center mx-auto">
+              <Mountain className="w-6 h-6" />
+            </div>
+            <h3 className="font-editorial text-xl font-bold text-[#1C2526]">
+              Hiện chưa có tour nào được xuất bản
+            </h3>
+            <p className="text-xs sm:text-sm text-[#64748B]">
+              Hệ thống hiện chưa có dữ liệu tour ở trạng thái PUBLISHED. Vui lòng quay lại sau khi ban điều hành cập nhật lịch trình mới.
             </p>
           </div>
-          <span className="text-xs font-mono text-[#78716C] bg-white border border-[#E6E1D8] px-2.5 py-1 rounded">
-            6 Active Places
-          </span>
-        </div>
+        )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {destinations.map((d) => (
-            <div
-              key={d.id}
-              onClick={() => setSelectedDestination(d.id)}
-              className="group bg-white border border-[#E6E1D8] rounded-lg overflow-hidden hover:shadow-md transition-all cursor-pointer flex flex-col"
-            >
-              <div className="relative h-44 overflow-hidden bg-stone-200">
-                <img
-                  src={d.image}
-                  alt={d.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-mono px-2 py-0.5 rounded">
-                  {d.elevation}
-                </div>
-              </div>
-
-              <div className="p-4 flex-1 flex flex-col justify-between">
-                <div>
-                  <h3 className="font-editorial text-lg font-bold text-[#1C2526] group-hover:text-[#C2410C] transition-colors">
-                    {d.name}
-                  </h3>
-                  <span className="text-xs text-[#64748B] block mt-0.5">
-                    {d.location}
-                  </span>
-                </div>
-
-                <div className="pt-3 mt-3 border-t border-[#E6E1D8] flex items-center justify-between text-xs">
-                  <span className="text-[#64748B] flex items-center gap-1 font-mono">
-                    <Users className="w-3.5 h-3.5 text-[#1F4E43]" /> {d.tourCount} Tour Companies
-                  </span>
-                  <span className="font-bold text-[#C2410C]">
-                    From ${d.fromPrice} -&gt;
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Real Tour Cards */}
+        {!isLoading && !error && featuredTours.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredTours.map((tour) => (
+              <TourCard key={tour.id} tour={tour} />
+            ))}
+          </div>
+        )}
       </section>
 
-      {/* 5. EXPLORE TOURS */}
-      <section id="explore-tours" className="py-12 px-4 md:px-8 max-w-6xl mx-auto border-b border-[#E6E1D8]">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
-          <div>
-            <div className="flex items-center gap-1.5 text-xs font-mono text-[#C2410C] mb-1">
-              <Compass className="w-3.5 h-3.5" />
-              <span className="uppercase tracking-wider font-semibold">COMPARE GUIDES</span>
-            </div>
-            <h2 className="font-editorial text-2xl md:text-3xl font-bold text-[#1C2526]">
-              Explore Tours from Verified Guides
-            </h2>
-            <p className="text-xs text-[#64748B]">
-              See what gear is included, group sizes, guide ratios, and clear prices.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-[#78716C] font-mono">SORT BY:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="bg-white border border-[#E6E1D8] text-xs font-semibold text-[#1C2526] px-3 py-1.5 rounded focus:outline-none cursor-pointer"
-            >
-              <option value="safety">Highest Guide Safety Score</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="rating">Top Rated</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTours.map((t) => (
-            <div
-              key={t.id}
-              className="bg-white border border-[#E6E1D8] rounded-lg overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow"
-            >
-              <div>
-                <div className="relative h-44 bg-stone-200">
-                  <img src={t.image} alt={t.title} className="w-full h-full object-cover" />
-                  <div className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-mono px-2 py-0.5 rounded">
-                    {t.difficulty}
-                  </div>
-                  {t.isSafePay && (
-                    <div className="absolute top-2.5 right-2.5 bg-[#1F4E43] text-white text-[10px] font-mono px-2 py-0.5 rounded font-semibold flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3" /> 100% SAFE PAY
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-4">
-                  <div className="flex items-center justify-between text-xs mb-2">
-                    <span className="font-medium text-[#2D3748] truncate max-w-[170px]">
-                      {t.operatorName}
-                    </span>
-                    <div className="flex items-center gap-1 text-xs font-bold text-[#1C2526]">
-                      <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                      <span>{t.rating}</span>
-                      <span className="text-[#78716C] font-normal font-mono">({t.reviewCount})</span>
-                    </div>
-                  </div>
-
-                  <h3 className="font-editorial text-lg font-bold text-[#1C2526] mb-1.5 leading-snug">
-                    {t.title}
-                  </h3>
-
-                  <button
-                    onClick={() => setSelectedDestination(t.destinationId || 'all')}
-                    className="text-[11px] text-[#C2410C] hover:underline flex items-center gap-1 mb-4 cursor-pointer"
-                  >
-                    <span>Compare other operators running this route</span>
-                    <ChevronDown className="w-3 h-3" />
-                  </button>
-
-                  <div className="border-t border-[#E6E1D8] pt-3 space-y-1.5 text-xs text-[#2D3748] mb-4">
-                    <div className="flex justify-between">
-                      <span className="text-[#78716C]">Time & Distance:</span>
-                      <strong className="font-mono-numbers">
-                        {t.durationDays} Days / {t.durationNights} Night · {t.distanceKm} km
-                      </strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#78716C]">Climb Up:</span>
-                      <strong className="font-mono-numbers">+{t.elevationGainM}m</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#78716C]">Guides to Travelers:</span>
-                      <span className="font-medium">{t.guidesRatio}</span>
-                    </div>
-                  </div>
-
-                  <div className="bg-[#F7F4EE] rounded p-2.5 space-y-1 text-xs mb-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[#64748B] flex items-center gap-1">
-                        <Backpack className="w-3 h-3" /> Bring Your Own Gear:
-                      </span>
-                      <strong className="text-[#1C2526] font-mono-numbers">${t.priceOwnGearUSD}</strong>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[#64748B] flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3 text-[#1F4E43]" /> Rent All Gear From Us:
-                      </span>
-                      <strong className="text-[#C2410C] font-mono-numbers">${t.priceRentGearUSD}</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="px-4 pb-4">
-                <button
-                  onClick={() => onBookTour(t)}
-                  className="w-full bg-[#C2410C] hover:bg-[#9B2F00] text-white py-2.5 rounded font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
-                >
-                  <span>Book This Trip</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 6. WHY BOOK WITH US */}
-      <section className="py-14 px-4 md:px-8 max-w-6xl mx-auto border-b border-[#E6E1D8]">
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <span className="text-[10px] font-mono text-[#78716C] uppercase tracking-wider block mb-1">
-            THE MARKETPLACE GUARANTEE
+      {/* 3. HOW IT WORKS, SAFETY & SUPPORT */}
+      <section id="how-it-works" className="py-16 px-4 md:px-8 max-w-7xl mx-auto">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <span className="text-xs font-mono uppercase tracking-wider text-[#C2410C] font-semibold block mb-1">
+            QUY TRÌNH ĐẶT CHỖ & AN TOÀN
           </span>
-          <h2 className="font-editorial text-3xl font-bold text-[#1C2526] mb-2">
-            Why Book With Us Instead of Booking Alone?
+          <h2 className="font-editorial text-3xl sm:text-4xl font-bold text-[#1C2526]">
+            Trải nghiệm đặt tour minh bạch trong 4 bước
           </h2>
-          <p className="text-xs text-[#64748B]">
-            We help you compare local guides easily, keep your payments safe until your trek, and give you 24/7 emergency help.
+          <p className="text-xs sm:text-sm text-[#64748B] mt-2 leading-relaxed">
+            Mọi trạng thái giữ chỗ và thanh toán đều được đồng bộ trực tiếp với máy chủ, giúp đoàn của bạn yên tâm chuẩn bị thể lực và hành trang.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
-          <div className="bg-white border border-[#E6E1D8] rounded-lg p-5 flex flex-col justify-between">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-white border border-[#E6E1D8] rounded-2xl p-6 flex flex-col justify-between shadow-2xs">
             <div>
-              <div className="w-9 h-9 rounded bg-[#B9EADB]/40 text-[#1F4E43] flex items-center justify-center mb-3">
-                <Users className="w-4 h-4" />
+              <div className="w-10 h-10 rounded-xl bg-[#B9EADB]/50 text-[#1F4E43] flex items-center justify-center mb-4 font-mono font-bold">
+                01
               </div>
-              <h3 className="font-editorial text-base font-bold text-[#1C2526] mb-2">
-                Compare Different Guides in One Place
+              <h3 className="font-editorial text-lg font-bold text-[#1C2526] mb-2">
+                Chọn cung đường & Lịch khởi hành
               </h3>
               <p className="text-xs text-[#64748B] leading-relaxed">
-                See what gear each guide provides, check group sizes, and see real ratings from past hikers all in one place.
+                Xem chi tiết độ khó, thời lượng, dịch vụ bao gồm và số chỗ còn trống thực tế của từng đợt khởi hành.
               </p>
             </div>
-            <span className="text-[10px] font-mono text-[#1F4E43] font-semibold mt-4 block">
-              100% Honest Reviews
-            </span>
+            <div className="mt-4 pt-3 border-t border-[#E6E1D8] text-[11px] font-mono text-[#1F4E43] flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Giờ khởi hành chuẩn Việt Nam
+            </div>
           </div>
 
-          <div className="bg-white border border-[#E6E1D8] rounded-lg p-5 flex flex-col justify-between">
+          <div className="bg-white border border-[#E6E1D8] rounded-2xl p-6 flex flex-col justify-between shadow-2xs">
             <div>
-              <div className="w-9 h-9 rounded bg-orange-100 text-[#C2410C] flex items-center justify-center mb-3">
-                <ShieldCheck className="w-4 h-4" />
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 flex items-center justify-center mb-4">
+                <Clock className="w-5 h-5 text-amber-600" />
               </div>
-              <h3 className="font-editorial text-base font-bold text-[#1C2526] mb-2">
-                100% Safe Payments
+              <h3 className="font-editorial text-lg font-bold text-[#1C2526] mb-2">
+                Đăng ký hành khách & Giữ chỗ 15 phút
               </h3>
               <p className="text-xs text-[#64748B] leading-relaxed">
-                We hold your money safely in a bank escrow. We pay the guide only after your trip starts safely and as promised.
+                Nhập danh sách thành viên đoàn. Khi tạo booking, hệ thống khóa chỗ tạm thời trong 15 phút ở trạng thái <code className="font-mono text-[11px]">PENDING_PAYMENT</code>.
               </p>
             </div>
-            <span className="text-[10px] font-mono text-[#C2410C] font-semibold mt-4 block">
-              Paid After Trip Starts
-            </span>
+            <div className="mt-4 pt-3 border-t border-[#E6E1D8] text-[11px] font-mono text-amber-800 flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" /> Chống trùng lặp bằng Idempotency Key
+            </div>
           </div>
 
-          <div className="bg-white border border-[#E6E1D8] rounded-lg p-5 flex flex-col justify-between">
+          <div className="bg-white border border-[#E6E1D8] rounded-2xl p-6 flex flex-col justify-between shadow-2xs">
             <div>
-              <div className="w-9 h-9 rounded bg-[#B9EADB]/40 text-[#1F4E43] flex items-center justify-center mb-3">
-                <ShieldCheck className="w-4 h-4" />
+              <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#C2410C] border border-orange-200 flex items-center justify-center mb-4">
+                <CreditCard className="w-5 h-5" />
               </div>
-              <h3 className="font-editorial text-base font-bold text-[#1C2526] mb-2">
-                Strict Safety Checks
+              <h3 className="font-editorial text-lg font-bold text-[#1C2526] mb-2">
+                Đặt cọc hoặc Thanh toán trực tuyến
               </h3>
               <p className="text-xs text-[#64748B] leading-relaxed">
-                We inspect first-aid gear, guide licenses, and make sure porters are treated kindly with fair weight limits.
+                Lựa chọn thanh toán tiền cọc hoặc thanh toán toàn bộ chuyến đi. Ngay khi giao dịch hoàn tất, hệ thống sẽ tự động xác nhận đặt chỗ chính thức.
               </p>
             </div>
-            <span className="text-[10px] font-mono text-[#1F4E43] font-semibold mt-4 block">
-              High Safety Standards
-            </span>
+            <div className="mt-4 pt-3 border-t border-[#E6E1D8] text-[11px] font-mono text-[#C2410C] flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" /> Xác thực giao dịch tự động
+            </div>
           </div>
 
-          <div className="bg-white border border-[#E6E1D8] rounded-lg p-5 flex flex-col justify-between">
+          <div className="bg-white border border-[#E6E1D8] rounded-2xl p-6 flex flex-col justify-between shadow-2xs">
             <div>
-              <div className="w-9 h-9 rounded bg-stone-100 text-[#2D3748] flex items-center justify-center mb-3">
-                <Compass className="w-4 h-4" />
+              <div className="w-10 h-10 rounded-xl bg-stone-100 text-[#1C2526] flex items-center justify-center mb-4">
+                <Headphones className="w-5 h-5 text-[#1F4E43]" />
               </div>
-              <h3 className="font-editorial text-base font-bold text-[#1C2526] mb-2">
-                All Tickets & Help in One Place
+              <h3 className="font-editorial text-lg font-bold text-[#1C2526] mb-2">
+                Quản lý hành khách & Hỗ trợ 24/7
               </h3>
               <p className="text-xs text-[#64748B] leading-relaxed">
-                Download your tickets directly to your phone, use maps without internet, and call our friendly 24/7 team anytime.
+                Dễ dàng cập nhật thông tin liên hệ của các thành viên đoàn, thanh toán phần dư còn lại trước hạn hoặc yêu cầu hủy theo chính sách tour.
               </p>
             </div>
-            <span className="text-[10px] font-mono text-[#78716C] font-semibold mt-4 block">
-              Works Without Internet
-            </span>
-          </div>
-        </div>
-      </section>
-
-      {/* 7. SAFETY PROMISE */}
-      <section className="py-12 px-4 md:px-8 max-w-6xl mx-auto border-b border-[#E6E1D8]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-          <div>
-            <span className="text-[10px] font-mono text-[#C2410C] uppercase tracking-wider block mb-1">
-              SAFETY PROMISE
-            </span>
-            <h2 className="font-editorial text-2xl md:text-3xl font-bold text-[#1C2526]">
-              Our Safety Promise for Every Mountain
-            </h2>
-            <p className="text-xs text-[#64748B]">
-              Every local guide on our website must pass strict safety tests and follow our safety rules.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 bg-[#B9EADB]/40 text-[#1F4E43] text-xs font-semibold px-3 py-1.5 rounded border border-[#B9EADB]">
-            <ShieldCheck className="w-4 h-4 text-[#1F4E43]" />
-            <span>100% Safe History · Over 18,200+ Happy Hikers</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white border border-[#E6E1D8] rounded-lg p-4">
-            <Radio className="w-4 h-4 text-[#C2410C] mb-2" />
-            <h4 className="font-editorial text-sm font-bold text-[#1C2526] mb-1">
-              24/7 Satellite Emergency Help
-            </h4>
-            <p className="text-xs text-[#64748B] leading-relaxed mb-3">
-              Every guide carries a live satellite SOS device that sends location updates every 15 minutes to our rescue team.
-            </p>
-            <span className="text-[10px] font-mono text-[#1F4E43] font-semibold">● Always Connected</span>
-          </div>
-
-          <div className="bg-white border border-[#E6E1D8] rounded-lg p-4">
-            <ShieldCheck className="w-4 h-4 text-[#C2410C] mb-2" />
-            <h4 className="font-editorial text-sm font-bold text-[#1C2526] mb-1">
-              100% Money-Back if Bad Weather Closes Trails
-            </h4>
-            <p className="text-xs text-[#64748B] leading-relaxed mb-3">
-              If storms or bad weather close the mountain trails, you get all your money back quickly with no extra fee.
-            </p>
-            <span className="text-[10px] font-mono text-[#C2410C] font-semibold">● No Hidden Fees</span>
-          </div>
-
-          <div className="bg-white border border-[#E6E1D8] rounded-lg p-4">
-            <HeartHandshake className="w-4 h-4 text-[#C2410C] mb-2" />
-            <h4 className="font-editorial text-sm font-bold text-[#1C2526] mb-1">
-              Trained Local Guides & Fair Pay for Porters
-            </h4>
-            <p className="text-xs text-[#64748B] leading-relaxed mb-3">
-              All guides have official state licenses. Helpers and porters carry light bags up to 18kg with warm boots and health support.
-            </p>
-            <span className="text-[10px] font-mono text-[#1F4E43] font-semibold">● Fair Worker Care</span>
-          </div>
-
-          <div className="bg-white border border-[#E6E1D8] rounded-lg p-4">
-            <Sparkles className="w-4 h-4 text-[#C2410C] mb-2" />
-            <h4 className="font-editorial text-sm font-bold text-[#1C2526] mb-1">
-              Clean Mountains (All trash is brought back down)
-            </h4>
-            <p className="text-xs text-[#64748B] leading-relaxed mb-3">
-              Take only memories, leave only footprints. Guides help clean plastic from the mountains to keep nature green and clean.
-            </p>
-            <span className="text-[10px] font-mono text-[#1F4E43] font-semibold">● Protect Nature</span>
-          </div>
-        </div>
-      </section>
-
-      {/* 8. PARTNER BANNER */}
-      <section className="py-12 px-4 md:px-8 max-w-6xl mx-auto">
-        <div className="bg-[#1F4E43] rounded-xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-md">
-          <div className="max-w-xl">
-            <span className="text-[10px] font-mono text-[#B9EADB] uppercase tracking-wider block mb-1">
-              WORK WITH US
-            </span>
-            <h2 className="font-editorial text-2xl md:text-3xl font-bold mb-2">
-              Are You a Local Tour Guide or Company?
-            </h2>
-            <p className="text-xs md:text-sm text-stone-200 leading-relaxed mb-6">
-              Get more travelers for your trips easily without paying expensive marketing costs. Receive fast and safe payments, and manage your trips on one platform.
-            </p>
-
-            <div className="grid grid-cols-3 gap-4 pt-2 border-t border-white/20 text-xs">
-              <div>
-                <strong className="block text-base font-bold font-mono">85,000+</strong>
-                <span className="text-[11px] text-stone-300">Travelers Each Year</span>
-              </div>
-              <div>
-                <strong className="block text-base font-bold font-mono">Fast Pay</strong>
-                <span className="text-[11px] text-stone-300">Safe Bank Payouts</span>
-              </div>
-              <div>
-                <strong className="block text-base font-bold font-mono">Free Tools</strong>
-                <span className="text-[11px] text-stone-300">Easy Trip Calendar</span>
-              </div>
+            <div className="mt-4 pt-3 border-t border-[#E6E1D8] text-[11px] font-mono text-[#1F4E43] flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" /> Đồng hành xuyên suốt chuyến đi
             </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0 w-full sm:w-auto">
-            <button
-              onClick={() => onNavigate('registration')}
-              className="bg-white hover:bg-stone-100 text-[#1F4E43] font-semibold px-6 py-2.5 rounded text-xs transition-colors text-center cursor-pointer shadow-sm"
-            >
-              Join as a Tour Partner
-            </button>
-            <button
-              onClick={() => onNavigate('registration')}
-              className="border border-white/40 hover:bg-white/10 text-white font-semibold px-6 py-2.5 rounded text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <span>Partner Log In</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </button>
           </div>
         </div>
       </section>

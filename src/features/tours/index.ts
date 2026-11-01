@@ -2,3 +2,8 @@ export * from './types/tour.types';
 export * from './api/tours.api';
 export * from './hooks/useTours';
 export * from './components/TourCard';
+export * from './components/SchedulePicker';
+export * from './components/AvailabilityBadge';
+export * from './components/TourAdminForm';
+export * from './components/TourDeleteModal';
+export * from './components/AdminAccessGuard';
