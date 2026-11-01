@@ -11,6 +11,7 @@ import AdminTourDetailPage from '../../pages/admin/tours/AdminTourDetailPage';
 import AdminScheduleListPage from '../../pages/admin/schedules/AdminScheduleListPage';
 import AdminPoliciesPage from '../../pages/admin/policies/AdminPoliciesPage';
 import AdminEquipmentPage from '../../pages/admin/equipment/AdminEquipmentPage';
+import AdminBookingListPage from '../../pages/admin/bookings/AdminBookingListPage';
 
 import { ShieldCheck, Compass } from 'lucide-react';
 
@@ -23,6 +24,11 @@ export const AdminPortal: React.FC = () => {
     // Equipment & Combos `/admin/equipment`
     if (pathname === ROUTES.ADMIN.EQUIPMENT || pathname.startsWith('/admin/equipment')) {
       return <AdminEquipmentPage />;
+    }
+
+    // Bookings search `/admin/bookings`
+    if (pathname === ROUTES.ADMIN.BOOKINGS || pathname === '/admin/bookings/') {
+      return <AdminBookingListPage />;
     }
 
     // 1. Tours list `/admin/tours`

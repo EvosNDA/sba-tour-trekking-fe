@@ -37,6 +37,7 @@ export const ROUTES = {
   ADMIN: {
     TOURS: '/admin/tours',
     SCHEDULES: '/admin/schedules',
+    BOOKINGS: '/admin/bookings',
     EQUIPMENT: '/admin/equipment',
     POLICIES: '/admin/policies',
     TOUR_NEW: '/admin/tours/new',

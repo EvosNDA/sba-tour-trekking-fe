@@ -9,6 +9,7 @@ import {
   BookingSummaryResponse,
   BookingCancellationResponse,
   BookingStatus,
+  BookingSearchCriteria,
 } from '../types/booking.types';
 import { INITIAL_BOOKING } from '../../../data/mockData';
 import { Booking } from '../../../types/expedition';
@@ -38,6 +39,22 @@ export const bookingsApi = {
     }
     return apiClient.get<SpringPage<BookingSummaryResponse>>('/api/v1/bookings/my', {
       params: queryParams,
+      signal,
+    });
+  },
+
+  /** Staff/admin search across all bookings (GET /api/v1/bookings). Criteria are sent as flat query params. */
+  searchBookings: async (
+    criteria: BookingSearchCriteria = {},
+    pageable: { page?: number; size?: number } = {},
+    signal?: AbortSignal
+  ): Promise<SpringPage<BookingSummaryResponse>> => {
+    return apiClient.get<SpringPage<BookingSummaryResponse>>('/api/v1/bookings', {
+      params: {
+        ...criteria,
+        page: pageable.page ?? 0,
+        size: pageable.size ?? 20,
+      },
       signal,
     });
   },

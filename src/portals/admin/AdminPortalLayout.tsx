@@ -6,6 +6,7 @@ import {
   Calendar,
   FileText,
   Boxes,
+  Ticket,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../features/auth/api/auth.api';
@@ -47,6 +48,12 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
       path: ROUTES.ADMIN.SCHEDULES,
       icon: Calendar,
       active: pathname.startsWith('/admin/schedules'),
+    },
+    {
+      label: 'Quản lý booking',
+      path: ROUTES.ADMIN.BOOKINGS,
+      icon: Ticket,
+      active: pathname.startsWith('/admin/bookings'),
     },
     {
       label: 'Thiết bị & Combo',

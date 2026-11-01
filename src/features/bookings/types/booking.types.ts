@@ -47,6 +47,16 @@ export interface CancelBookingRequest {
   reason: string;
 }
 
+/** Filters for GET /api/v1/bookings. All optional; createdFrom/createdTo are ISO date-time, interval [from, to). */
+export interface BookingSearchCriteria {
+  status?: BookingStatus;
+  scheduleId?: number;
+  tourId?: number;
+  customerId?: number;
+  createdFrom?: string;
+  createdTo?: string;
+}
+
 export interface BookingPassengerResponse {
   id: number;
   fullName: string;
