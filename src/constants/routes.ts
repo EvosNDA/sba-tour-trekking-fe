@@ -39,6 +39,7 @@ export const ROUTES = {
     SCHEDULES: '/admin/schedules',
     EQUIPMENT: '/admin/equipment',
     POLICIES: '/admin/policies',
+    REFUNDS: '/admin/refunds',
     TOUR_NEW: '/admin/tours/new',
     TOUR_DETAIL: (tourId: string | number = ':tourId') => `/admin/tours/${tourId}`,
     TOUR_EDIT: (tourId: string | number = ':tourId') => `/admin/tours/${tourId}/edit`,

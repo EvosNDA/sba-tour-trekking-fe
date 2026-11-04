@@ -6,6 +6,7 @@ import {
   Calendar,
   FileText,
   Boxes,
+  Banknote,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../features/auth/api/auth.api';
@@ -55,6 +56,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
       active: pathname.startsWith('/admin/equipment'),
     },
     { label: 'Điều khoản & lưu ý', path: ROUTES.ADMIN.POLICIES, icon: FileText, active: pathname.startsWith('/admin/policies') },
+    { label: 'Hoàn tiền', path: ROUTES.ADMIN.REFUNDS, icon: Banknote, active: pathname.startsWith('/admin/refunds') },
   ];
 
   const adminName = account?.fullName || user?.name || account?.email || 'Quản trị viên';

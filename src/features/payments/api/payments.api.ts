@@ -4,6 +4,10 @@ import {
   PaymentLinkResponse,
   PaymentTransaction,
   PaymentMethod,
+  RefundRequestSummary,
+  RefundRequestDetail,
+  RefundRules,
+  SaveRefundRulesRequest,
 } from '../types/payment.types';
 
 export const paymentsApi = {
@@ -18,6 +22,24 @@ export const paymentsApi = {
       { signal }
     );
   },
+
+  getRefundRequests: async (signal?: AbortSignal): Promise<RefundRequestSummary[]> =>
+    apiClient.get<RefundRequestSummary[]>('/api/v1/admin/refunds', { signal }),
+
+  getRefundRequest: async (refundId: number, signal?: AbortSignal): Promise<RefundRequestDetail> =>
+    apiClient.get<RefundRequestDetail>(`/api/v1/admin/refunds/${refundId}`, { signal }),
+
+  approveRefund: async (refundId: number): Promise<RefundRequestSummary> =>
+    apiClient.post<RefundRequestSummary>(`/api/v1/admin/refunds/${refundId}/approve`, {}),
+
+  rejectRefund: async (refundId: number, note: string): Promise<RefundRequestSummary> =>
+    apiClient.post<RefundRequestSummary>(`/api/v1/admin/refunds/${refundId}/reject`, { note }),
+
+  getRefundRules: async (signal?: AbortSignal): Promise<RefundRules | null> =>
+    apiClient.get<RefundRules | null>('/api/v1/admin/refund-rules', { signal }),
+
+  saveRefundRules: async (payload: SaveRefundRulesRequest): Promise<RefundRules> =>
+    apiClient.post<RefundRules>('/api/v1/admin/refund-rules', payload),
 
   // Legacy helper kept for compatibility
   createTransaction: async (
