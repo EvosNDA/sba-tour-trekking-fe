@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { APP_CONFIG } from '../constants/config';
 
 interface DocumentSource {
@@ -107,7 +108,10 @@ export const QuickChatBox: React.FC = () => {
           if (trimmed.startsWith('data:')) {
             // Spring WebFlux SSE formats as "data:<token>"
             // Slice 5 to preserve leading spaces of tokens (e.g., " word" -> "data: word")
-            accumulatedText += trimmed.slice(5);
+            const chunk = trimmed.length > 5 ? trimmed.slice(5) : '\n';
+            accumulatedText += chunk;
+          } else if (trimmed === '') {
+            // Standard SSE empty line between events
           }
         }
 
@@ -179,7 +183,42 @@ export const QuickChatBox: React.FC = () => {
                       : 'bg-white text-stone-800 border border-stone-200 shadow-xs rounded-bl-xs'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                  {msg.role === 'assistant' ? (
+                    <div className="prose prose-sm prose-stone max-w-none leading-relaxed"
+                      style={{
+                        fontSize: 'inherit',
+                        color: 'inherit',
+                      }}
+                    >
+                      <ReactMarkdown
+                        components={{
+                          // Headings
+                          h1: ({ children }) => <h1 className="text-base font-bold mt-2 mb-1">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-sm font-bold mt-2 mb-1">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-sm font-semibold mt-1.5 mb-0.5">{children}</h3>,
+                          // Bold / Italic
+                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                          em: ({ children }) => <em className="italic">{children}</em>,
+                          // Paragraphs
+                          p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                          // Lists
+                          ul: ({ children }) => <ul className="list-disc list-inside mb-1 space-y-0.5">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal list-inside mb-1 space-y-0.5">{children}</ol>,
+                          li: ({ children }) => <li className="text-sm">{children}</li>,
+                          // Horizontal rule (***)
+                          hr: () => <hr className="my-2 border-stone-200" />,
+                          // Inline code
+                          code: ({ children }) => <code className="bg-stone-100 text-emerald-800 px-1 rounded text-xs font-mono">{children}</code>,
+                          // Code block
+                          pre: ({ children }) => <pre className="bg-stone-100 p-2 rounded text-xs overflow-x-auto my-1">{children}</pre>,
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                  )}
 
                   {/* Sources Preview (if any) */}
                   {msg.sources && msg.sources.length > 0 && (
