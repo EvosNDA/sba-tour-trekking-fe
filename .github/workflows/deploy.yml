@@ -36,8 +36,6 @@ jobs:
         with:
           context: .
           push: true
-          build-args: |
-            VITE_API_BASE_URL=/api
           tags: |
             ghcr.io/evosnda/sba-tour-trekking-fe:latest
             ghcr.io/evosnda/sba-tour-trekking-fe:${{ github.sha }}

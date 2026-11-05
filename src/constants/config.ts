@@ -1,7 +1,8 @@
 export const APP_CONFIG = {
   APP_NAME: 'WeTrek - SummitTrails',
   TAGLINE: 'Hành trình khám phá thiên nhiên & Trekking chuyên nghiệp',
-  API_BASE_URL: (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/+$/, ''),
+  API_BASE_URL: (
+  import.meta.env.VITE_API_BASE_URL ||(import.meta.env.PROD ? '/' : 'http://localhost:8080')).replace(/\/+$/, ''),
   GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
   VND_EXCHANGE_RATE: 24700,
   DEFAULT_PAGE_SIZE: 20,
