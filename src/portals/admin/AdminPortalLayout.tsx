@@ -6,6 +6,9 @@ import {
   Calendar,
   FileText,
   Boxes,
+  LayoutDashboard,
+  Users,
+  Star,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../features/auth/api/auth.api';
@@ -33,14 +36,16 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
 
   const navItems = [
     {
+      label: 'Thống kê',
+      path: ROUTES.ADMIN.DASHBOARD,
+      icon: LayoutDashboard,
+      active: pathname === ROUTES.ADMIN.DASHBOARD || pathname === '/admin/dashboard' || pathname === '/admin/dashboard/' || pathname === '/admin' || pathname === '/admin/',
+    },
+    {
       label: 'Danh sách tour',
       path: ROUTES.ADMIN.TOURS,
       icon: Compass,
-      active:
-        pathname.startsWith('/admin/tours') ||
-        pathname === '/admin' ||
-        pathname === '/admin/' ||
-        pathname === ROUTES.ADMIN.DASHBOARD,
+      active: pathname.startsWith('/admin/tours'),
     },
     {
       label: 'Lịch khởi hành',
@@ -55,6 +60,18 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
       active: pathname.startsWith('/admin/equipment'),
     },
     { label: 'Điều khoản & lưu ý', path: ROUTES.ADMIN.POLICIES, icon: FileText, active: pathname.startsWith('/admin/policies') },
+    {
+      label: 'Đánh giá',
+      path: ROUTES.ADMIN.REVIEWS,
+      icon: Star,
+      active: pathname.startsWith('/admin/reviews') || pathname === ROUTES.ADMIN.REVIEWS,
+    },
+    {
+      label: 'Người dùng',
+      path: ROUTES.ADMIN.USER_MANAGEMENT,
+      icon: Users,
+      active: pathname.startsWith('/admin/users') || pathname === ROUTES.ADMIN.USER_MANAGEMENT,
+    },
   ];
 
   const adminName = account?.fullName || user?.name || account?.email || 'Quản trị viên';

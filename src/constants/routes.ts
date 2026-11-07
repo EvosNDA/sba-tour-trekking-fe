@@ -50,6 +50,7 @@ export const ROUTES = {
     TOUR_EDIT: (tourId: string | number = ':tourId') => `/admin/tours/${tourId}/edit`,
     DASHBOARD: '/admin/dashboard',
     USER_MANAGEMENT: '/admin/users',
+    REVIEWS: '/admin/reviews',
     PARTNER_MANAGEMENT: '/admin/partners',
     OPS_MODERATION: '/admin/moderation',
     STAFF_ESCALATIONS: '/admin/escalations',

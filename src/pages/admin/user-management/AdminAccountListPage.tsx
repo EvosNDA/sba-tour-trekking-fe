@@ -1,0 +1,577 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Search,
+  RotateCcw,
+  ShieldAlert,
+  ShieldCheck,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Users,
+  AlertCircle,
+  Loader2,
+} from 'lucide-react';
+import {
+  AdminAccountItem,
+  AdminAccountRoleParam,
+  AdminAccountStatusParam,
+} from '../../../features/users/types/user.types';
+import { usersApi } from '../../../features/users/api/users.api';
+import { UserAvatar } from '../../../features/users/components/UserAvatar';
+import { AccountActionModal } from '../../../features/users/components/AccountActionModal';
+import { AccountDetailModal } from '../../../features/users/components/AccountDetailModal';
+import { useAuthStore } from '../../../stores/auth.store';
+import { useDebounce } from '../../../hooks/useDebounce';
+import { toast } from '../../../components/ui/Toast';
+import type { ApiError } from '../../../types/api.types';
+
+export const AdminAccountListPage: React.FC = () => {
+  const { account: currentAccount, user: currentUser } = useAuthStore();
+  const currentAccountId = currentAccount?.id
+    ? Number(currentAccount.id)
+    : currentUser?.id
+    ? Number(currentUser.id)
+    : null;
+
+  // Filter States
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 300);
+  const [roleFilter, setRoleFilter] = useState<AdminAccountRoleParam | ''>('');
+  const [statusFilter, setStatusFilter] = useState<AdminAccountStatusParam | ''>('');
+  const [sortParam, setSortParam] = useState('createdAt,desc');
+
+  // Pagination States
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(20);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
+  // Data & Request States
+  const [items, setItems] = useState<AdminAccountItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<ApiError | null>(null);
+
+  // Modal Action States
+  const [actionModalOpen, setActionModalOpen] = useState(false);
+  const [targetAccount, setTargetAccount] = useState<AdminAccountItem | null>(null);
+  const [actionType, setActionType] = useState<'block' | 'unblock'>('block');
+  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+  const [actionError, setActionError] = useState<ApiError | null>(null);
+
+  // Detail Modal States
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [detailAccountId, setDetailAccountId] = useState<number | null>(null);
+
+  // Fetch accounts list
+  const fetchAccounts = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await usersApi.getAccounts({
+        page,
+        size,
+        q: debouncedSearch.trim() || undefined,
+        role: roleFilter || undefined,
+        status: statusFilter || undefined,
+        sort: sortParam,
+      });
+      setItems(res.items || []);
+      setTotalElements(res.totalElements ?? 0);
+      setTotalPages(res.totalPages ?? 0);
+    } catch (err: any) {
+      setError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, size, debouncedSearch, roleFilter, statusFilter, sortParam]);
+
+  // Reset về page 0 khi filter thay đổi
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch, roleFilter, statusFilter, sortParam]);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
+
+  // Format Helpers
+  const formatDate = (isoStr: string) => {
+    if (!isoStr) return '—';
+    try {
+      const d = new Date(isoStr);
+      if (Number.isNaN(d.getTime())) return isoStr;
+      return new Intl.DateTimeFormat('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }).format(d);
+    } catch {
+      return isoStr;
+    }
+  };
+
+  const renderRoleBadge = (role: string) => {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md font-semibold text-[11px] bg-purple-50 text-purple-700 border border-purple-200/60">
+            Quản trị viên
+          </span>
+        );
+      case 'guide':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md font-semibold text-[11px] bg-blue-50 text-blue-700 border border-blue-200/60">
+            Hướng dẫn viên
+          </span>
+        );
+      case 'customer':
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-md font-medium text-[11px] bg-stone-100 text-stone-700">
+            Khách hàng
+          </span>
+        );
+    }
+  };
+
+  const renderStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200/60">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+            Hoạt động
+          </span>
+        );
+      case 'blocked':
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-800 border border-rose-200/60">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+            Đã khóa
+          </span>
+        );
+      case 'disabled':
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-100 text-stone-600 border border-stone-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
+            Vô hiệu
+          </span>
+        );
+    }
+  };
+
+  // Mở modal thao tác
+  const handleOpenAction = (acc: AdminAccountItem, type: 'block' | 'unblock') => {
+    setTargetAccount(acc);
+    setActionType(type);
+    setActionError(null);
+    setActionModalOpen(true);
+  };
+
+  // Xác nhận submit Ban / Unban
+  const handleConfirmAction = async (reason: string) => {
+    if (!targetAccount) return;
+    setIsSubmittingAction(true);
+    setActionError(null);
+
+    try {
+      let updatedRes;
+      if (actionType === 'block') {
+        updatedRes = await usersApi.blockAccount(targetAccount.id, { reason });
+        toast.success(`Đã khóa tài khoản "${targetAccount.fullName}" thành công.`);
+      } else {
+        updatedRes = await usersApi.unblockAccount(targetAccount.id, { reason });
+        toast.success(`Đã mở khóa tài khoản "${targetAccount.fullName}" thành công.`);
+      }
+
+      // Cập nhật dòng tương ứng ngay từ response DTO
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === updatedRes.id
+            ? {
+                ...item,
+                status: updatedRes.status,
+                roles: updatedRes.roles,
+                fullName: updatedRes.fullName,
+                phone: updatedRes.phone,
+              }
+            : item
+        )
+      );
+
+      setActionModalOpen(false);
+      setTargetAccount(null);
+    } catch (err: any) {
+      setActionError(err);
+      if (err?.code === 'ACCOUNT_NOT_FOUND' || err?.status === 404) {
+        toast.error('Tài khoản không tồn tại hoặc đã bị xóa. Đang làm mới danh sách...');
+        fetchAccounts();
+      } else if (err?.code === 'SELF_ACCOUNT_MUTATION_FORBIDDEN' || err?.status === 403) {
+        toast.error('Bạn không thể thao tác trên chính tài khoản của mình.');
+      } else if (err?.code === 'INVALID_ACCOUNT_TRANSITION' || err?.status === 409) {
+        toast.error('Trạng thái tài khoản đã thay đổi hoặc không hợp lệ.');
+      }
+    } finally {
+      setIsSubmittingAction(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-stone-200/80">
+        <div>
+          <h1 className="font-editorial text-2xl font-bold text-stone-900 tracking-tight flex items-center gap-2.5">
+            <Users className="w-6 h-6 text-[#1F4E43]" />
+            Quản trị người dùng & Tài khoản
+          </h1>
+          <p className="text-xs text-stone-500 mt-1">
+            Tra cứu thông tin, giám sát vai trò và kiểm soát quyền truy cập của các tài khoản hệ thống
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={fetchAccounts}
+          disabled={isLoading}
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-stone-200 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition-colors shadow-2xs self-start sm:self-auto cursor-pointer disabled:opacity-50"
+        >
+          <RotateCcw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          Làm mới
+        </button>
+      </div>
+
+      {/* Filter Toolbar */}
+      <div className="bg-white rounded-2xl border border-stone-200/80 p-4 shadow-2xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        {/* Search Input */}
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Tìm theo email, họ tên hoặc số điện thoại..."
+            className="w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-hidden focus:border-[#1F4E43] transition-colors"
+          />
+        </div>
+
+        {/* Dropdown Filters */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Lọc Role */}
+          <div className="flex items-center gap-1.5 text-xs text-stone-500">
+            <Filter className="w-3.5 h-3.5 text-stone-400" />
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value as AdminAccountRoleParam | '')}
+              className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-stone-800 focus:outline-hidden focus:border-[#1F4E43]"
+            >
+              <option value="">Tất cả vai trò</option>
+              <option value="ADMIN">Quản trị viên (ADMIN)</option>
+              <option value="GUIDE">Hướng dẫn viên (GUIDE)</option>
+              <option value="CUSTOMER">Khách hàng (CUSTOMER)</option>
+            </select>
+          </div>
+
+          {/* Lọc Status */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as AdminAccountStatusParam | '')}
+            className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-stone-800 focus:outline-hidden focus:border-[#1F4E43]"
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="ACTIVE">Hoạt động (ACTIVE)</option>
+            <option value="BLOCKED">Đã khóa (BLOCKED)</option>
+            <option value="DISABLED">Vô hiệu (DISABLED)</option>
+          </select>
+
+          {/* Sắp xếp */}
+          <select
+            value={sortParam}
+            onChange={(e) => setSortParam(e.target.value)}
+            className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-stone-800 focus:outline-hidden focus:border-[#1F4E43]"
+          >
+            <option value="createdAt,desc">Mới nhất trước</option>
+            <option value="createdAt,asc">Cũ nhất trước</option>
+            <option value="fullName,asc">Tên (A → Z)</option>
+            <option value="fullName,desc">Tên (Z → A)</option>
+            <option value="email,asc">Email (A → Z)</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between text-xs text-rose-800 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{error.message || 'Không thể tải danh sách tài khoản người dùng.'}</span>
+          </div>
+          <button
+            type="button"
+            onClick={fetchAccounts}
+            className="px-3 py-1 bg-white border border-rose-300 rounded-lg text-rose-700 font-semibold hover:bg-rose-100 transition-colors cursor-pointer"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
+
+      {/* Main Table */}
+      <div className="bg-white rounded-2xl border border-stone-200/80 overflow-hidden shadow-2xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-stone-50/80 text-stone-500 border-b border-stone-200/80">
+              <tr>
+                <th className="py-3.5 px-4 font-semibold">Người dùng</th>
+                <th className="py-3.5 px-4 font-semibold">Email</th>
+                <th className="py-3.5 px-4 font-semibold">Số điện thoại</th>
+                <th className="py-3.5 px-4 font-semibold">Vai trò</th>
+                <th className="py-3.5 px-4 font-semibold text-center">Trạng thái</th>
+                <th className="py-3.5 px-4 font-semibold">Ngày tạo</th>
+                <th className="py-3.5 px-4 font-semibold text-right">Thao tác</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-stone-100 text-stone-700">
+              {isLoading ? (
+                // Skeleton loading
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-4 px-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-stone-200 shrink-0" />
+                        <div className="space-y-1 w-32">
+                          <div className="h-3.5 bg-stone-200 rounded-sm w-3/4" />
+                          <div className="h-2.5 bg-stone-100 rounded-sm w-1/2" />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="h-3 bg-stone-200 rounded-sm w-40" />
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="h-3 bg-stone-200 rounded-sm w-24" />
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="h-4 bg-stone-200 rounded-md w-20" />
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <div className="h-4 bg-stone-200 rounded-full w-20 mx-auto" />
+                    </td>
+                    <td className="py-4 px-4">
+                      <div className="h-3 bg-stone-200 rounded-sm w-20" />
+                    </td>
+                    <td className="py-4 px-4 text-right">
+                      <div className="h-6 bg-stone-200 rounded-lg w-20 ml-auto" />
+                    </td>
+                  </tr>
+                ))
+              ) : items.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-xs text-stone-400">
+                    Không tìm thấy tài khoản người dùng nào phù hợp tiêu chí.
+                  </td>
+                </tr>
+              ) : (
+                items.map((acc) => {
+                  const isSelf = currentAccountId !== null && acc.id === currentAccountId;
+                  const isAdminRole = acc.roles?.some(
+                    (r) => r.toLowerCase() === 'admin'
+                  );
+                  const canMutate = !isSelf && !isAdminRole && acc.status !== 'disabled';
+
+                  return (
+                    <tr key={acc.id} className="hover:bg-stone-50/60 transition-colors">
+                      {/* Tên & Avatar */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <UserAvatar name={acc.fullName} size="sm" />
+                          <div className="truncate max-w-[180px]">
+                            <div className="font-semibold text-stone-900 truncate">
+                              {acc.fullName}
+                            </div>
+                            <div className="text-[10px] text-stone-400 font-mono">
+                              #{acc.id}
+                              {isSelf && (
+                                <span className="ml-1.5 text-emerald-700 font-semibold">
+                                  (Bạn)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Email */}
+                      <td className="py-3 px-4 font-mono text-stone-800 truncate max-w-[200px]" title={acc.email}>
+                        {acc.email}
+                      </td>
+
+                      {/* SĐT */}
+                      <td className="py-3 px-4 font-mono text-stone-600">
+                        {acc.phone || '—'}
+                      </td>
+
+                      {/* Roles */}
+                      <td className="py-3 px-4">
+                        <div className="flex flex-wrap gap-1">
+                          {acc.roles.map((r) => (
+                            <React.Fragment key={r}>
+                              {renderRoleBadge(r)}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3 px-4 text-center">
+                        {renderStatusBadge(acc.status)}
+                      </td>
+
+                      {/* Created At */}
+                      <td className="py-3 px-4 font-mono text-stone-500 whitespace-nowrap">
+                        {formatDate(acc.createdAt)}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5">
+                          {/* Nút Xem chi tiết */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDetailAccountId(acc.id);
+                              setDetailModalOpen(true);
+                            }}
+                            title="Xem chi tiết hồ sơ"
+                            className="p-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+
+                          {/* Nút Ban / Unban */}
+                          {acc.status === 'active' && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAction(acc, 'block')}
+                              disabled={!canMutate}
+                              title={
+                                isSelf
+                                  ? 'Không thể khóa tài khoản của chính mình'
+                                  : isAdminRole
+                                  ? 'Không thể khóa tài khoản có quyền Quản trị viên'
+                                  : 'Khóa tài khoản'
+                              }
+                              className={`px-2.5 py-1 rounded-lg font-semibold text-[11px] transition-colors ${
+                                canMutate
+                                  ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 cursor-pointer'
+                                  : 'bg-stone-100 text-stone-400 cursor-not-allowed opacity-60'
+                              }`}
+                            >
+                              Khóa
+                            </button>
+                          )}
+
+                          {acc.status === 'blocked' && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAction(acc, 'unblock')}
+                              disabled={!canMutate}
+                              title={
+                                isSelf
+                                  ? 'Không thể thao tác trên tài khoản của chính mình'
+                                  : isAdminRole
+                                  ? 'Không thể thao tác trên tài khoản Quản trị viên'
+                                  : 'Mở khóa tài khoản'
+                              }
+                              className={`px-2.5 py-1 rounded-lg font-semibold text-[11px] transition-colors ${
+                                canMutate
+                                  ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 cursor-pointer'
+                                  : 'bg-stone-100 text-stone-400 cursor-not-allowed opacity-60'
+                              }`}
+                            >
+                              Mở khóa
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination Footer */}
+        <div className="p-4 border-t border-stone-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
+          <div>
+            Hiển thị{' '}
+            <strong className="text-stone-800 font-mono">
+              {totalElements === 0 ? 0 : page * size + 1}
+            </strong>{' '}
+            đến{' '}
+            <strong className="text-stone-800 font-mono">
+              {Math.min((page + 1) * size, totalElements)}
+            </strong>{' '}
+            trong tổng số{' '}
+            <strong className="text-stone-800 font-mono">{totalElements}</strong> tài khoản
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0 || isLoading}
+              className="p-1.5 rounded-lg border border-stone-200 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="font-mono text-stone-700 px-2">
+              Trang {totalPages === 0 ? 0 : page + 1} / {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1 || isLoading}
+              className="p-1.5 rounded-lg border border-stone-200 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal xác nhận Khóa / Mở khóa */}
+      <AccountActionModal
+        isOpen={actionModalOpen}
+        account={targetAccount}
+        actionType={actionType}
+        isSubmitting={isSubmittingAction}
+        error={actionError}
+        onClose={() => {
+          if (!isSubmittingAction) {
+            setActionModalOpen(false);
+            setTargetAccount(null);
+          }
+        }}
+        onConfirm={handleConfirmAction}
+      />
+
+      {/* Modal xem chi tiết tài khoản */}
+      <AccountDetailModal
+        isOpen={detailModalOpen}
+        accountId={detailAccountId}
+        onClose={() => {
+          setDetailModalOpen(false);
+          setDetailAccountId(null);
+        }}
+      />
+    </div>
+  );
+};
+
+export default AdminAccountListPage;
