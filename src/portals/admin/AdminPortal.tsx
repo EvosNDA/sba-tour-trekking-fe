@@ -5,6 +5,7 @@ import { RequireXRole } from '../guard/RequireXRole';
 import { AdminPortalLayout } from './AdminPortalLayout';
 
 // Admin pages
+import AdminDashboardPage from '../../pages/admin/dashboard/AdminDashboardPage';
 import AdminTourListPage from '../../pages/admin/tours/AdminTourListPage';
 import AdminTourFormPage from '../../pages/admin/tours/AdminTourFormPage';
 import AdminTourDetailPage from '../../pages/admin/tours/AdminTourDetailPage';
@@ -53,7 +54,7 @@ export const AdminPortal: React.FC = () => {
     }
 
     if (pathname === ROUTES.ADMIN.DASHBOARD || pathname === '/admin' || pathname === '/admin/' || pathname === '/admin/dashboard/') {
-      return <AdminTourListPage />;
+      return <AdminDashboardPage />;
     }
 
     // Fallback 404 inside Admin Portal

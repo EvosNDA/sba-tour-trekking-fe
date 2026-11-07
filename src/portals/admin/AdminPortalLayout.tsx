@@ -6,6 +6,7 @@ import {
   Calendar,
   FileText,
   Boxes,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../features/auth/api/auth.api';
@@ -33,14 +34,16 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
 
   const navItems = [
     {
+      label: 'Thống kê',
+      path: ROUTES.ADMIN.DASHBOARD,
+      icon: LayoutDashboard,
+      active: pathname === ROUTES.ADMIN.DASHBOARD || pathname === '/admin/dashboard' || pathname === '/admin/dashboard/' || pathname === '/admin' || pathname === '/admin/',
+    },
+    {
       label: 'Danh sách tour',
       path: ROUTES.ADMIN.TOURS,
       icon: Compass,
-      active:
-        pathname.startsWith('/admin/tours') ||
-        pathname === '/admin' ||
-        pathname === '/admin/' ||
-        pathname === ROUTES.ADMIN.DASHBOARD,
+      active: pathname.startsWith('/admin/tours'),
     },
     {
       label: 'Lịch khởi hành',
