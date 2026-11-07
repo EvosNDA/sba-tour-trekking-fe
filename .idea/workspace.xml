@@ -5,7 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="22b17763-fd5e-4fcc-b2ce-df8ac672f2e7" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/src/pages/admin/dashboard/AdminDashboardPage.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/pages/admin/dashboard/AdminDashboardPage.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/features/users/api/users.api.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/features/users/api/users.api.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/features/users/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/features/users/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/features/users/types/user.types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/features/users/types/user.types.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/portals/admin/AdminPortal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/portals/admin/AdminPortal.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/portals/admin/AdminPortalLayout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/portals/admin/AdminPortalLayout.tsx" afterDir="false" />
     </list>
@@ -61,6 +64,7 @@
       <updated>1793978028037</updated>
       <workItem from="1793978028992" duration="2097000" />
       <workItem from="1793981088015" duration="3914000" />
+      <workItem from="1794039209329" duration="2606000" />
     </task>
     <servers />
   </component>

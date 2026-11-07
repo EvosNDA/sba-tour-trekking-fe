@@ -7,6 +7,7 @@ import {
   FileText,
   Boxes,
   LayoutDashboard,
+  Users,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../features/auth/api/auth.api';
@@ -58,6 +59,12 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
       active: pathname.startsWith('/admin/equipment'),
     },
     { label: 'Điều khoản & lưu ý', path: ROUTES.ADMIN.POLICIES, icon: FileText, active: pathname.startsWith('/admin/policies') },
+    {
+      label: 'Người dùng',
+      path: ROUTES.ADMIN.USER_MANAGEMENT,
+      icon: Users,
+      active: pathname.startsWith('/admin/users') || pathname === ROUTES.ADMIN.USER_MANAGEMENT,
+    },
   ];
 
   const adminName = account?.fullName || user?.name || account?.email || 'Quản trị viên';
