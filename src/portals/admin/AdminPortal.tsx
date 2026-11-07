@@ -13,6 +13,7 @@ import AdminScheduleListPage from '../../pages/admin/schedules/AdminScheduleList
 import AdminPoliciesPage from '../../pages/admin/policies/AdminPoliciesPage';
 import AdminEquipmentPage from '../../pages/admin/equipment/AdminEquipmentPage';
 import AdminAccountListPage from '../../pages/admin/user-management/AdminAccountListPage';
+import AdminReviewListPage from '../../pages/admin/reviews/AdminReviewListPage';
 
 import { ShieldCheck, Compass } from 'lucide-react';
 
@@ -21,6 +22,8 @@ export const AdminPortal: React.FC = () => {
 
   const renderContent = () => {
     if (pathname === ROUTES.ADMIN.USER_MANAGEMENT || pathname === '/admin/users' || pathname === '/admin/users/') return <AdminAccountListPage />;
+
+    if (pathname === ROUTES.ADMIN.REVIEWS || pathname === '/admin/reviews' || pathname === '/admin/reviews/') return <AdminReviewListPage />;
 
     if (pathname === ROUTES.ADMIN.POLICIES || pathname === '/admin/policies/') return <AdminPoliciesPage />;
 

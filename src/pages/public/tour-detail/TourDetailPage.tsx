@@ -23,6 +23,7 @@ import { TourItinerary } from '../../../features/tours/components/detail/TourIti
 import type { ItineraryDay } from '../../../features/tours/components/detail/TourItinerary';
 import { apiClient } from '../../../lib/axios';
 import { TourDifficultySection } from '../../../features/tours/components/detail/TourDifficultySection';
+import { TourReviewsSection } from '../../../features/reviews/components/customer/TourReviewsSection';
 import { TourServicesSection } from '../../../features/tours/components/detail/TourServicesSection';
 import { TourPoliciesSection } from '../../../features/tours/components/detail/TourPoliciesSection';
 import { TourBookingFrame } from '../../../features/tours/components/detail/TourBookingFrame';
@@ -273,6 +274,8 @@ export const TourDetailPage: React.FC<TourDetailPageProps> = ({ tourId: propTour
               requiredExperience={tour.requiredExperience}
             />
           </section>
+
+          <TourReviewsSection tourId={tour.id} />
 
           {/* Section 5: Included / Excluded Services */}
           <section id="dich-vu" className="scroll-mt-24">
