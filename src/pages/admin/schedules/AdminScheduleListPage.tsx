@@ -737,13 +737,13 @@ export const AdminScheduleListPage: React.FC = () => {
                                   return (
                                     <div
                                       onClick={() =>
-                                        navigateTo(ROUTES.ADMIN.TOUR_DETAIL(schedule.tourId))
+                                        navigateTo(ROUTES.ADMIN.SCHEDULE_DETAIL(schedule.id))
                                       }
                                       title={`${schedule.title} • Trạng thái tour: ${
                                         isPublished
                                           ? 'Đã xuất bản'
                                           : 'Bản nháp'
-                                      } • ${formatDateTime(schedule.startsAt)} → ${formatDateTime(schedule.endsAt)}`}
+                                      } • ${formatDateTime(schedule.startsAt)} → ${formatDateTime(schedule.endsAt)} • Bấm để xem chi tiết & phân công Guide`}
                                       className={`p-2.5 rounded-xl border bg-white hover:shadow-md transition-all text-left space-y-1.5 cursor-pointer group shadow-2xs min-w-0 ${cardBorderClass}`}
                                     >
                                       {/* Header: Time Badge + Round Status Dot */}
@@ -876,10 +876,30 @@ export const AdminScheduleListPage: React.FC = () => {
                             <StatusBadge scheduleStatus={item.status} size="sm" />
                           </td>
                           <td className="py-3.5 px-4 text-right">
-                            <span className="text-xs font-semibold text-[#1F4E43] inline-flex items-center gap-1">
-                              <span>Xem tour</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
-                            </span>
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigateTo(ROUTES.ADMIN.SCHEDULE_DETAIL(item.id));
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                              >
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                                <span>Phân công Guide</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigateTo(ROUTES.ADMIN.TOUR_DETAIL(item.tourId));
+                                }}
+                                className="px-2.5 py-1 rounded-lg border border-stone-300 hover:bg-stone-50 text-stone-700 text-xs font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                              >
+                                <span>Tour</span>
+                                <ArrowRight className="w-3 h-3" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}

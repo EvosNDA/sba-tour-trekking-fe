@@ -9,6 +9,7 @@ import AdminTourListPage from '../../pages/admin/tours/AdminTourListPage';
 import AdminTourFormPage from '../../pages/admin/tours/AdminTourFormPage';
 import AdminTourDetailPage from '../../pages/admin/tours/AdminTourDetailPage';
 import AdminScheduleListPage from '../../pages/admin/schedules/AdminScheduleListPage';
+import AdminScheduleDetailPage from '../../pages/admin/schedules/AdminScheduleDetailPage';
 import AdminPoliciesPage from '../../pages/admin/policies/AdminPoliciesPage';
 import AdminEquipmentPage from '../../pages/admin/equipment/AdminEquipmentPage';
 
@@ -33,6 +34,12 @@ export const AdminPortal: React.FC = () => {
     // 2. Schedules list `/admin/schedules`
     if (pathname === ROUTES.ADMIN.SCHEDULES || pathname === '/admin/schedules/') {
       return <AdminScheduleListPage />;
+    }
+
+    // 2b. Schedule detail & Guide Assignment `/admin/schedules/:scheduleId`
+    const scheduleDetailMatch = pathname.match(/^\/admin\/schedules\/(\d+)\/?$/);
+    if (scheduleDetailMatch) {
+      return <AdminScheduleDetailPage scheduleIdProp={Number(scheduleDetailMatch[1])} />;
     }
 
     // 2. Create tour `/admin/tours/new`

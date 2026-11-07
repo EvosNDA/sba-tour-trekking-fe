@@ -42,6 +42,25 @@ export const bookingsApi = {
     });
   },
 
+  searchBookings: async (
+    criteria: {
+      scheduleId?: number;
+      tourId?: number;
+      customerId?: number;
+      status?: BookingStatus | '';
+      createdFrom?: string;
+      createdTo?: string;
+      page?: number;
+      size?: number;
+    } = {},
+    signal?: AbortSignal
+  ): Promise<SpringPage<BookingSummaryResponse>> => {
+    return apiClient.get<SpringPage<BookingSummaryResponse>>('/api/v1/bookings', {
+      params: criteria,
+      signal,
+    });
+  },
+
   getBookingDetail: async (
     bookingId: number | string,
     signal?: AbortSignal

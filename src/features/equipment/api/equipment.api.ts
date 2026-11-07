@@ -10,6 +10,8 @@ import type {
   SaveRentalPackageRequest,
   TourEquipmentResponse,
   AssignTourEquipmentRequest,
+  EquipmentReservationResponse,
+  EquipmentHandoverRequest,
 } from '../types/equipment.types';
 
 export const equipmentApi = {
@@ -174,5 +176,40 @@ export const equipmentApi = {
     return apiClient.put<TourEquipmentResponse>(`/api/v1/tours/${tourId}/equipment`, payload, {
       signal,
     });
+  },
+
+  // 5. Equipment Handover (Bàn giao & Thu hồi theo Booking)
+  getBookingEquipmentReservation: async (
+    bookingId: number | string,
+    signal?: AbortSignal
+  ): Promise<EquipmentReservationResponse> => {
+    return apiClient.get<EquipmentReservationResponse>(
+      `/api/v1/bookings/${bookingId}/equipment/reservation`,
+      { signal }
+    );
+  },
+
+  issueBookingEquipment: async (
+    bookingId: number | string,
+    payload: EquipmentHandoverRequest,
+    signal?: AbortSignal
+  ): Promise<EquipmentReservationResponse> => {
+    return apiClient.post<EquipmentReservationResponse>(
+      `/api/v1/bookings/${bookingId}/equipment/issue`,
+      payload,
+      { signal }
+    );
+  },
+
+  returnBookingEquipment: async (
+    bookingId: number | string,
+    payload: EquipmentHandoverRequest,
+    signal?: AbortSignal
+  ): Promise<EquipmentReservationResponse> => {
+    return apiClient.post<EquipmentReservationResponse>(
+      `/api/v1/bookings/${bookingId}/equipment/return`,
+      payload,
+      { signal }
+    );
   },
 };

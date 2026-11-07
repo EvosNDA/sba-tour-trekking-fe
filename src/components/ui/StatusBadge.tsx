@@ -24,6 +24,8 @@ export interface StatusBadgeProps {
   difficulty?: DifficultyLevel | string;
   tourStatus?: TourStatus | string;
   scheduleStatus?: ScheduleStatus | string;
+  equipmentReservationStatus?: string;
+  attendanceStatus?: 'checked_in' | 'checked_out' | 'pending';
   size?: 'sm' | 'md';
   className?: string;
 }
@@ -34,6 +36,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   difficulty,
   tourStatus,
   scheduleStatus,
+  equipmentReservationStatus,
+  attendanceStatus,
   size = 'md',
   className,
 }) => {
@@ -278,6 +282,91 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       style: 'bg-stone-100 text-stone-700 border-stone-200',
       icon: null,
     };
+
+    return (
+      <span
+        className={cn(
+          'inline-flex items-center font-medium rounded-full border',
+          sizeClass,
+          item.style,
+          className
+        )}
+      >
+        {item.icon}
+        <span>{item.label}</span>
+      </span>
+    );
+  }
+
+  if (equipmentReservationStatus) {
+    const norm = String(equipmentReservationStatus).toLowerCase();
+    const config: Record<
+      string,
+      { label: string; style: string; icon: React.ReactNode }
+    > = {
+      confirmed: {
+        label: 'Đã đặt chỗ (Chờ giao)',
+        style: 'bg-amber-50 text-amber-800 border-amber-300',
+        icon: <Clock className="w-3.5 h-3.5 text-amber-700" />,
+      },
+      issued: {
+        label: 'Đã giao đủ',
+        style: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+        icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />,
+      },
+      return_required: {
+        label: 'Cần thu hồi',
+        style: 'bg-orange-50 text-orange-800 border-orange-300',
+        icon: <RotateCcw className="w-3.5 h-3.5 text-orange-700" />,
+      },
+      returned: {
+        label: 'Đã thu hồi đủ',
+        style: 'bg-teal-50 text-teal-800 border-teal-300',
+        icon: <CheckCircle2 className="w-3.5 h-3.5 text-teal-700" />,
+      },
+    };
+
+    const item = config[norm] || {
+      label: String(equipmentReservationStatus),
+      style: 'bg-stone-100 text-stone-700 border-stone-200',
+      icon: null,
+    };
+
+    return (
+      <span
+        className={cn(
+          'inline-flex items-center font-medium rounded-full border',
+          sizeClass,
+          item.style,
+          className
+        )}
+      >
+        {item.icon}
+        <span>{item.label}</span>
+      </span>
+    );
+  }
+
+  if (attendanceStatus) {
+    const config = {
+      checked_in: {
+        label: 'Đã điểm danh',
+        style: 'bg-emerald-50 text-emerald-800 border-emerald-300',
+        icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />,
+      },
+      checked_out: {
+        label: 'Đã hoàn tất chuyến',
+        style: 'bg-blue-50 text-blue-800 border-blue-300',
+        icon: <CheckCircle2 className="w-3.5 h-3.5 text-blue-700" />,
+      },
+      pending: {
+        label: 'Chưa điểm danh',
+        style: 'bg-stone-100 text-stone-700 border-stone-300',
+        icon: <Clock className="w-3.5 h-3.5 text-stone-500" />,
+      },
+    };
+
+    const item = config[attendanceStatus] || config.pending;
 
     return (
       <span

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useLocation, navigateTo } from '../lib/navigation';
 import { AdminPortal } from '../portals/admin/AdminPortal';
+import { GuidePortal } from '../portals/guide/GuidePortal';
 import { PartnerPortal } from '../portals/partner/PartnerPortal';
 import { CustomerPortal } from '../portals/customer/CustomerPortal';
 import { PublicPortal } from '../portals/public/PublicPortal';
@@ -46,7 +47,12 @@ export const AppRouter: React.FC = () => {
     return <AdminPortal />;
   }
 
-  // 2. Partner Portal Domain
+  // 2. Guide Portal Domain
+  if (pathname.startsWith('/guide')) {
+    return <GuidePortal />;
+  }
+
+  // 3. Partner Portal Domain
   if (pathname.startsWith('/partner')) {
     return <PartnerPortal />;
   }

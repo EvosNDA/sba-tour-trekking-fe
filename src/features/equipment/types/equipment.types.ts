@@ -106,3 +106,42 @@ export interface AssignTourEquipmentRequest {
   packageTemplateId?: number | null;
   individualEquipmentIds: number[];
 }
+
+// Handover & Reservation Types for Guide & Admin
+export type EquipmentCondition = 'GOOD' | 'NEEDS_INSPECTION';
+
+export type EquipmentReservationStatus =
+  | 'confirmed'
+  | 'issued'
+  | 'return_required'
+  | 'returned'
+  | string;
+
+export interface EquipmentReservationItem {
+  equipmentId: number;
+  equipmentName: string;
+  quantity: number;
+  issuedQuantity: number;
+  returnedQuantity: number;
+}
+
+export interface EquipmentReservationResponse {
+  reservationId: number;
+  bookingId: number;
+  scheduleId: number;
+  packageId: number | null;
+  status: EquipmentReservationStatus;
+  holdExpiresAt: string | null;
+  items: EquipmentReservationItem[];
+}
+
+export interface EquipmentHandoverItemRequest {
+  equipmentId: number;
+  quantity: number;
+  condition?: EquipmentCondition;
+}
+
+export interface EquipmentHandoverRequest {
+  note?: string;
+  items: EquipmentHandoverItemRequest[];
+}

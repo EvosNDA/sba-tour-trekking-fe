@@ -87,19 +87,21 @@ function hasStoredSessionHint(): boolean {
 export function resolveXRole(account?: AccountProfile | null, user?: AuthUser | null): XRole {
   if (!account && !user) return 'GUEST';
 
-  const roles = (account?.roles || user?.roles || []).map((r) => String(r).toUpperCase());
-  const primaryRole = String(user?.role || '').toUpperCase();
+  const roles = (account?.roles || user?.roles || []).map((r) =>
+    String(r).toUpperCase().replace(/^ROLE_/, '')
+  );
+  const primaryRole = String(user?.role || '').toUpperCase().replace(/^ROLE_/, '');
 
-  if (roles.includes('ADMIN') || roles.includes('ROLE_ADMIN') || primaryRole === 'ADMIN') {
+  if (roles.includes('ADMIN') || primaryRole === 'ADMIN') {
     return 'ADMIN';
   }
-  if (roles.includes('PARTNER') || roles.includes('ROLE_PARTNER') || primaryRole === 'PARTNER') {
-    return 'PARTNER';
-  }
-  if (roles.includes('GUIDE') || roles.includes('ROLE_GUIDE') || primaryRole === 'GUIDE') {
+  if (roles.includes('GUIDE') || primaryRole === 'GUIDE') {
     return 'GUIDE';
   }
-  if (roles.includes('CUSTOMER') || roles.includes('ROLE_CUSTOMER') || primaryRole === 'CUSTOMER') {
+  if (roles.includes('PARTNER') || primaryRole === 'PARTNER') {
+    return 'PARTNER';
+  }
+  if (roles.includes('CUSTOMER') || primaryRole === 'CUSTOMER') {
     return 'CUSTOMER';
   }
   return 'CUSTOMER';
@@ -180,18 +182,25 @@ export const authStore = {
     return allowed.some((target) => userRoles.includes(target));
   },
 
+  hasRole: (role: string): boolean => {
+    const target = role.toUpperCase().replace(/^ROLE_/, '');
+    const userRoles = (globalState.account?.roles || []).map((r) =>
+      r.toUpperCase().replace(/^ROLE_/, '')
+    );
+    if (globalState.user?.role?.toUpperCase().replace(/^ROLE_/, '') === target) return true;
+    return userRoles.includes(target);
+  },
+
   setSession: (accessToken: string, expiresInSeconds: number, account: AccountProfile) => {
     const user = mapAccountToUser(account);
     const resolvedRole = resolveXRole(account, user);
-    const isAdminAccount =
-      resolvedRole === 'ADMIN' ||
-      account.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'ADMIN');
+    const userRoles = (account.roles || []).map((r) => r.toUpperCase().replace(/^ROLE_/, ''));
     const savedRole = loadSavedXRole();
-    const activeXRole = isAdminAccount
-      ? 'ADMIN'
-      : savedRole && account.roles?.map((r) => r.toUpperCase()).includes(savedRole)
-      ? savedRole
-      : resolvedRole;
+    // If the account has the saved role from a previous session, restore it; otherwise use resolvedRole
+    const activeXRole =
+      savedRole && (savedRole === 'GUEST' || userRoles.includes(savedRole))
+        ? savedRole
+        : resolvedRole;
 
     globalState = {
       ...globalState,
@@ -339,6 +348,7 @@ export function useAuthStore() {
     xRole: state.xRole,
     setXRole: authStore.setXRole,
     checkXRole: authStore.checkXRole,
+    hasRole: authStore.hasRole,
     setSession: authStore.setSession,
     setAccount: authStore.setAccount,
     clearSession: authStore.clearSession,

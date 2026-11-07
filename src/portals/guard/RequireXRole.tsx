@@ -14,7 +14,7 @@ export interface RequireXRoleProps {
 export const RequireXRole: React.FC<RequireXRoleProps> = ({
   allowedRoles,
   children,
-  fallbackTitle = 'Không đủ quyền truy cập (403 Forbidden)',
+  fallbackTitle = 'Quyền truy cập hạn chế',
   fallbackMessage,
 }) => {
   const { account, user, xRole, isAuthenticated, isInitializing, checkXRole } = useAuthStore();
@@ -49,9 +49,15 @@ export const RequireXRole: React.FC<RequireXRoleProps> = ({
   }
 
   if (!isAuthorized) {
-    const defaultMsg = `Portal này yêu cầu quyền [${allowedList.join(
-      ', '
-    )}]. Vai trò hiện tại của tài khoản là [${xRole}], không đủ thẩm quyền để truy cập tài nguyên này.`;
+    const roleLabels: Record<string, string> = {
+      ADMIN: 'Quản trị viên',
+      GUIDE: 'Hướng dẫn viên',
+      CUSTOMER: 'Khách hàng',
+      PARTNER: 'Đối tác',
+    };
+    const currentRoleLabel = roleLabels[xRole || ''] || xRole || 'Chưa xác định';
+    const defaultMsg =
+      'Tài khoản của bạn hiện chưa được cấp thẩm quyền truy cập vào khu vực này. Vui lòng liên hệ ban quản trị hoặc đăng nhập bằng tài khoản phù hợp.';
 
     return (
       <div
@@ -64,8 +70,8 @@ export const RequireXRole: React.FC<RequireXRoleProps> = ({
           </div>
 
           <div className="space-y-2">
-            <span className="text-xs font-mono uppercase tracking-wider text-rose-700 font-bold bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
-              Vai trò: {xRole} • 403 Forbidden
+            <span className="text-xs uppercase tracking-wider text-rose-700 font-bold bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
+              Vai trò: {currentRoleLabel}
             </span>
             <h1 className="font-editorial text-2xl font-bold text-[#1C2526] pt-1">
               {fallbackTitle}
@@ -73,7 +79,7 @@ export const RequireXRole: React.FC<RequireXRoleProps> = ({
             <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
               {fallbackMessage || defaultMsg}
             </p>
-            <div className="pt-1 text-[11px] font-mono text-stone-400">
+            <div className="pt-1 text-[11px] text-stone-400">
               Tài khoản: {account?.email || user?.email}
             </div>
           </div>

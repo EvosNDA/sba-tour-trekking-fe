@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mountain, Compass, HelpCircle, Ticket, LogOut, Menu, X, User, ShieldCheck } from 'lucide-react';
+import { Mountain, Compass, HelpCircle, Ticket, LogOut, Menu, X, User, ShieldCheck, Calendar } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../features/auth/api/auth.api';
 import { navigateTo, useLocation } from '../../lib/navigation';
@@ -7,12 +7,13 @@ import { ROUTES } from '../../constants/routes';
 import { toast } from '../ui/Toast';
 
 export const Navbar: React.FC = () => {
-  const { account, user, isAuthenticated, xRole } = useAuthStore();
+  const { account, user, isAuthenticated, xRole, hasRole } = useAuthStore();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const isAdmin = xRole === 'ADMIN';
-  const isPartner = xRole === 'PARTNER' || xRole === 'GUIDE';
+  const isAdmin = xRole === 'ADMIN' || hasRole('ADMIN');
+  const isGuide = xRole === 'GUIDE' || hasRole('GUIDE');
+  const isPartner = xRole === 'PARTNER' || hasRole('PARTNER');
 
   const handleLogout = async () => {
     try {
@@ -117,6 +118,21 @@ export const Navbar: React.FC = () => {
             >
               <ShieldCheck className="w-4 h-4" />
               <span>Admin Portal</span>
+            </button>
+          )}
+
+          {isGuide && (
+            <button
+              type="button"
+              onClick={() => navigateTo(ROUTES.GUIDE.SCHEDULES)}
+              className={`inline-flex items-center gap-1.5 font-medium transition-colors cursor-pointer py-1 ${
+                isActive('/guide')
+                  ? 'text-[#1F4E43] font-semibold border-b-2 border-[#1F4E43]'
+                  : 'text-stone-700 hover:text-stone-900'
+              }`}
+            >
+              <Calendar className="w-4 h-4 text-[#1F4E43]" />
+              <span>Dẫn tour</span>
             </button>
           )}
 
@@ -256,6 +272,20 @@ export const Navbar: React.FC = () => {
                 >
                   <ShieldCheck className="w-4 h-4" />
                   <span>Admin Portal</span>
+                </button>
+              )}
+
+              {isGuide && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigateTo(ROUTES.GUIDE.SCHEDULES);
+                  }}
+                  className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-[#1F4E43] hover:bg-[#F7F4EE] flex items-center gap-2"
+                >
+                  <Calendar className="w-4 h-4 text-[#1F4E43]" />
+                  <span>Cổng Dẫn tour (Guide)</span>
                 </button>
               )}
 

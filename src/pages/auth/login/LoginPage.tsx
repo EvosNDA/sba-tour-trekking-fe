@@ -43,6 +43,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
     );
   };
 
+  const isCurrentUserGuide = () => {
+    const state = authStore.getState();
+    return (
+      state.xRole === 'GUIDE' ||
+      state.user?.role === 'guide' ||
+      state.account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'GUIDE')
+    );
+  };
+
   // Only consider booking redirect valid if explicitly specified in the query parameter
   const hasBookingRedirect = Boolean(redirectParam && redirectParam.startsWith('/booking/'));
 
@@ -58,6 +67,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
     if (!isInitializing && isAuthenticated && (resolvedMode === 'login' || resolvedMode === 'register')) {
       if (isCurrentUserAdmin()) {
         navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+        return;
+      }
+      if (isCurrentUserGuide()) {
+        const target = redirectParam || ROUTES.GUIDE.SCHEDULES;
+        navigateTo(target, { replace: true });
         return;
       }
       const target = redirectParam || ROUTES.PUBLIC.HOME;
@@ -233,6 +247,11 @@ void main() {
   const handleSuccess = () => {
     if (isCurrentUserAdmin()) {
       navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+      return;
+    }
+    if (isCurrentUserGuide()) {
+      const target = redirectParam || ROUTES.GUIDE.SCHEDULES;
+      navigateTo(target, { replace: true });
       return;
     }
     const target = redirectParam || ROUTES.PUBLIC.HOME;

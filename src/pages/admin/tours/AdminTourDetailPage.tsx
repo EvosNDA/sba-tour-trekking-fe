@@ -33,6 +33,7 @@ import { TourDeleteModal } from '../../../features/tours/components/TourDeleteMo
 import { TourItineraryEditor } from '../../../features/tours/components/TourItineraryEditor';
 import { TourTermsEditor } from '../../../features/tours/components/TourTermsEditor';
 import { TourEquipmentEditor } from '../../../features/tours/components/TourEquipmentEditor';
+import { TourStatistics } from '../../../features/tours/components/TourStatistics';
 import { CreateScheduleModal } from '../../../features/tours/components/CreateScheduleModal';
 import { TourPublishModal } from '../../../features/tours/components/TourPublishModal';
 import { useLocation, navigateTo } from '../../../lib/navigation';
@@ -358,6 +359,7 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
                 </div>
               </div>
 
+              <TourStatistics tourId={tour.id} scheduleTotal={scheduleTotal} />
               <TourItineraryEditor tourId={tour.id} durationDays={tour.durationDays} />
               <TourTermsEditor tourId={tour.id} cancellationId={tour.cancellationPolicyVersionId} status={tour.status} onUpdated={fetchTourDetail} />
               <TourEquipmentEditor tourId={tour.id} />
@@ -621,6 +623,7 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
                           <th className="py-3 px-3.5 font-bold text-center">Đã đặt / giữ</th>
                           <th className="py-3 px-3.5 font-bold">Giá cơ bản</th>
                           <th className="py-3 px-3.5 font-bold">Trạng thái</th>
+                          <th className="py-3 px-3.5 font-bold text-right">Quản lý</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-stone-200">
@@ -646,6 +649,15 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
                             </td>
                             <td className="py-3 px-3.5">
                               <StatusBadge scheduleStatus={s.status} size="sm" />
+                            </td>
+                            <td className="py-3 px-3.5 text-right">
+                              <button
+                                type="button"
+                                onClick={() => navigateTo(ROUTES.ADMIN.SCHEDULE_DETAIL(s.id))}
+                                className="px-2.5 py-1 rounded-lg bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                              >
+                                <span>Guide & Khách</span>
+                              </button>
                             </td>
                           </tr>
                         ))}

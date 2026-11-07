@@ -26,6 +26,11 @@ export const ROUTES = {
     CHECKOUT: '/booking/new',
     REVIEW: '/customer/review',
   },
+  GUIDE: {
+    DASHBOARD: '/guide',
+    SCHEDULES: '/guide/schedules',
+    SCHEDULE_DETAIL: (scheduleId: string | number = ':scheduleId') => `/guide/schedules/${scheduleId}`,
+  },
   PARTNER: {
     DASHBOARD: '/partner/dashboard',
     TOUR_MANAGEMENT: '/partner/tours',
@@ -37,6 +42,7 @@ export const ROUTES = {
   ADMIN: {
     TOURS: '/admin/tours',
     SCHEDULES: '/admin/schedules',
+    SCHEDULE_DETAIL: (scheduleId: string | number = ':scheduleId') => `/admin/schedules/${scheduleId}`,
     EQUIPMENT: '/admin/equipment',
     POLICIES: '/admin/policies',
     TOUR_NEW: '/admin/tours/new',
