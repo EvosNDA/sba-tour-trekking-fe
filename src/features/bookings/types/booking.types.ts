@@ -53,6 +53,9 @@ export interface BookingPassengerResponse {
   phone: string | null;
   email: string | null;
   bookingCustomer: boolean;
+  checkedInAt?: string | null;
+  checkedInBy?: number | null;
+  checkInNote?: string | null;
 }
 
 export interface EquipmentSnapshotComponent {
