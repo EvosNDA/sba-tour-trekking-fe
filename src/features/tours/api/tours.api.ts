@@ -8,6 +8,7 @@ import {
   UpdateTourRequest,
   CreateScheduleRequest,
   TourScheduleRangeResponse,
+  TourScheduleOverviewResponse,
   ScheduleSummaryResponse,
   ScheduleDetailResponse,
   ScheduleAvailabilityResponse,
@@ -19,6 +20,12 @@ import { EXPLORE_TOURS, POPULAR_DESTINATIONS, TOUR_COMPANIES } from '../../../da
 import { Tour, Destination, TourCompany } from '../../../types/expedition';
 
 export const toursApi = {
+  listScheduleOverview: async (
+    params: { page: number; size: number; query?: string },
+    signal?: AbortSignal
+  ): Promise<SpringPage<TourScheduleOverviewResponse>> =>
+    apiClient.get<SpringPage<TourScheduleOverviewResponse>>('/api/v1/admin/schedules/overview', { params, signal }),
+
   listTours: async (
     params: TourQueryParams = {},
     signal?: AbortSignal

@@ -74,6 +74,10 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
     },
   ];
 
+  const isScheduleOverviewActive =
+    pathname === ROUTES.ADMIN.SCHEDULE_OVERVIEW ||
+    pathname.startsWith(`${ROUTES.ADMIN.SCHEDULE_OVERVIEW}/`);
+
   const adminName = account?.fullName || user?.name || account?.email || 'Quản trị viên';
   const adminInitials = adminName
     .split(' ')
@@ -108,19 +112,35 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
-              <button
-                key={item.path}
-                type="button"
-                onClick={() => navigateTo(item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all text-left cursor-pointer ${
-                  item.active
-                    ? 'bg-[#1F4E43] text-white shadow-sm border border-[#1F4E43]/70'
-                    : 'text-stone-300 hover:bg-stone-800/80 hover:text-white'
-                }`}
-              >
-                <Icon className={`w-4 h-4 shrink-0 ${item.active ? 'text-[#FFDCC3]' : 'text-stone-400'}`} />
-                <span>{item.label}</span>
-              </button>
+              <React.Fragment key={item.path}>
+                <button
+                  type="button"
+                  onClick={() => navigateTo(item.path)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all text-left cursor-pointer ${
+                    item.active
+                      ? 'bg-[#1F4E43] text-white shadow-sm border border-[#1F4E43]/70'
+                      : 'text-stone-300 hover:bg-stone-800/80 hover:text-white'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 shrink-0 ${item.active ? 'text-[#FFDCC3]' : 'text-stone-400'}`} />
+                  <span>{item.label}</span>
+                </button>
+                {item.path === ROUTES.ADMIN.SCHEDULES && item.active && (
+                  <button
+                    type="button"
+                    onClick={() => navigateTo(ROUTES.ADMIN.SCHEDULE_OVERVIEW)}
+                    aria-current={isScheduleOverviewActive ? 'page' : undefined}
+                    className={`ml-7 w-[calc(100%-1.75rem)] flex items-center gap-2 px-4 py-2 rounded-lg text-sm text-left transition-colors cursor-pointer ${
+                      isScheduleOverviewActive
+                        ? 'bg-[#285e51] text-white font-semibold'
+                        : 'text-stone-400 hover:bg-stone-800/80 hover:text-white'
+                    }`}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-current shrink-0" />
+                    Tổng quan lịch
+                  </button>
+                )}
+              </React.Fragment>
             );
           })}
         </nav>

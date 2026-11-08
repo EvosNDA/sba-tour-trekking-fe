@@ -39,6 +39,13 @@ export interface TourSummaryResponse {
   coverImageUrl: string | null;
 }
 
+export interface TourScheduleOverviewResponse {
+  tourId: number;
+  title: string;
+  status: TourStatus;
+  scheduleCount: number;
+}
+
 export interface TourMediaResponse {
   id: number;
   mediaType: MediaType;

@@ -10,13 +10,14 @@ import AdminTourListPage from '../../pages/admin/tours/AdminTourListPage';
 import AdminTourFormPage from '../../pages/admin/tours/AdminTourFormPage';
 import AdminTourDetailPage from '../../pages/admin/tours/AdminTourDetailPage';
 import AdminScheduleListPage from '../../pages/admin/schedules/AdminScheduleListPage';
+import AdminScheduleOverviewPage from '../../pages/admin/schedules/AdminScheduleOverviewPage';
 import AdminScheduleDetailPage from '../../pages/admin/schedules/AdminScheduleDetailPage';
 import AdminPoliciesPage from '../../pages/admin/policies/AdminPoliciesPage';
 import AdminEquipmentPage from '../../pages/admin/equipment/AdminEquipmentPage';
 import AdminAccountListPage from '../../pages/admin/user-management/AdminAccountListPage';
 import AdminReviewListPage from '../../pages/admin/reviews/AdminReviewListPage';
 
-import { ShieldCheck, Compass } from 'lucide-react';
+import { Compass } from 'lucide-react';
 
 export const AdminPortal: React.FC = () => {
   const { pathname } = useLocation();
@@ -41,6 +42,15 @@ export const AdminPortal: React.FC = () => {
     // 2. Schedules list `/admin/schedules`
     if (pathname === ROUTES.ADMIN.SCHEDULES || pathname === '/admin/schedules/') {
       return <AdminScheduleListPage />;
+    }
+
+    if (pathname === ROUTES.ADMIN.SCHEDULE_OVERVIEW || pathname === '/admin/schedules/overview/') {
+      return <AdminScheduleOverviewPage />;
+    }
+
+    const scheduleOverviewTourMatch = pathname.match(/^\/admin\/schedules\/overview\/(\d+)\/?$/);
+    if (scheduleOverviewTourMatch) {
+      return <AdminScheduleOverviewPage tourIdProp={Number(scheduleOverviewTourMatch[1])} />;
     }
 
     // 2b. Schedule detail & Guide Assignment `/admin/schedules/:scheduleId`
