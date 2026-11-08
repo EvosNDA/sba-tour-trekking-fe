@@ -1,39 +1,40 @@
-import { useState, useEffect } from 'react';
-import { Booking } from '../../../types/expedition';
+import { useState, useEffect, useCallback } from 'react';
 import { bookingsApi } from '../api/bookings.api';
-import { INITIAL_BOOKING } from '../../../data/mockData';
+import type { BookingSummaryResponse, BookingStatus } from '../types/booking.types';
+import type { ApiError } from '../../../types/api.types';
 
-export function useBookings() {
-  const [booking, setBooking] = useState<Booking>(() => {
+export function useBookings(params?: { status?: BookingStatus | ''; page?: number; size?: number }) {
+  const [bookings, setBookings] = useState<BookingSummaryResponse[]>([]);
+  const [totalElements, setTotalElements] = useState<number>(0);
+  const [totalPages, setTotalPages] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<ApiError | null>(null);
+
+  const fetchBookings = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const saved = localStorage.getItem('wetrek_booking_v1');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // Ignore
+      const pageData = await bookingsApi.getMyBookings(params);
+      setBookings(pageData.content || []);
+      setTotalElements(pageData.totalElements || 0);
+      setTotalPages(pageData.totalPages || 0);
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setIsLoading(false);
     }
-    return INITIAL_BOOKING;
-  });
+  }, [params?.status, params?.page, params?.size]);
 
   useEffect(() => {
-    bookingsApi.saveBooking(booking);
-  }, [booking]);
-
-  const updateBooking = (updated: Booking | ((prev: Booking) => Booking)) => {
-    setBooking(updated);
-  };
-
-  const resetBooking = () => {
-    setBooking(INITIAL_BOOKING);
-    try {
-      localStorage.removeItem('wetrek_booking_v1');
-    } catch {
-      // Ignore
-    }
-  };
+    fetchBookings();
+  }, [fetchBookings]);
 
   return {
-    booking,
-    updateBooking,
-    resetBooking,
+    bookings,
+    totalElements,
+    totalPages,
+    isLoading,
+    error,
+    refetch: fetchBookings,
   };
 }

@@ -1,119 +1,92 @@
-import React from 'react';
-import { ScreenId, Booking, ExpeditionReview, Tour } from '../types/expedition';
+import React, { useEffect } from 'react';
+import { useLocation, navigateTo } from '../lib/navigation';
+import { AdminPortal } from '../portals/admin/AdminPortal';
+import { GuidePortal } from '../portals/guide/GuidePortal';
+import { CustomerPortal } from '../portals/customer/CustomerPortal';
+import { PublicPortal } from '../portals/public/PublicPortal';
+import { useAuthStore } from '../stores/auth.store';
+import { ROUTES } from '../constants/routes';
 
-// Public pages
-import HomePage from '../pages/public/home/HomePage';
-import TourListPage from '../pages/public/tour-list/TourListPage';
-import TourDetailPage from '../pages/public/tour-detail/TourDetailPage';
+/**
+ * AppRouter dispatches cleanly across dedicated Role Portals.
+ * Authorization & role checking is governed by `x-role` rather than ad-hoc inline `if` conditions.
+ *
+ * 1. Admin Portal (`/admin/*`)      -> Guarded by x-role: ADMIN
+ * 2. Guide Portal (`/guide/*`)      -> Guarded by x-role: GUIDE / ADMIN
+ * 3. Customer Portal (`/booking/*`, `/account/*`, `/customer/*`, `/payment/*`) -> Guarded by x-role: CUSTOMER / GUIDE / ADMIN
+ * 4. Public Portal (fallback)       -> Public accessibility (`/`, `/tours/*`, `/login`, `/register`, etc.)
+ */
+export const AppRouter: React.FC = () => {
+  const { pathname } = useLocation();
+  const { account, user, xRole, isAuthenticated, isInitializing } = useAuthStore();
 
-// Auth pages
-import LoginPage from '../pages/auth/login/LoginPage';
-import RegisterPage from '../pages/auth/register/RegisterPage';
+  const isAdmin =
+    (isAuthenticated &&
+      (xRole === 'ADMIN' ||
+        user?.role === 'admin' ||
+        account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'ADMIN'))) ||
+    (!isInitializing && xRole === 'ADMIN');
 
-// Customer pages
-import ProfilePage from '../pages/customer/profile/ProfilePage';
-import MyBookingsPage from '../pages/customer/my-bookings/MyBookingsPage';
-import CheckoutPage from '../pages/customer/checkout/CheckoutPage';
+  const isGuide =
+    (isAuthenticated &&
+      (xRole === 'GUIDE' ||
+        user?.role === 'guide' ||
+        account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'GUIDE'))) ||
+    (!isInitializing && xRole === 'GUIDE');
 
-// Partner pages
-import PartnerDashboardPage from '../pages/partner/dashboard/PartnerDashboardPage';
-import PartnerTourManagementPage from '../pages/partner/tour-management/PartnerTourManagementPage';
-import PartnerBookingManagementPage from '../pages/partner/booking-management/PartnerBookingManagementPage';
+  const isHomeRoute = pathname === ROUTES.PUBLIC.HOME || pathname === '' || pathname === '/home';
 
-// Admin pages
-import AdminDashboardPage from '../pages/admin/dashboard/AdminDashboardPage';
-import AdminUserManagementPage from '../pages/admin/user-management/AdminUserManagementPage';
-import AdminPartnerManagementPage from '../pages/admin/partner-management/AdminPartnerManagementPage';
+  // If logged in as admin or guide and entering or visiting the home page, redirect to respective Dashboard
+  useEffect(() => {
+    if (!isInitializing && isHomeRoute) {
+      if (isAdmin) {
+        navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+      } else if (isGuide) {
+        navigateTo(ROUTES.GUIDE.SCHEDULES, { replace: true });
+      }
+    }
+  }, [isInitializing, isAdmin, isGuide, isHomeRoute]);
 
-// Layout & Switcher
-import PartnerFinalReviewPage from '../pages/partner/final-review/PartnerFinalReviewPage';
-
-export interface AppRouterProps {
-  currentScreen: ScreenId;
-  onNavigate: (screen: ScreenId) => void;
-  booking: Booking;
-  review: ExpeditionReview;
-  onUpdateBooking: (booking: Booking | ((prev: Booking) => Booking)) => void;
-  onUpdateReview: (review: ExpeditionReview | ((prev: ExpeditionReview) => ExpeditionReview)) => void;
-  onBookTour: (tour: Tour) => void;
-  onLoginSuccess: (email: string) => void;
-  onRegistrationSuccess: (userData: { name: string; email: string; phone: string }) => void;
-  onOpenAIRanger: () => void;
-}
-
-export const AppRouter: React.FC<AppRouterProps> = ({
-  currentScreen,
-  onNavigate,
-  booking,
-  review,
-  onUpdateBooking,
-  onUpdateReview,
-  onBookTour,
-  onLoginSuccess,
-  onRegistrationSuccess,
-  onOpenAIRanger,
-}) => {
-  switch (currentScreen) {
-    case 'marketplace':
-      return <HomePage onBookTour={onBookTour} onNavigate={onNavigate} />;
-
-    case 'login':
-      return <LoginPage onLoginSuccess={onLoginSuccess} onNavigate={onNavigate} />;
-
-    case 'registration':
-      return <RegisterPage onSuccess={onRegistrationSuccess} onNavigate={onNavigate} />;
-
-    case 'eticket':
-      return (
-        <MyBookingsPage
-          booking={booking}
-          onUpdateBooking={onUpdateBooking}
-          onNavigate={onNavigate}
-          onOpenAIRanger={onOpenAIRanger}
-        />
-      );
-
-    case 'paybalance':
-      return (
-        <CheckoutPage
-          booking={booking}
-          onUpdateBooking={onUpdateBooking}
-          onNavigate={onNavigate}
-          onOpenAIRanger={onOpenAIRanger}
-        />
-      );
-
-    case 'review':
-      return (
-        <ProfilePage
-          review={review}
-          onUpdateReview={onUpdateReview}
-          onNavigate={onNavigate}
-        />
-      );
-
-    case 'partner_company_info':
-      return <PartnerDashboardPage onNavigate={onNavigate} />;
-
-    case 'partner_certificates':
-      return <PartnerTourManagementPage onNavigate={onNavigate} />;
-
-    case 'partner_bank_payouts':
-      return <PartnerBookingManagementPage onNavigate={onNavigate} />;
-
-    case 'partner_final_review':
-      return <PartnerFinalReviewPage onNavigate={onNavigate} />;
-
-    case 'ops_moderation':
-      return <AdminDashboardPage onNavigate={onNavigate} />;
-
-    case 'staff_escalations':
-      return <AdminUserManagementPage onNavigate={onNavigate} />;
-
-    case 'platform_analytics':
-      return <AdminPartnerManagementPage onNavigate={onNavigate} />;
-
-    default:
-      return <HomePage onBookTour={onBookTour} onNavigate={onNavigate} />;
+  // Prevent home page from rendering for admin / guide: render respective Portal immediately without flicker
+  if (!isInitializing && isHomeRoute) {
+    if (isAdmin) return <AdminPortal />;
+    if (isGuide) return <GuidePortal />;
   }
+
+  // 1. Admin Portal Domain
+  if (pathname.startsWith('/admin')) {
+    return <AdminPortal />;
+  }
+
+  // 2. Guide Portal Domain
+  if (pathname.startsWith('/guide')) {
+    return <GuidePortal />;
+  }
+
+  // Redirect legacy /partner routes to appropriate dashboard or home
+  if (pathname.startsWith('/partner')) {
+    if (isAdmin) {
+      navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+    } else if (isGuide) {
+      navigateTo(ROUTES.GUIDE.SCHEDULES, { replace: true });
+    } else {
+      navigateTo(ROUTES.PUBLIC.HOME, { replace: true });
+    }
+    return null;
+  }
+
+  // 3. Customer Portal Domain
+  if (
+    pathname.startsWith('/booking') ||
+    pathname.startsWith('/account') ||
+    pathname.startsWith('/customer') ||
+    pathname.startsWith('/payment')
+  ) {
+    return <CustomerPortal />;
+  }
+
+  // 4. Public Portal Domain
+  return <PublicPortal />;
 };
+
+export default AppRouter;

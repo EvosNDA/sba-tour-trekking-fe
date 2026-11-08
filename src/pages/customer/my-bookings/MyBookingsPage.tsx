@@ -1,148 +1,410 @@
-import React, { useState } from 'react';
-import { Booking, ScreenId, Traveler } from '../../../types/expedition';
-import { INITIAL_BOOKING } from '../../../data/mockData';
-import { Download, Copy, Check, ShieldCheck } from 'lucide-react';
-import { TicketPassCard } from './components/TicketPassCard';
-import { TravelerCheckinList } from './components/TravelerCheckinList';
-import { ElevationProfileCard } from './components/ElevationProfileCard';
-import { DepartureCountdownCard } from './components/DepartureCountdownCard';
-import { BookingPaymentDetailsCard } from './components/BookingPaymentDetailsCard';
-import { GuideDispatchCard } from './components/GuideDispatchCard';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Compass,
+  RefreshCw,
+  AlertTriangle,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Loader2,
+  PhoneCall,
+} from 'lucide-react';
+import { useAuth } from '../../../features/auth/hooks/useAuth';
+import { navigateTo } from '../../../lib/navigation';
+import { ROUTES } from '../../../constants/routes';
+import { bookingsApi } from '../../../features/bookings/api/bookings.api';
+import type {
+  BookingSummaryResponse,
+  BookingStatus,
+  BookingCancellationResponse,
+} from '../../../features/bookings/types/booking.types';
+import type { ApiError } from '../../../types/api.types';
+import { BookingCard } from '../../../features/bookings/components/BookingCard';
+import { formatVND } from '../../../lib/utils';
+import { toast } from '../../../components/ui/Toast';
 
 export interface MyBookingsPageProps {
-  booking?: Booking;
-  onUpdateBooking?: (updated: Booking) => void;
-  onNavigate?: (screen: ScreenId) => void;
+  booking?: any;
+  onUpdateBooking?: (updated: any) => void;
+  onNavigate?: (screen: any) => void;
   onOpenAIRanger?: () => void;
 }
 
-export const MyBookingsPage: React.FC<MyBookingsPageProps> = ({
-  booking = INITIAL_BOOKING,
-  onUpdateBooking = () => {},
-  onNavigate = () => {},
-  onOpenAIRanger = () => {},
-}) => {
-  const [copiedBooking, setCopiedBooking] = useState(false);
-  const [downloadSuccess, setDownloadSuccess] = useState(false);
+const STATUS_FILTER_OPTIONS: Array<{ value: BookingStatus | ''; label: string }> = [
+  { value: '', label: 'Tất cả trạng thái' },
+  { value: 'PENDING_PAYMENT', label: 'Chờ thanh toán' },
+  { value: 'CONFIRMED', label: 'Đã xác nhận' },
+  { value: 'COMPLETED', label: 'Hoàn thành' },
+  { value: 'CANCELLED', label: 'Đã hủy' },
+  { value: 'EXPIRED', label: 'Hết hạn giữ chỗ' },
+  { value: 'NO_SHOW', label: 'Vắng mặt' },
+];
 
-  const handleCopyBooking = () => {
-    navigator.clipboard.writeText(booking.id);
-    setCopiedBooking(true);
-    setTimeout(() => setCopiedBooking(false), 2000);
-  };
+export const MyBookingsPage: React.FC<MyBookingsPageProps> = () => {
+  const { isAuthenticated, isInitializing, account } = useAuth();
 
-  const handleToggleCheckIn = (travelerId: string) => {
-    const updatedTravelers = booking.travelers.map((t: Traveler) => {
-      if (t.id === travelerId) {
-        const isCheckedIn = t.checkInStatus === 'Checked In';
-        return {
-          ...t,
-          checkInStatus: (isCheckedIn ? 'Waiting at Gate' : 'Checked In') as Booking['travelers'][0]['checkInStatus'],
-          checkInTime: isCheckedIn ? undefined : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-      }
-      return t;
-    });
+  const [statusFilter, setStatusFilter] = useState<BookingStatus | ''>('');
+  const [page, setPage] = useState<number>(0);
+  const [size] = useState<number>(20);
 
-    onUpdateBooking({
-      ...booking,
-      travelers: updatedTravelers,
-    });
-  };
+  const [bookings, setBookings] = useState<BookingSummaryResponse[]>([]);
+  const [totalPages, setTotalPages] = useState<number>(0);
+  const [totalElements, setTotalElements] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<ApiError | null>(null);
 
-  const handleDownloadTicket = () => {
-    setDownloadSuccess(true);
-    setTimeout(() => setDownloadSuccess(false), 3000);
+  // Cancel modal state
+  const [bookingToCancel, setBookingToCancel] = useState<BookingSummaryResponse | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>('');
+  const [isCancelling, setIsCancelling] = useState<boolean>(false);
+  const [lastCancellationResult, setLastCancellationResult] =
+    useState<BookingCancellationResponse | null>(null);
+
+  useEffect(() => {
+    if (isInitializing) return;
+    if (!isAuthenticated) {
+      navigateTo(`${ROUTES.AUTH.LOGIN}?redirect=${encodeURIComponent(ROUTES.ACCOUNT.BOOKINGS)}`, {
+        replace: true,
+      });
+    }
+  }, [isInitializing, isAuthenticated]);
+
+  const fetchMyBookings = useCallback(async () => {
+    if (!isAuthenticated) return;
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await bookingsApi.getMyBookings({
+        status: statusFilter,
+        page,
+        size,
+      });
+      setBookings(res.content || []);
+      setTotalPages(res.totalPages || 0);
+      setTotalElements(res.totalElements || 0);
+    } catch (err) {
+      setError(err as ApiError);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, statusFilter, page, size]);
+
+  useEffect(() => {
+    if (!isInitializing && isAuthenticated) {
+      fetchMyBookings();
+    }
+  }, [isInitializing, isAuthenticated, fetchMyBookings]);
+
+  const handleConfirmCancel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bookingToCancel) return;
+
+    setIsCancelling(true);
+    try {
+      const res = await bookingsApi.cancelBooking(bookingToCancel.id, {
+        reason: cancelReason.trim() || 'Khách hàng yêu cầu hủy đặt chỗ',
+      });
+      setLastCancellationResult(res);
+      setBookingToCancel(null);
+      setCancelReason('');
+      toast.info(`Đã hủy đặt chỗ #${bookingToCancel.bookingCode}.`);
+      await fetchMyBookings();
+    } catch (err) {
+      const apiErr = err as ApiError;
+      toast.error(apiErr.message || 'Không thể hủy đặt chỗ.');
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] py-6 px-4 md:px-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Top Breadcrumb & Actions Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2 text-xs text-[#64748B]">
-            <button onClick={() => onNavigate('marketplace')} className="hover:text-[#1C2526] cursor-pointer">
-              Home
-            </button>
-            <span>&gt;</span>
-            <button onClick={() => onNavigate('marketplace')} className="hover:text-[#1C2526] cursor-pointer">
-              My Bookings
-            </button>
-            <span>&gt;</span>
-            <span className="font-mono text-[#1C2526] font-semibold">{booking.id}</span>
+    <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto space-y-8">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E6E1D8] pb-6">
+          <div>
+            <span className="text-xs font-mono uppercase tracking-wider text-[#C2410C] font-semibold">
+              Tài khoản cá nhân {account?.fullName ? `• ${account.fullName}` : ''}
+            </span>
+            <h1 className="font-editorial text-3xl sm:text-4xl font-bold text-[#1C2526] mt-1">
+              Đặt chỗ của tôi
+            </h1>
+            <p className="text-sm text-stone-600 mt-1">
+              Theo dõi trạng thái xác nhận, thanh toán số dư, cập nhật thông tin đoàn hoặc hủy đặt chỗ.
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onNavigate('marketplace')}
-              className="px-3 py-1.5 text-xs font-medium text-[#2D3748] bg-white border border-[#E6E1D8] rounded hover:bg-[#F7F4EE] transition-colors cursor-pointer"
-            >
-              &larr; Back to Bookings
-            </button>
-            <button
-              onClick={handleDownloadTicket}
-              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#1F4E43] hover:bg-[#15372F] rounded flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>{downloadSuccess ? 'Ticket Saved to Wallet!' : 'Download Ticket / Save to Phone'}</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={fetchMyBookings}
+            disabled={isLoading}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-stone-200 hover:border-stone-300 text-xs font-semibold text-stone-700 shadow-2xs transition-colors self-start sm:self-auto cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#1F4E43]' : ''}`} />
+            <span>Làm mới danh sách</span>
+          </button>
         </div>
 
-        {/* Status Pills */}
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          <div className="inline-flex items-center gap-1.5 bg-[#B9EADB]/50 text-[#1F4E43] text-xs font-semibold px-2.5 py-1 rounded">
-            <span className="w-2 h-2 rounded-full bg-[#1F4E43]"></span>
-            <span>{booking.paymentStatus === 'FULLY_SETTLED' ? 'Fully Paid & Confirmed' : 'Paid Deposit (Part 1 Done)'}</span>
+        {/* Cancellation Reconciliation Notice */}
+        {lastCancellationResult && (
+          <div className="rounded-2xl bg-stone-100 border border-stone-300 p-5 flex items-start justify-between gap-4">
+            <div className="space-y-1 text-xs text-stone-700">
+              <div className="flex items-center gap-2 text-sm font-bold text-stone-900">
+                <PhoneCall className="w-4 h-4 text-[#1F4E43]" />
+                <span>Đã ghi nhận hủy đặt chỗ #{lastCancellationResult.bookingCode}</span>
+              </div>
+              <p>
+                Yêu cầu hoàn tiền:{' '}
+                <strong>
+                  {lastCancellationResult.refundRequired
+                    ? 'Có — Cần đối soát hoàn tiền theo chính sách'
+                    : 'Không phát sinh hoàn tiền'}
+                </strong>{' '}
+                • Số tiền đã trả: <strong>{formatVND(lastCancellationResult.paidAmountVnd)}</strong>.
+              </p>
+              {lastCancellationResult.refundRequired && (
+                <p className="text-stone-600">
+                  Bộ phận hỗ trợ khách hàng sẽ đối soát giao dịch và liên hệ trực tiếp với bạn qua email/số điện thoại đăng ký.
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setLastCancellationResult(null)}
+              className="text-stone-400 hover:text-stone-700 cursor-pointer"
+              aria-label="Đóng thông báo"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <div className="inline-flex items-center gap-1.5 bg-stone-100 text-[#2D3748] text-xs font-mono px-2.5 py-1 rounded border border-[#E6E1D8]">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#1F4E43]" />
-            <span>National Park Pass #{booking.nationalParkPass}</span>
+        )}
+
+        {/* Filter Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl border border-[#E6E1D8] p-4 shadow-2xs">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+            <Filter className="w-4 h-4 text-stone-400 shrink-0 mr-1" />
+            {STATUS_FILTER_OPTIONS.map((opt) => {
+              const active = statusFilter === opt.value;
+              return (
+                <button
+                  key={opt.value || 'ALL'}
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter(opt.value);
+                    setPage(0);
+                  }}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                    active
+                      ? 'bg-[#1F4E43] text-white'
+                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200/70'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
+
+          <span className="text-xs font-mono text-stone-500 shrink-0">
+            Tổng cộng: <strong>{totalElements}</strong> đặt chỗ
+          </span>
         </div>
 
-        {/* Title & Booking Reference */}
-        <div className="mb-8">
-          <h1 className="font-editorial text-3xl sm:text-4xl font-bold text-[#1C2526]">
-            Trip Ticket &amp; Mountain Check-in
-          </h1>
-          <div className="flex flex-wrap items-center gap-3 text-xs mt-2">
-            <span className="text-[#78716C] uppercase font-mono">BOOKING NUMBER:</span>
-            <div className="flex items-center gap-1.5 bg-white border border-[#E6E1D8] px-2.5 py-1 rounded font-mono font-bold text-[#1C2526]">
-              <span>{booking.id}</span>
-              <button
-                onClick={handleCopyBooking}
-                title="Copy Booking Number"
-                className="text-[#78716C] hover:text-[#C2410C] cursor-pointer"
+        {/* Main Content */}
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-44 rounded-2xl bg-white border border-stone-200 p-6 animate-pulse flex flex-col justify-between"
               >
-                {copiedBooking ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                <div className="flex justify-between">
+                  <div className="h-5 bg-stone-200 rounded w-1/3" />
+                  <div className="h-5 bg-stone-200 rounded w-24" />
+                </div>
+                <div className="h-4 bg-stone-200 rounded w-1/2" />
+                <div className="flex justify-between pt-4 border-t border-stone-100">
+                  <div className="h-6 bg-stone-200 rounded w-32" />
+                  <div className="h-9 bg-stone-200 rounded-xl w-36" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          <div className="bg-white rounded-2xl border border-rose-200 p-8 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-stone-900">
+                Không thể tải danh sách đặt chỗ
+              </h2>
+              <p className="text-sm text-stone-600 mt-1">
+                {error.message || 'Đã xảy ra lỗi khi kết nối với máy chủ.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchMyBookings}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#163830] text-white text-xs font-semibold cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Thử lại</span>
+            </button>
+          </div>
+        ) : bookings.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-[#E6E1D8] p-12 text-center space-y-4 shadow-2xs">
+            <div className="w-14 h-14 rounded-2xl bg-[#1F4E43]/10 text-[#1F4E43] flex items-center justify-center mx-auto">
+              <Compass className="w-7 h-7" />
+            </div>
+            <div className="max-w-md mx-auto">
+              <h2 className="font-editorial text-2xl font-bold text-[#1C2526]">
+                {statusFilter
+                  ? 'Không có đặt chỗ nào ở trạng thái này'
+                  : 'Bạn chưa có chuyến đi nào được đặt'}
+              </h2>
+              <p className="text-sm text-stone-600 mt-1">
+                Khám phá các cung đường trekking rừng nguyên sinh và đỉnh núi cao cùng đội ngũ dẫn đường chuyên nghiệp.
+              </p>
+            </div>
+            <div className="pt-2 flex items-center justify-center gap-3">
+              {statusFilter && (
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('')}
+                  className="px-4 py-2.5 rounded-xl border border-stone-300 text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer"
+                >
+                  Xóa bộ lọc
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => navigateTo(ROUTES.PUBLIC.TOURS)}
+                className="px-6 py-2.5 rounded-xl bg-[#C2410C] hover:bg-[#9B2F00] text-white text-xs font-semibold shadow-xs cursor-pointer"
+              >
+                Khám phá các cung đường
               </button>
             </div>
-            <span className="text-[#64748B]">/</span>
-            <span className="text-[#64748B]">Hoang Lien Son National Biosphere</span>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-4">
+            {bookings.map((b) => (
+              <BookingCard
+                key={b.id}
+                booking={b}
+                onSelect={(item) => navigateTo(ROUTES.BOOKING.DETAIL(item.id))}
+                onCancel={(item) => {
+                  setBookingToCancel(item);
+                  setCancelReason('');
+                }}
+              />
+            ))}
 
-        {/* Main Grid: Ticket Details + Sidebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column (8 cols) */}
-          <div className="lg:col-span-8 space-y-8">
-            <TicketPassCard booking={booking} />
-            <TravelerCheckinList
-              travelers={booking.travelers}
-              onToggleCheckIn={handleToggleCheckIn}
-            />
-            <ElevationProfileCard />
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4">
+                <p className="text-xs text-stone-500">
+                  Trang <strong>{page + 1}</strong> / {totalPages}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={page <= 0}
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    className="p-2 rounded-xl border border-stone-300 bg-white disabled:opacity-40 hover:bg-stone-50 cursor-pointer"
+                    aria-label="Trang trước"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={page + 1 >= totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                    className="p-2 rounded-xl border border-stone-300 bg-white disabled:opacity-40 hover:bg-stone-50 cursor-pointer"
+                    aria-label="Trang tiếp"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* Right Column (4 cols) */}
-          <div className="lg:col-span-4 space-y-6">
-            <DepartureCountdownCard meetingTime={booking.meetingTime} />
-            <BookingPaymentDetailsCard booking={booking} onNavigate={onNavigate} />
-            <GuideDispatchCard booking={booking} onOpenAIRanger={onOpenAIRanger} />
-          </div>
-        </div>
+        )}
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      {bookingToCancel && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-cancel-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
+        >
+          <div className="bg-white rounded-2xl border border-stone-200 max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2 text-rose-700">
+                <AlertTriangle className="w-5 h-5 shrink-0" />
+                <h2 id="modal-cancel-title" className="text-lg font-bold text-stone-900">
+                  Hủy đặt chỗ #{bookingToCancel.bookingCode}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBookingToCancel(null)}
+                className="text-stone-400 hover:text-stone-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-stone-600 leading-relaxed">
+              Bạn đang yêu cầu hủy đặt chỗ tour{' '}
+              <strong>{bookingToCancel.tourTitle || `#${bookingToCancel.tourId}`}</strong>. Nếu đặt chỗ đã thanh toán cọc hoặc toàn bộ, hệ thống sẽ ghi nhận yêu cầu hoàn tiền để bộ phận hỗ trợ đối soát.
+            </p>
+
+            <form onSubmit={handleConfirmCancel} className="space-y-4">
+              <div>
+                <label
+                  htmlFor="my-bookings-cancel-reason"
+                  className="block text-xs font-semibold text-stone-800 mb-1"
+                >
+                  Lý do hủy đặt chỗ
+                </label>
+                <textarea
+                  id="my-bookings-cancel-reason"
+                  rows={3}
+                  required
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Nhập lý do hủy chuyến..."
+                  className="w-full rounded-xl border border-stone-300 p-3 text-xs focus:outline-none focus:border-[#1F4E43]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setBookingToCancel(null)}
+                  disabled={isCancelling}
+                  className="px-4 py-2.5 rounded-xl border border-stone-300 text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer"
+                >
+                  Đóng
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCancelling}
+                  className="px-5 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isCancelling && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Xác nhận hủy</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

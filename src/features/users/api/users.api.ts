@@ -1,6 +1,15 @@
-import { UserProfile } from '../types/user.types';
+import { apiClient } from '../../../lib/axios';
+import {
+  UserProfile,
+  AdminAccountItem,
+  AdminAccountDetail,
+  AdminAccountListResponse,
+  AdminAccountsParams,
+  AccountActionRequest,
+} from '../types/user.types';
 
 export const usersApi = {
+  // Legacy user profile mock
   getProfile: async (): Promise<UserProfile> => {
     return {
       id: 'usr_eleanor',
@@ -19,5 +28,59 @@ export const usersApi = {
       ...(await usersApi.getProfile()),
       ...profile,
     };
+  },
+
+  // 1. GET /api/v1/admin/accounts
+  getAccounts: async (
+    params: AdminAccountsParams = {},
+    signal?: AbortSignal
+  ): Promise<AdminAccountListResponse> => {
+    return apiClient.get<AdminAccountListResponse>('/api/v1/admin/accounts', {
+      params: {
+        page: params.page ?? 0,
+        size: params.size ?? 20,
+        q: params.q?.trim() || undefined,
+        role: params.role || undefined,
+        status: params.status || undefined,
+        sort: params.sort || undefined,
+      },
+      signal,
+    });
+  },
+
+  // 2. GET /api/v1/admin/accounts/{id}
+  getAccountDetail: async (
+    id: number,
+    signal?: AbortSignal
+  ): Promise<AdminAccountDetail> => {
+    return apiClient.get<AdminAccountDetail>(`/api/v1/admin/accounts/${id}`, {
+      signal,
+    });
+  },
+
+  // 3. POST /api/v1/admin/accounts/{id}/block
+  blockAccount: async (
+    id: number,
+    payload: AccountActionRequest,
+    signal?: AbortSignal
+  ): Promise<AdminAccountDetail> => {
+    return apiClient.post<AdminAccountDetail>(
+      `/api/v1/admin/accounts/${id}/block`,
+      payload,
+      { signal }
+    );
+  },
+
+  // 4. POST /api/v1/admin/accounts/{id}/unblock
+  unblockAccount: async (
+    id: number,
+    payload: AccountActionRequest,
+    signal?: AbortSignal
+  ): Promise<AdminAccountDetail> => {
+    return apiClient.post<AdminAccountDetail>(
+      `/api/v1/admin/accounts/${id}/unblock`,
+      payload,
+      { signal }
+    );
   },
 };

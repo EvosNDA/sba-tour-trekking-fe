@@ -2,9 +2,9 @@
 
 @layer base {
   :root {
-    --font-serif: 'Newsreader', Georgia, serif;
-    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+    --font-serif: 'Roboto', Arial, sans-serif;
+    --font-sans: 'Roboto', Arial, sans-serif;
+    --font-mono: 'Roboto', Arial, sans-serif;
   }
 
   body {

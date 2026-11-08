@@ -1,17 +1,26 @@
 import { useState } from 'react';
-import { PaymentMethod, PaymentTransaction } from '../types/payment.types';
 import { paymentsApi } from '../api/payments.api';
+import type { PaymentPurpose, PaymentLinkResponse } from '../types/payment.types';
+import type { ApiError } from '../../../types/api.types';
 
 export function usePayments() {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [transaction, setTransaction] = useState<PaymentTransaction | null>(null);
+  const [paymentLink, setPaymentLink] = useState<PaymentLinkResponse | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
 
-  const processPayment = async (bookingId: string, amountVND: number, method: PaymentMethod) => {
+  const createPayOSPayment = async (bookingId: number, purpose: PaymentPurpose) => {
     setIsProcessing(true);
+    setError(null);
     try {
-      const result = await paymentsApi.createTransaction(bookingId, amountVND, method);
-      setTransaction(result);
+      const result = await paymentsApi.createPaymentLink(bookingId, {
+        provider: 'PAYOS',
+        purpose,
+      });
+      setPaymentLink(result);
       return result;
+    } catch (err) {
+      setError(err as ApiError);
+      throw err;
     } finally {
       setIsProcessing(false);
     }
@@ -19,7 +28,8 @@ export function usePayments() {
 
   return {
     isProcessing,
-    transaction,
-    processPayment,
+    paymentLink,
+    error,
+    createPayOSPayment,
   };
 }
