@@ -13,7 +13,6 @@ export const Navbar: React.FC = () => {
 
   const isAdmin = xRole === 'ADMIN' || hasRole('ADMIN');
   const isGuide = xRole === 'GUIDE' || hasRole('GUIDE');
-  const isPartner = xRole === 'PARTNER' || hasRole('PARTNER');
 
   const handleLogout = async () => {
     try {
@@ -45,7 +44,15 @@ export const Navbar: React.FC = () => {
         {/* Brand Logo */}
         <button
           type="button"
-          onClick={() => navigateTo(isAdmin ? ROUTES.ADMIN.DASHBOARD : ROUTES.PUBLIC.HOME)}
+          onClick={() =>
+            navigateTo(
+              isAdmin
+                ? ROUTES.ADMIN.DASHBOARD
+                : isGuide
+                ? ROUTES.GUIDE.SCHEDULES
+                : ROUTES.PUBLIC.HOME
+            )
+          }
           className="flex items-center gap-2.5 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#C2410C]/40 rounded-lg"
         >
           <div className="w-9 h-9 rounded-xl bg-[#1F4E43] text-[#B9EADB] flex items-center justify-center shadow-2xs">
@@ -136,20 +143,7 @@ export const Navbar: React.FC = () => {
             </button>
           )}
 
-          {isPartner && (
-            <button
-              type="button"
-              onClick={() => navigateTo(ROUTES.PARTNER.DASHBOARD)}
-              className={`inline-flex items-center gap-1.5 font-medium transition-colors cursor-pointer py-1 ${
-                isActive('/partner')
-                  ? 'text-[#C2410C] font-semibold border-b-2 border-[#C2410C]'
-                  : 'text-[#C2410C] hover:text-[#9B2F00]'
-              }`}
-            >
-              <Mountain className="w-4 h-4" />
-              <span>Partner Portal</span>
-            </button>
-          )}
+
         </nav>
 
         {/* Auth / User Profile Zone */}
@@ -159,7 +153,13 @@ export const Navbar: React.FC = () => {
               <button
                 type="button"
                 onClick={() =>
-                  navigateTo(isAdmin ? ROUTES.ADMIN.DASHBOARD : ROUTES.ACCOUNT.BOOKINGS)
+                  navigateTo(
+                    isAdmin
+                      ? ROUTES.ADMIN.DASHBOARD
+                      : isGuide
+                      ? ROUTES.GUIDE.SCHEDULES
+                      : ROUTES.ACCOUNT.BOOKINGS
+                  )
                 }
                 className="flex items-center gap-2.5 pl-2 pr-3.5 py-1.5 rounded-full bg-[#F7F4EE] hover:bg-[#EFECE4] border border-[#E6E1D8] transition-colors cursor-pointer"
               >
@@ -249,7 +249,13 @@ export const Navbar: React.FC = () => {
                 type="button"
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  navigateTo(isAdmin ? ROUTES.ADMIN.DASHBOARD : ROUTES.ACCOUNT.BOOKINGS);
+                  navigateTo(
+                    isAdmin
+                      ? ROUTES.ADMIN.DASHBOARD
+                      : isGuide
+                      ? ROUTES.GUIDE.SCHEDULES
+                      : ROUTES.ACCOUNT.BOOKINGS
+                  );
                 }}
                 className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-[#1F4E43] bg-[#B9EADB]/30 flex items-center gap-2"
               >
@@ -257,6 +263,8 @@ export const Navbar: React.FC = () => {
                 <span>
                   {isAdmin
                     ? `Admin Dashboard (${account?.fullName || account?.email})`
+                    : isGuide
+                    ? `Lịch dẫn tour (${account?.fullName || account?.email})`
                     : `Đặt chỗ của tôi (${account?.fullName || account?.email})`}
                 </span>
               </button>
@@ -289,19 +297,7 @@ export const Navbar: React.FC = () => {
                 </button>
               )}
 
-              {isPartner && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    navigateTo(ROUTES.PARTNER.DASHBOARD);
-                  }}
-                  className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-[#C2410C] hover:bg-[#F7F4EE] flex items-center gap-2"
-                >
-                  <Mountain className="w-4 h-4" />
-                  <span>Partner Portal</span>
-                </button>
-              )}
+
 
               <button
                 type="button"

@@ -24,12 +24,25 @@ export const PublicPortal: React.FC = () => {
         account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'ADMIN'))) ||
     (!isInitializing && xRole === 'ADMIN');
 
+  const isGuide =
+    (isAuthenticated &&
+      (xRole === 'GUIDE' ||
+        user?.role === 'guide' ||
+        account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'GUIDE'))) ||
+    (!isInitializing && xRole === 'GUIDE');
+
   const renderContent = () => {
     // 1. Home page `/`
     if (pathname === ROUTES.PUBLIC.HOME || pathname === '' || pathname === '/home') {
-      if (!isInitializing && isAdmin) {
-        navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
-        return null;
+      if (!isInitializing) {
+        if (isAdmin) {
+          navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+          return null;
+        }
+        if (isGuide) {
+          navigateTo(ROUTES.GUIDE.SCHEDULES, { replace: true });
+          return null;
+        }
       }
       return <HomePage />;
     }

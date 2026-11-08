@@ -36,11 +36,22 @@ export const HomePage: React.FC<HomePageProps> = () => {
         account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'ADMIN'))) ||
     (!isInitializing && xRole === 'ADMIN');
 
+  const isGuide =
+    (isAuthenticated &&
+      (xRole === 'GUIDE' ||
+        user?.role === 'guide' ||
+        account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'GUIDE'))) ||
+    (!isInitializing && xRole === 'GUIDE');
+
   useEffect(() => {
-    if (!isInitializing && isAdmin) {
-      navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+    if (!isInitializing) {
+      if (isAdmin) {
+        navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+      } else if (isGuide) {
+        navigateTo(ROUTES.GUIDE.SCHEDULES, { replace: true });
+      }
     }
-  }, [isInitializing, isAdmin]);
+  }, [isInitializing, isAdmin, isGuide]);
 
   const prefersReducedMotion = useReducedMotion();
 
@@ -55,7 +66,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    if (!isInitializing && isAdmin) return;
+    if (!isInitializing && (isAdmin || isGuide)) return;
 
     const controller = new AbortController();
     setIsLoading(true);
@@ -97,7 +108,7 @@ export const HomePage: React.FC<HomePageProps> = () => {
   const heroTourImage =
     featuredTours.find((t) => Boolean(t.coverImageUrl))?.coverImageUrl || heroRidgeImg;
 
-  if (!isInitializing && isAdmin) {
+  if (!isInitializing && (isAdmin || isGuide)) {
     return null;
   }
 

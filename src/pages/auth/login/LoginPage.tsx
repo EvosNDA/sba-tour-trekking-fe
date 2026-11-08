@@ -70,7 +70,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
         return;
       }
       if (isCurrentUserGuide()) {
-        const target = redirectParam || ROUTES.GUIDE.SCHEDULES;
+        const target = (redirectParam && redirectParam.startsWith('/guide')) ? redirectParam : ROUTES.GUIDE.SCHEDULES;
         navigateTo(target, { replace: true });
         return;
       }
@@ -250,7 +250,7 @@ void main() {
       return;
     }
     if (isCurrentUserGuide()) {
-      const target = redirectParam || ROUTES.GUIDE.SCHEDULES;
+      const target = (redirectParam && redirectParam.startsWith('/guide')) ? redirectParam : ROUTES.GUIDE.SCHEDULES;
       navigateTo(target, { replace: true });
       return;
     }

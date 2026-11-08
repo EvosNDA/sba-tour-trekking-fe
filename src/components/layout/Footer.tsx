@@ -12,6 +12,11 @@ export const Footer: React.FC = () => {
     (xRole === 'ADMIN' ||
       user?.role === 'admin' ||
       account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'ADMIN'));
+  const isGuide =
+    isAuthenticated &&
+    (xRole === 'GUIDE' ||
+      user?.role === 'guide' ||
+      account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'GUIDE'));
   return (
     <footer className="bg-[#F7F4EE] border-t border-[#E6E1D8] mt-16 text-[#1C2526]">
       {/* Three Pillars Certification Badges */}
@@ -93,7 +98,15 @@ export const Footer: React.FC = () => {
             <li>
               <button
                 type="button"
-                onClick={() => navigateTo(isAdmin ? ROUTES.ADMIN.DASHBOARD : ROUTES.PUBLIC.HOME)}
+                onClick={() =>
+                  navigateTo(
+                    isAdmin
+                      ? ROUTES.ADMIN.DASHBOARD
+                      : isGuide
+                      ? ROUTES.GUIDE.SCHEDULES
+                      : ROUTES.PUBLIC.HOME
+                  )
+                }
                 className="hover:text-[#1C2526] cursor-pointer"
               >
                 Trang chủ Khám phá

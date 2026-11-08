@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useLocation, navigateTo } from '../lib/navigation';
 import { AdminPortal } from '../portals/admin/AdminPortal';
 import { GuidePortal } from '../portals/guide/GuidePortal';
-import { PartnerPortal } from '../portals/partner/PartnerPortal';
 import { CustomerPortal } from '../portals/customer/CustomerPortal';
 import { PublicPortal } from '../portals/public/PublicPortal';
 import { useAuthStore } from '../stores/auth.store';
@@ -13,8 +12,8 @@ import { ROUTES } from '../constants/routes';
  * Authorization & role checking is governed by `x-role` rather than ad-hoc inline `if` conditions.
  *
  * 1. Admin Portal (`/admin/*`)      -> Guarded by x-role: ADMIN
- * 2. Partner Portal (`/partner/*`)  -> Guarded by x-role: PARTNER / GUIDE / ADMIN
- * 3. Customer Portal (`/booking/*`, `/account/*`, `/customer/*`, `/payment/*`) -> Guarded by x-role: CUSTOMER / PARTNER / GUIDE / ADMIN
+ * 2. Guide Portal (`/guide/*`)      -> Guarded by x-role: GUIDE / ADMIN
+ * 3. Customer Portal (`/booking/*`, `/account/*`, `/customer/*`, `/payment/*`) -> Guarded by x-role: CUSTOMER / GUIDE / ADMIN
  * 4. Public Portal (fallback)       -> Public accessibility (`/`, `/tours/*`, `/login`, `/register`, etc.)
  */
 export const AppRouter: React.FC = () => {
@@ -28,18 +27,30 @@ export const AppRouter: React.FC = () => {
         account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'ADMIN'))) ||
     (!isInitializing && xRole === 'ADMIN');
 
+  const isGuide =
+    (isAuthenticated &&
+      (xRole === 'GUIDE' ||
+        user?.role === 'guide' ||
+        account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'GUIDE'))) ||
+    (!isInitializing && xRole === 'GUIDE');
+
   const isHomeRoute = pathname === ROUTES.PUBLIC.HOME || pathname === '' || pathname === '/home';
 
-  // If logged in as admin and entering or visiting the home page, redirect to Admin Dashboard
+  // If logged in as admin or guide and entering or visiting the home page, redirect to respective Dashboard
   useEffect(() => {
-    if (!isInitializing && isAdmin && isHomeRoute) {
-      navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+    if (!isInitializing && isHomeRoute) {
+      if (isAdmin) {
+        navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+      } else if (isGuide) {
+        navigateTo(ROUTES.GUIDE.SCHEDULES, { replace: true });
+      }
     }
-  }, [isInitializing, isAdmin, isHomeRoute]);
+  }, [isInitializing, isAdmin, isGuide, isHomeRoute]);
 
-  // Prevent home page from rendering for admin: render AdminPortal immediately without flicker
-  if (!isInitializing && isAdmin && isHomeRoute) {
-    return <AdminPortal />;
+  // Prevent home page from rendering for admin / guide: render respective Portal immediately without flicker
+  if (!isInitializing && isHomeRoute) {
+    if (isAdmin) return <AdminPortal />;
+    if (isGuide) return <GuidePortal />;
   }
 
   // 1. Admin Portal Domain
@@ -52,9 +63,16 @@ export const AppRouter: React.FC = () => {
     return <GuidePortal />;
   }
 
-  // 3. Partner Portal Domain
+  // Redirect legacy /partner routes to appropriate dashboard or home
   if (pathname.startsWith('/partner')) {
-    return <PartnerPortal />;
+    if (isAdmin) {
+      navigateTo(ROUTES.ADMIN.DASHBOARD, { replace: true });
+    } else if (isGuide) {
+      navigateTo(ROUTES.GUIDE.SCHEDULES, { replace: true });
+    } else {
+      navigateTo(ROUTES.PUBLIC.HOME, { replace: true });
+    }
+    return null;
   }
 
   // 3. Customer Portal Domain

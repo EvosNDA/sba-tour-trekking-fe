@@ -11,6 +11,7 @@ import {
   ExternalLink,
   ChevronRight,
   ShieldAlert,
+  Calendar,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../features/auth/api/auth.api';
@@ -23,9 +24,12 @@ export interface CustomerPortalLayoutProps {
 }
 
 export const CustomerPortalLayout: React.FC<CustomerPortalLayoutProps> = ({ children }) => {
-  const { account, user, xRole } = useAuthStore();
+  const { account, user, xRole, hasRole } = useAuthStore();
   const { pathname } = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const isAdmin = xRole === 'ADMIN' || hasRole('ADMIN');
+  const isGuide = xRole === 'GUIDE' || hasRole('GUIDE');
 
   const handleLogout = async () => {
     try {
@@ -78,7 +82,15 @@ export const CustomerPortalLayout: React.FC<CustomerPortalLayoutProps> = ({ chil
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => navigateTo(ROUTES.PUBLIC.HOME)}
+              onClick={() =>
+                navigateTo(
+                  isAdmin
+                    ? ROUTES.ADMIN.DASHBOARD
+                    : isGuide
+                    ? ROUTES.GUIDE.SCHEDULES
+                    : ROUTES.PUBLIC.HOME
+                )
+              }
               className="flex items-center gap-2.5 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#C2410C]/40 rounded-lg"
             >
               <div className="w-9 h-9 rounded-xl bg-[#1F4E43] text-[#B9EADB] flex items-center justify-center shadow-2xs">
@@ -130,16 +142,16 @@ export const CustomerPortalLayout: React.FC<CustomerPortalLayoutProps> = ({ chil
               </button>
             )}
 
-            {(xRole === 'PARTNER' || xRole === 'GUIDE') && (
+            {xRole === 'GUIDE' && (
               <button
                 type="button"
-                onClick={() => navigateTo(ROUTES.PARTNER.DASHBOARD)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#C2410C]/10 text-[#C2410C] hover:bg-[#C2410C]/20 transition-colors cursor-pointer border border-[#C2410C]/30"
-                title="Truy cập Partner Portal"
+                onClick={() => navigateTo(ROUTES.GUIDE.SCHEDULES)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#1F4E43]/10 text-[#1F4E43] hover:bg-[#1F4E43]/20 transition-colors cursor-pointer border border-[#1F4E43]/30"
+                title="Truy cập Guide Portal"
               >
-                <Mountain className="w-3.5 h-3.5 text-[#C2410C]" />
-                <span>Partner Portal</span>
-                <ChevronRight className="w-3 h-3 text-[#C2410C]" />
+                <Calendar className="w-3.5 h-3.5 text-[#1F4E43]" />
+                <span>Guide Portal</span>
+                <ChevronRight className="w-3 h-3 text-[#1F4E43]" />
               </button>
             )}
           </nav>
@@ -226,20 +238,20 @@ export const CustomerPortalLayout: React.FC<CustomerPortalLayoutProps> = ({ chil
               </button>
             )}
 
-            {(xRole === 'PARTNER' || xRole === 'GUIDE') && (
+            {xRole === 'GUIDE' && (
               <button
                 type="button"
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  navigateTo(ROUTES.PARTNER.DASHBOARD);
+                  navigateTo(ROUTES.GUIDE.SCHEDULES);
                 }}
-                className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-[#C2410C] bg-[#C2410C]/10 hover:bg-[#C2410C]/20 flex items-center justify-between"
+                className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-[#1F4E43] bg-[#1F4E43]/10 hover:bg-[#1F4E43]/20 flex items-center justify-between"
               >
                 <span className="flex items-center gap-2">
-                  <Mountain className="w-4 h-4 text-[#C2410C]" />
-                  <span>Chuyển sang Partner Portal</span>
+                  <Calendar className="w-4 h-4 text-[#1F4E43]" />
+                  <span>Chuyển sang Guide Portal</span>
                 </span>
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 text-[#1F4E43]" />
               </button>
             )}
 
