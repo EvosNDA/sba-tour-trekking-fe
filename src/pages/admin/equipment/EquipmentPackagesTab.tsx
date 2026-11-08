@@ -45,7 +45,7 @@ export const EquipmentPackagesTab: React.FC = () => {
         equipmentApi.listCatalog(),
       ]);
       setPackages(pkgs);
-      setCatalog(catItems);
+      setCatalog(catItems.filter((item) => item.status === 'ACTIVE'));
     } catch (err: unknown) {
       const apiErr = err as { message?: string };
       setError(apiErr?.message || 'Không thể tải danh sách combo thiết bị.');

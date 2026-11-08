@@ -113,8 +113,9 @@ export const TourEquipmentEditor: React.FC<TourEquipmentEditorProps> = ({
         ]);
         setEquipmentData(tourEq);
         setConfigVersion(tourEq?.version ?? 0);
-        setPackages(pkgs);
-        setCatalog(cat);
+        const activeIds = new Set(cat.filter((item) => item.status === 'ACTIVE').map((item) => item.id));
+        setPackages(pkgs.filter((pkg) => pkg.items.every((item) => activeIds.has(item.equipmentId))));
+        setCatalog(cat.filter((item) => item.status === 'ACTIVE'));
         if (!preserveDraftSelections) {
           syncSelections(tourEq);
         }

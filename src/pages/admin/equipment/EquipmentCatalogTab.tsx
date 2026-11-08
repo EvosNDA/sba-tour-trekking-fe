@@ -132,7 +132,7 @@ export const EquipmentCatalogTab: React.FC = () => {
         totalQuantity: inv?.totalQuantity ?? 0,
         maintenanceQuantity: inv?.maintenanceQuantity ?? 0,
         availableQuantity: inv?.availableQuantity ?? 0,
-        active: inv?.active ?? true,
+        active: cat.status === 'ACTIVE',
         hasInventoryRecord: Boolean(inv),
       };
     });
@@ -263,6 +263,7 @@ export const EquipmentCatalogTab: React.FC = () => {
           name: name.trim(),
           description: description.trim() || null,
           individualRentalPriceVnd: priceNum,
+          status: isActive ? 'ACTIVE' : 'MAINTENANCE',
         });
         activeEquipmentId = created.id;
         setCreatedEquipmentId(created.id);
@@ -271,6 +272,7 @@ export const EquipmentCatalogTab: React.FC = () => {
           name: name.trim(),
           description: description.trim() || null,
           individualRentalPriceVnd: priceNum,
+          status: isActive ? 'ACTIVE' : 'MAINTENANCE',
         });
       }
 
@@ -342,7 +344,7 @@ export const EquipmentCatalogTab: React.FC = () => {
     } catch (err: any) {
       setDeleteError(
         err?.message ||
-          'Không thể xóa thiết bị này vì có thể đang được gắn vào tour hoặc combo. Vui lòng gỡ liên kết trước khi xóa.'
+          'Không thể xóa thiết bị. Vui lòng thử lại.'
       );
     } finally {
       setIsDeleting(false);
@@ -407,9 +409,9 @@ export const EquipmentCatalogTab: React.FC = () => {
               onChange={(e) => setSelectedStatusFilter(e.target.value)}
               className="py-2.5 px-3 rounded-xl border border-stone-200 text-xs sm:text-sm text-stone-700 bg-white focus:border-[#1F4E43] outline-none cursor-pointer"
             >
-              <option value="ALL">Tất cả trạng thái kho</option>
+              <option value="ALL">Tất cả trạng thái</option>
               <option value="ACTIVE">Đang hoạt động</option>
-              <option value="INACTIVE">Ngừng hoạt động</option>
+              <option value="INACTIVE">Bảo trì</option>
             </select>
           </div>
         </div>
@@ -582,7 +584,7 @@ export const EquipmentCatalogTab: React.FC = () => {
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-stone-100 text-stone-600 border border-stone-200">
                             <XCircle className="w-3 h-3" />
-                            <span>Tạm ngưng</span>
+                            <span>Bảo trì</span>
                           </span>
                         )}
                       </td>
@@ -901,7 +903,7 @@ export const EquipmentCatalogTab: React.FC = () => {
               {/* Active Toggle */}
               <div className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] border border-[#E6E1D8]">
                 <div>
-                  <span className="text-xs font-bold text-[#1C2526] block">Trạng thái kho</span>
+                  <span className="text-xs font-bold text-[#1C2526] block">Trạng thái thiết bị</span>
                   <span className="text-[11px] text-stone-500 block">
                     Đang sẵn sàng cho tour thuê
                   </span>
@@ -955,7 +957,7 @@ export const EquipmentCatalogTab: React.FC = () => {
             <div className="text-center space-y-2">
               <h3 className="font-bold text-lg text-[#1C2526]">Xác nhận xóa thiết bị</h3>
               <p className="text-xs text-stone-600">
-                Bạn có chắc chắn muốn xóa thiết bị <strong className="text-stone-900">"{deletingItem.name}"</strong> khỏi thư viện dùng chung?
+                Xóa thiết bị <strong className="text-stone-900">"{deletingItem.name}"</strong>? Thiết bị sẽ không còn được chọn mới và vẫn xuất hiện trong lịch sử.
               </p>
             </div>
 
@@ -982,7 +984,7 @@ export const EquipmentCatalogTab: React.FC = () => {
                 className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
               >
                 {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Xóa vĩnh viễn</span>
+                <span>Xóa</span>
               </button>
             </div>
           </div>

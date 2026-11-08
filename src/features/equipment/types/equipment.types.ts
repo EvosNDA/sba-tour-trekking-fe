@@ -1,12 +1,16 @@
+export type EquipmentStatus = 'ACTIVE' | 'MAINTENANCE' | 'DELETED';
+
 export interface EquipmentCatalogItem {
   id: number;
   name: string;
   description: string | null;
   individualRentalPriceVnd: number | null;
   imageUrl: string | null;
+  status: EquipmentStatus;
 }
 
 export interface SaveEquipmentRequest {
+  status?: 'ACTIVE' | 'MAINTENANCE';
   name: string;
   description?: string | null;
   individualRentalPriceVnd?: number | null;
@@ -133,6 +137,21 @@ export interface EquipmentReservationResponse {
   status: EquipmentReservationStatus;
   holdExpiresAt: string | null;
   items: EquipmentReservationItem[];
+}
+
+export interface ScheduleEquipmentSummaryItem {
+  equipmentId: number;
+  equipmentName: string;
+  bookingCount: number;
+  totalQuantity: number;
+  issuedQuantity: number;
+  returnedQuantity: number;
+}
+
+export interface ScheduleEquipmentSummaryResponse {
+  scheduleId: number;
+  totalBookingsWithEquipment: number;
+  items: ScheduleEquipmentSummaryItem[];
 }
 
 export interface EquipmentHandoverItemRequest {
