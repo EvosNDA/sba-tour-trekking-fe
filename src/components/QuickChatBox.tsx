@@ -211,6 +211,15 @@ export const QuickChatBox: React.FC = () => {
                           code: ({ children }) => <code className="bg-stone-100 text-emerald-800 px-1 rounded text-xs font-mono">{children}</code>,
                           // Code block
                           pre: ({ children }) => <pre className="bg-stone-100 p-2 rounded text-xs overflow-x-auto my-1">{children}</pre>,
+                          // Images
+                          img: ({ src, alt }) => (
+                            <img
+                              src={src}
+                              alt={alt || 'Tour image'}
+                              className="w-full max-h-48 object-cover rounded-lg my-2 border border-stone-200 shadow-sm"
+                              loading="lazy"
+                            />
+                          ),
                         }}
                       >
                         {msg.content}
@@ -267,6 +276,32 @@ export const QuickChatBox: React.FC = () => {
                 <div className="bg-white border border-stone-200 rounded-2xl px-3 py-2 flex items-center gap-2 shadow-xs">
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
                   <span>Đang tìm kiếm & suy nghĩ...</span>
+                </div>
+              </div>
+            )}
+
+            {messages.length === 1 && (
+              <div className="mt-2 space-y-1.5">
+                <p className="text-[11px] text-stone-500 font-medium">💡 Gợi ý câu hỏi:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'Gợi ý vài tour trekking nổi bật',
+                    'Có tour nào cho người mới bắt đầu không?',
+                    'Tour Tà Năng Phan Dũng giá bao nhiêu?',
+                    'Chính sách hủy tour như thế nào?'
+                  ].map((suggestion, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => {
+                        setInput(suggestion);
+                      }}
+                      className="text-xs bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/60 rounded-full px-2.5 py-1 text-left transition-colors"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
