@@ -21,6 +21,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate frontend configuration
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+        run: |
+          test -n "$VITE_GOOGLE_CLIENT_ID" || {
+            echo "::error::Missing Actions variable VITE_GOOGLE_CLIENT_ID"
+            exit 1
+          }
+          test -n "$VITE_API_BASE_URL" || {
+            echo "::error::Missing Actions variable VITE_API_BASE_URL"
+            exit 1
+          }
+
       - name: Setup Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -36,6 +50,9 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            VITE_GOOGLE_CLIENT_ID=${{ vars.VITE_GOOGLE_CLIENT_ID }}
+            VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL }}
           tags: |
             ghcr.io/evosnda/sba-tour-trekking-fe:latest
             ghcr.io/evosnda/sba-tour-trekking-fe:${{ github.sha }}
