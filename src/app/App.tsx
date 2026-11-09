@@ -3,6 +3,7 @@ import { Providers } from './providers';
 import { AppRouter } from './router';
 import { ToastContainer } from '../components/ui/Toast';
 import { authApi } from '../features/auth/api/auth.api';
+import { QuickChatBox } from '../components/QuickChatBox';
 
 export function App() {
   // Restore session once on app mount via POST /api/v1/auth/refresh -> GET /api/v1/auth/me
@@ -14,6 +15,7 @@ export function App() {
     <Providers>
       <AppRouter />
       <ToastContainer />
+      <QuickChatBox />
     </Providers>
   );
 }
