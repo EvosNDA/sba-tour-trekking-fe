@@ -1,3 +1,4 @@
+import { CancelBookingDialog } from '../../../features/bookings/components/CancelBookingDialog';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Compass,
@@ -7,7 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Loader2,
   PhoneCall,
 } from 'lucide-react';
 import { useAuth } from '../../../features/auth/hooks/useAuth';
@@ -191,11 +191,12 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = () => {
                 <button
                   key={opt.value || 'ALL'}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => {
                     setStatusFilter(opt.value);
                     setPage(0);
                   }}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                  className={`min-h-11 px-3.5 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-colors cursor-pointer ${
                     active
                       ? 'bg-[#1F4E43] text-white'
                       : 'bg-stone-100 text-stone-600 hover:bg-stone-200/70'
@@ -207,8 +208,8 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = () => {
             })}
           </div>
 
-          <span className="text-xs font-mono text-stone-500 shrink-0">
-            Tổng cộng: <strong>{totalElements}</strong> đặt chỗ
+          <span role="status" className="text-sm text-stone-500 shrink-0">
+            {isLoading ? 'Đang tải đặt chỗ…' : error ? 'Chưa thể tải đặt chỗ' : <>Tổng cộng: <strong>{totalElements}</strong> đặt chỗ</>}
           </span>
         </div>
 
@@ -334,77 +335,15 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = () => {
         )}
       </div>
 
-      {/* Cancel Confirmation Modal */}
-      {bookingToCancel && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="modal-cancel-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
-        >
-          <div className="bg-white rounded-2xl border border-stone-200 max-w-md w-full p-6 shadow-xl space-y-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2 text-rose-700">
-                <AlertTriangle className="w-5 h-5 shrink-0" />
-                <h2 id="modal-cancel-title" className="text-lg font-bold text-stone-900">
-                  Hủy đặt chỗ #{bookingToCancel.bookingCode}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setBookingToCancel(null)}
-                className="text-stone-400 hover:text-stone-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-stone-600 leading-relaxed">
-              Bạn đang yêu cầu hủy đặt chỗ tour{' '}
-              <strong>{bookingToCancel.tourTitle || `#${bookingToCancel.tourId}`}</strong>. Nếu đặt chỗ đã thanh toán cọc hoặc toàn bộ, hệ thống sẽ ghi nhận yêu cầu hoàn tiền để bộ phận hỗ trợ đối soát.
-            </p>
-
-            <form onSubmit={handleConfirmCancel} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="my-bookings-cancel-reason"
-                  className="block text-xs font-semibold text-stone-800 mb-1"
-                >
-                  Lý do hủy đặt chỗ
-                </label>
-                <textarea
-                  id="my-bookings-cancel-reason"
-                  rows={3}
-                  required
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="Nhập lý do hủy chuyến..."
-                  className="w-full rounded-xl border border-stone-300 p-3 text-xs focus:outline-none focus:border-[#1F4E43]"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setBookingToCancel(null)}
-                  disabled={isCancelling}
-                  className="px-4 py-2.5 rounded-xl border border-stone-300 text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer"
-                >
-                  Đóng
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCancelling}
-                  className="px-5 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
-                >
-                  {isCancelling && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Xác nhận hủy</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CancelBookingDialog
+        isOpen={Boolean(bookingToCancel)}
+        bookingCode={bookingToCancel?.bookingCode || ''}
+        reason={cancelReason}
+        onReasonChange={setCancelReason}
+        onClose={() => setBookingToCancel(null)}
+        onSubmit={handleConfirmCancel}
+        isSubmitting={isCancelling}
+      />
     </div>
   );
 };

@@ -1,3 +1,5 @@
+import { TravelerFields } from '../../../features/bookings/components/TravelerFields';
+import { CancelBookingDialog } from '../../../features/bookings/components/CancelBookingDialog';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   ArrowLeft,
@@ -16,7 +18,6 @@ import {
   Loader2,
   PhoneCall,
   Check,
-  X,
   Backpack,
 } from 'lucide-react';
 import { useLocation, useSearchParams, navigateTo } from '../../../lib/navigation';
@@ -251,6 +252,7 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
     phone: string;
     email: string;
   }>({ fullName: '', phone: '', email: '' });
+  const [participantErrors, setParticipantErrors] = useState<Record<string, string>>({});
   const [isSavingParticipant, setIsSavingParticipant] = useState<boolean>(false);
 
   // Full passenger list replacement modal state (PUT)
@@ -482,6 +484,7 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
 
   const handleStartEditParticipant = (p: BookingPassengerResponse) => {
     setEditingParticipantId(p.id);
+    setParticipantErrors({});
     setParticipantDraft({
       fullName: p.fullName,
       phone: p.phone || '',
@@ -491,14 +494,17 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
 
   const handleSaveParticipant = async (participantId: number) => {
     if (!booking) return;
-    if (
-      !participantDraft.fullName.trim() ||
-      !participantDraft.phone.trim() ||
-      !participantDraft.email.trim()
-    ) {
-      toast.warning('Vui lòng nhập đầy đủ họ tên, số điện thoại và email.');
+    const validation = validatePassengers([{ ...participantDraft, bookingCustomer: false }]);
+    if (Object.keys(validation).length > 0) {
+      setParticipantErrors({
+        fullName: validation['passengers[0].fullName'],
+        phone: validation['passengers[0].phone'],
+        email: validation['passengers[0].email'],
+      });
+      requestAnimationFrame(() => document.querySelector<HTMLInputElement>('[aria-invalid="true"]')?.focus());
       return;
     }
+    setParticipantErrors({});
 
     setIsSavingParticipant(true);
     try {
@@ -1308,62 +1314,19 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
                     return (
                       <div key={p.id || idx} className="p-4 bg-white">
                         {isEditingThis ? (
-                          <div className="space-y-3">
+                          <form noValidate onSubmit={(event) => { event.preventDefault(); handleSaveParticipant(p.id); }} className="space-y-3">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-[#1F4E43]">
                                 Chỉnh sửa hành khách #{idx + 1}
                               </span>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                              <div>
-                                <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                                  Họ và tên
-                                </label>
-                                <input
-                                  type="text"
-                                  value={participantDraft.fullName}
-                                  onChange={(e) =>
-                                    setParticipantDraft((d) => ({
-                                      ...d,
-                                      fullName: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full px-3 py-2 text-xs rounded-lg border border-stone-300 focus:outline-none focus:border-[#1F4E43]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                                  Số điện thoại
-                                </label>
-                                <input
-                                  type="tel"
-                                  value={participantDraft.phone}
-                                  onChange={(e) =>
-                                    setParticipantDraft((d) => ({
-                                      ...d,
-                                      phone: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full px-3 py-2 text-xs rounded-lg border border-stone-300 focus:outline-none focus:border-[#1F4E43]"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-[11px] font-semibold text-stone-600 mb-1">
-                                  Email
-                                </label>
-                                <input
-                                  type="email"
-                                  value={participantDraft.email}
-                                  onChange={(e) =>
-                                    setParticipantDraft((d) => ({
-                                      ...d,
-                                      email: e.target.value,
-                                    }))
-                                  }
-                                  className="w-full px-3 py-2 text-xs rounded-lg border border-stone-300 focus:outline-none focus:border-[#1F4E43]"
-                                />
-                              </div>
-                            </div>
+                            <TravelerFields
+                              idPrefix={`booking-${booking.id}-participant-${p.id}`}
+                              value={participantDraft}
+                              errors={participantErrors}
+                              onChange={(field, value) => { setParticipantDraft((draft) => ({ ...draft, [field]: value })); setParticipantErrors({}); }}
+                              disabled={isSavingParticipant}
+                            />
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 type="button"
@@ -1374,8 +1337,7 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
                                 Hủy
                               </button>
                               <button
-                                type="button"
-                                onClick={() => handleSaveParticipant(p.id)}
+                                type="submit"
                                 disabled={isSavingParticipant}
                                 className="px-3.5 py-1.5 rounded-lg bg-[#1F4E43] hover:bg-[#163830] text-white text-xs font-semibold flex items-center gap-1 cursor-pointer"
                               >
@@ -1387,7 +1349,7 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
                                 <span>Lưu</span>
                               </button>
                             </div>
-                          </div>
+                          </form>
                         ) : (
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
@@ -1457,76 +1419,15 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
         </div>
       </div>
 
-      {/* Cancel Booking Confirmation Modal */}
-      {isCancelModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="cancel-booking-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
-        >
-          <div className="bg-white rounded-2xl border border-stone-200 max-w-md w-full p-6 shadow-xl space-y-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-2.5 text-rose-700">
-                <AlertTriangle className="w-5 h-5 shrink-0" />
-                <h2 id="cancel-booking-title" className="text-lg font-bold text-stone-900">
-                  Xác nhận hủy đặt chỗ #{booking.bookingCode}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsCancelModalOpen(false)}
-                className="text-stone-400 hover:text-stone-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-stone-600 leading-relaxed">
-              Hành động này sẽ hủy giữ chỗ của đoàn trên lịch khởi hành. Nếu bạn đã thanh toán tiền cọc hoặc toàn bộ, hệ thống sẽ ghi nhận yêu cầu đối soát hoàn tiền theo quy định của tour.
-            </p>
-
-            <form onSubmit={handleConfirmCancelBooking} className="space-y-4">
-              <div>
-                <label
-                  htmlFor="cancel-reason"
-                  className="block text-xs font-semibold text-stone-800 mb-1"
-                >
-                  Lý do hủy chuyến
-                </label>
-                <textarea
-                  id="cancel-reason"
-                  rows={3}
-                  required
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="Ví dụ: Thay đổi lịch công tác đột xuất..."
-                  className="w-full rounded-xl border border-stone-300 p-3 text-xs focus:outline-none focus:border-[#1F4E43]"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCancelModalOpen(false)}
-                  disabled={isCancelling}
-                  className="px-4 py-2.5 rounded-xl border border-stone-300 text-xs font-semibold text-stone-700 hover:bg-stone-50 cursor-pointer"
-                >
-                  Giữ lại đặt chỗ
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCancelling}
-                  className="px-5 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
-                >
-                  {isCancelling && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Xác nhận hủy</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <CancelBookingDialog
+        isOpen={isCancelModalOpen}
+        bookingCode={booking.bookingCode}
+        reason={cancelReason}
+        onReasonChange={setCancelReason}
+        onClose={() => setIsCancelModalOpen(false)}
+        onSubmit={handleConfirmCancelBooking}
+        isSubmitting={isCancelling}
+      />
     </div>
   );
 };

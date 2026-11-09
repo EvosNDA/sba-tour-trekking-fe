@@ -47,11 +47,12 @@ export const GuidePortalLayout: React.FC<GuidePortalLayoutProps> = ({ children }
     >
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-[#E6E1D8] px-4 sm:px-6 lg:px-8 py-2.5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
           {/* Brand & Navigation */}
           <div className="flex items-center gap-4 lg:gap-6 min-w-0">
             <button
               type="button"
+              aria-label="WeTrek — Lịch được phân công"
               onClick={() => navigateTo(ROUTES.GUIDE.SCHEDULES)}
               className="flex items-center gap-2.5 text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/30 rounded-xl shrink-0"
             >
@@ -62,18 +63,19 @@ export const GuidePortalLayout: React.FC<GuidePortalLayoutProps> = ({ children }
                 <span className="font-editorial text-lg font-bold tracking-tight text-[#1C2526] leading-none">
                   WeTrek Ops
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-50 text-[#1F4E43] border border-emerald-200 font-bold uppercase tracking-wider">
+                <span className="hidden xl:inline-block text-xs px-2 py-1 rounded-md bg-[#EAF0E9] text-[#1F4E43] font-medium">
                   Guide Portal
                 </span>
               </div>
             </button>
 
             {/* Desktop Navigation */}
-            <nav aria-label="Menu Hướng dẫn viên" className="hidden md:flex items-center gap-1.5 shrink-0">
+            <nav aria-label="Menu Hướng dẫn viên" className="hidden xl:flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => navigateTo(ROUTES.GUIDE.SCHEDULES)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
+                aria-current={pathname.startsWith('/guide/schedules') || pathname === '/guide' ? 'page' : undefined}
+                className={`min-h-11 px-3 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
                   pathname.startsWith('/guide/schedules') || pathname === '/guide'
                     ? 'bg-[#1F4E43] text-white shadow-2xs'
                     : 'text-stone-700 hover:bg-stone-100'
@@ -95,7 +97,7 @@ export const GuidePortalLayout: React.FC<GuidePortalLayoutProps> = ({ children }
                   navigateTo(ROUTES.ADMIN.DASHBOARD);
                 }}
                 title="Chuyển sang quyền Quản trị (Admin Portal)"
-                className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer"
+                className="hidden sm:inline-flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-lg border border-[#D6CEBE] bg-white hover:bg-[#F7F4EE] text-[#1F4E43] text-sm font-semibold whitespace-nowrap transition-colors cursor-pointer"
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-[#1F4E43] shrink-0" />
                 <span>Admin Portal</span>
@@ -107,7 +109,7 @@ export const GuidePortalLayout: React.FC<GuidePortalLayoutProps> = ({ children }
               <div className="w-6 h-6 rounded-full bg-[#1F4E43] text-white text-[11px] font-bold flex items-center justify-center shrink-0">
                 {guideInitials}
               </div>
-              <div className="text-left hidden sm:block">
+              <div className="text-left hidden lg:block">
                 <span className="font-bold text-[#1C2526] text-xs block max-w-[140px] truncate leading-tight">
                   {guideName}
                 </span>
@@ -121,7 +123,8 @@ export const GuidePortalLayout: React.FC<GuidePortalLayoutProps> = ({ children }
               type="button"
               onClick={handleLogout}
               title="Đăng xuất"
-              className="p-1.5 rounded-lg text-stone-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+              aria-label="Đăng xuất"
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-stone-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -139,7 +142,8 @@ export const GuidePortalLayout: React.FC<GuidePortalLayoutProps> = ({ children }
         <button
           type="button"
           onClick={() => navigateTo(ROUTES.GUIDE.SCHEDULES)}
-          className={`flex flex-col items-center gap-1 py-1 cursor-pointer ${
+          aria-current={pathname.startsWith('/guide/schedules') || pathname === '/guide' ? 'page' : undefined}
+          className={`flex min-h-11 flex-col items-center justify-center gap-1 py-1 cursor-pointer ${
             pathname.startsWith('/guide/schedules') || pathname === '/guide'
               ? 'text-[#1F4E43] font-bold'
               : 'text-stone-500'
@@ -156,7 +160,7 @@ export const GuidePortalLayout: React.FC<GuidePortalLayoutProps> = ({ children }
               setXRole('ADMIN');
               navigateTo(ROUTES.ADMIN.DASHBOARD);
             }}
-            className="flex flex-col items-center gap-1 py-1 text-stone-700 font-semibold cursor-pointer"
+            className="flex min-h-11 flex-col items-center justify-center gap-1 py-1 text-stone-700 font-semibold cursor-pointer"
           >
             <ShieldCheck className="w-4 h-4 text-[#1F4E43]" />
             <span>Admin</span>

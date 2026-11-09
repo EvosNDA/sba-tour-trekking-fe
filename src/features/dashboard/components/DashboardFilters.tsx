@@ -4,6 +4,7 @@ import { DashboardBasis } from '../types/dashboard.types';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { toursApi } from '../../tours/api/tours.api';
 import { TourSummaryResponse } from '../../tours/types/tour.types';
+import { FilterToolbar } from '../../../components/ui/FilterToolbar';
 
 export interface DashboardFiltersProps {
   basis: DashboardBasis;
@@ -50,7 +51,7 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
   }, [debouncedTourSearch]);
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E6E1D8] p-5 shadow-2xs space-y-4">
+    <FilterToolbar className="space-y-4">
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Bộ lọc Basis */}
         <div className="flex flex-wrap items-center gap-3">
@@ -58,28 +59,28 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             <Filter className="w-3.5 h-3.5 text-stone-400" />
             Tiêu chí ghi nhận:
           </span>
-          <div className="inline-flex rounded-xl bg-stone-100 p-1 border border-stone-200/60">
+          <div className="inline-flex max-w-full flex-wrap rounded-xl bg-stone-100 p-1 border border-stone-200/60">
             <button
               type="button"
               onClick={() => onBasisChange('BOOKING_DATE')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+              className={`px-3 min-h-10 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
                 basis === 'BOOKING_DATE'
                   ? 'bg-white text-emerald-950 font-semibold shadow-xs'
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              Theo ngày đặt (Booking)
+              Theo ngày đặt
             </button>
             <button
               type="button"
               onClick={() => onBasisChange('DEPARTURE_DATE')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+              className={`px-3 min-h-10 py-2 text-sm font-medium rounded-lg transition-all cursor-pointer ${
                 basis === 'DEPARTURE_DATE'
                   ? 'bg-white text-emerald-950 font-semibold shadow-xs'
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              Theo ngày khởi hành (Departure)
+              Theo ngày khởi hành
             </button>
           </div>
         </div>
@@ -88,6 +89,7 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
         <div className="flex items-center gap-3">
           <div className="relative flex-1 md:w-80">
             <select
+              aria-label="Tour áp dụng cho biểu đồ xu hướng, so sánh và tỷ lệ lấp đầy"
               value={selectedTourId ?? ''}
               onChange={(e) => {
                 const val = e.target.value;
@@ -108,12 +110,14 @@ export const DashboardFilters: React.FC<DashboardFiltersProps> = ({
             type="button"
             onClick={onRefreshAll}
             title="Làm mới tất cả số liệu"
+            aria-label="Làm mới tất cả số liệu"
             className="p-2 text-stone-600 bg-white border border-stone-300 hover:bg-stone-50 rounded-xl transition-colors shrink-0 cursor-pointer shadow-2xs"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
         </div>
       </div>
-    </div>
+      <p className="text-sm leading-relaxed text-stone-600">Bộ lọc tour áp dụng cho biểu đồ xu hướng, so sánh và tỷ lệ lấp đầy. Chỉ số tổng quan và bảng xếp hạng luôn hiển thị toàn hệ thống.</p>
+    </FilterToolbar>
   );
 };

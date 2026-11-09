@@ -10,11 +10,9 @@ import {
   Package,
   AlertCircle,
   Loader2,
-  Camera,
   ShieldAlert,
   ShieldCheck,
   Send,
-  Trash2,
   AlertTriangle,
   Lock,
   RefreshCw,
@@ -24,7 +22,6 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
-  Eye,
   Plus,
 } from 'lucide-react';
 import {
@@ -42,6 +39,8 @@ import { useAuthStore } from '../../../stores/auth.store';
 import { ROUTES } from '../../../constants/routes';
 import { navigateTo } from '../../../lib/navigation';
 import { cn } from '../../../lib/utils';
+import { Modal } from '../../../components/ui/Modal';
+import { EquipmentHandoverFields } from './EquipmentHandoverFields';
 import type {
   BatchRoundStatus,
   GuestCheckInStatus,
@@ -50,6 +49,7 @@ import type {
   ParticipantCheckInRecord,
   ParticipantCheckOutRecord,
   ParticipantEquipmentCheckInItem,
+  ParticipantEquipmentCheckOutItem,
   ScheduleCheckInBatchReport,
   ScheduleCheckOutBatchReport,
   ScheduleGuideSummary,
@@ -1347,6 +1347,36 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
     );
   }, [checkOutReport?.participants, guestSearch]);
 
+  const renderCheckInEquipment = (participant: ParticipantCheckInRecord, eq: ParticipantEquipmentCheckInItem) => {
+    const ordered = bookingOrderedEquipmentMap[participant.bookingId]?.[eq.equipmentId]?.orderedQuantity ?? eq.bookingOrderedQuantity ?? 0;
+    const allocated = bookingAllocatedTotalsMap[participant.bookingId]?.[eq.equipmentId] || 0;
+    const remaining = Math.max(0, ordered - allocated);
+    return <EquipmentHandoverFields key={eq.equipmentId} name={eq.equipmentName}
+      quantity={eq.allocatedQuantity} maxQuantity={eq.allocatedQuantity + remaining}
+      quantityLabel={`Số lượng giao · còn ${remaining}/${ordered}`}
+      condition={eq.condition} note={eq.note || ''} photos={eq.photos || []}
+      locked={isCheckInLocked} uploading={uploadingPhotoKey === `ci-${participant.participantId}-${eq.equipmentId}`}
+      showDetails={eq.allocatedQuantity > 0} noteRequired={eq.condition === 'DAMAGED' || eq.condition === 'MISSING'}
+      onQuantityChange={(value) => handleEquipmentCheckInQuantityChange(participant.participantId, participant.bookingId, eq.equipmentId, value)}
+      onConditionChange={(value) => handleEquipmentCheckInConditionChange(participant.participantId, eq.equipmentId, value)}
+      onNoteChange={(value) => handleEquipmentCheckInNoteChange(participant.participantId, eq.equipmentId, value)}
+      onUpload={(files) => { void handleUploadCheckInPhoto(participant.participantId, eq.equipmentId, files); }}
+      onPreview={setPreviewPhotoUrl} onRemove={(id) => handleRemoveCheckInPhoto(participant.participantId, eq.equipmentId, id)} />;
+  };
+
+  const renderCheckOutEquipment = (participant: ParticipantCheckOutRecord, eq: ParticipantEquipmentCheckOutItem) => (
+    <EquipmentHandoverFields key={eq.equipmentId} name={eq.equipmentName}
+      quantity={eq.returnedQuantity} maxQuantity={eq.issuedQuantity} quantityLabel={`Số lượng trả / ${eq.issuedQuantity} đã giao`}
+      condition={eq.condition} note={eq.note || ''} photos={eq.photos || []}
+      locked={isCheckOutLocked} uploading={uploadingPhotoKey === `co-${participant.participantId}-${eq.equipmentId}`}
+      noteRequired={eq.returnedQuantity < eq.issuedQuantity || eq.condition !== 'GOOD'}
+      onQuantityChange={(value) => handleEquipmentCheckOutQuantityChange(participant.participantId, eq.equipmentId, value)}
+      onConditionChange={(value) => handleEquipmentCheckOutConditionChange(participant.participantId, eq.equipmentId, value)}
+      onNoteChange={(value) => handleEquipmentCheckOutNoteChange(participant.participantId, eq.equipmentId, value)}
+      onUpload={(files) => { void handleUploadCheckOutPhoto(participant.participantId, eq.equipmentId, files); }}
+      onPreview={setPreviewPhotoUrl} onRemove={(id) => handleRemoveCheckOutPhoto(participant.participantId, eq.equipmentId, id)} />
+  );
+
   // ============================================================================
   // RENDER STATES
   // ============================================================================
@@ -1473,7 +1503,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
               {formatVietnamDateTime(manifest.startsAt)} → {formatVietnamDateTime(manifest.endsAt)}
             </span>
           </div>
-          <h1 className="font-editorial text-xl sm:text-2xl font-bold text-[#1C2526] line-clamp-2">
+          <h1 className="font-editorial text-xl sm:text-3xl font-semibold tracking-tight text-[#1C2526] break-words">
             {manifest.tourTitle}
           </h1>
         </div>
@@ -1497,22 +1527,13 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-xs">
-            <div className="px-2.5 py-1.5 rounded-xl bg-[#F7F4EE] border border-[#E6E1D8]">
-              <span className="text-[10px] text-stone-500 block">Check-in</span>
-              <span className="font-bold text-stone-800">{checkInStatusBadge.label}</span>
-            </div>
-            <div className="px-2.5 py-1.5 rounded-xl bg-[#F7F4EE] border border-[#E6E1D8]">
-              <span className="text-[10px] text-stone-500 block">Check-out</span>
-              <span className="font-bold text-stone-800">{checkOutStatusBadge.label}</span>
-            </div>
-          </div>
+
         </div>
       </div>
 
       {/* Feedback Banner */}
       {feedbackBanner && (
-        <div
+        <div role={feedbackBanner.type === 'error' ? 'alert' : 'status'}
           className={cn(
             'flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-xs font-semibold',
             feedbackBanner.type === 'success'
@@ -1627,10 +1648,8 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
           </div>
 
           {/* Time Windows Status Card */}
-          <div className="bg-white rounded-2xl border border-[#E6E1D8] p-4 shadow-2xs space-y-2.5 text-xs">
-            <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-stone-500 border-b border-stone-100 pb-2">
-              Khung giờ thao tác (GMT+7)
-            </h2>
+          <details className="bg-white rounded-2xl border border-[#E6E1D8] p-4 space-y-3 text-sm">
+            <summary className="cursor-pointer font-semibold text-[#1F4E43]">Khung giờ thao tác</summary>
 
             <div
               className={cn(
@@ -1685,7 +1704,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                   : `Mở từ ${formatVietnamDateTime(manifest.endsAt)} (khi kết thúc chuyến)`}
               </p>
             </div>
-          </div>
+          </details>
 
           {/* Booking Equipment Summary Card (if any booking ordered equipment) */}
           {Object.keys(bookingOrderedEquipmentMap).length > 0 && (
@@ -1750,12 +1769,13 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
           {/* Stage Tabs & Quick Action Bar */}
           <div className="bg-white rounded-2xl border border-[#E6E1D8] p-3.5 shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
             {/* Round Switcher */}
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:flex sm:items-center gap-2">
               <button
                 type="button"
+                aria-pressed={activeStage === 'CHECK_IN'}
                 onClick={() => setActiveStage('CHECK_IN')}
                 className={cn(
-                  'px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer',
+                  'px-2.5 sm:px-3.5 min-h-11 py-2 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer',
                   activeStage === 'CHECK_IN'
                     ? 'bg-[#1F4E43] text-white shadow-2xs'
                     : 'bg-stone-100 text-stone-700 hover:bg-stone-200/70'
@@ -1777,9 +1797,10 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
 
               <button
                 type="button"
+                aria-pressed={activeStage === 'CHECK_OUT'}
                 onClick={() => setActiveStage('CHECK_OUT')}
                 className={cn(
-                  'px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-bold inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer',
+                  'px-2.5 sm:px-3.5 min-h-11 py-2 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer',
                   activeStage === 'CHECK_OUT'
                     ? 'bg-[#1F4E43] text-white shadow-2xs'
                     : 'bg-stone-100 text-stone-700 hover:bg-stone-200/70'
@@ -1806,6 +1827,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
                 <input
                   type="text"
+                  id="guide-guest-search" aria-label="Tìm hành khách theo tên, số điện thoại hoặc mã đặt chỗ"
                   value={guestSearch}
                   onChange={(e) => setGuestSearch(e.target.value)}
                   placeholder="Tìm tên khách, mã đơn..."
@@ -1875,7 +1897,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
 
               {/* DESKTOP TABLE FOR CHECK-IN */}
               <div className="hidden md:block overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-sm">
                   <thead>
                     <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-[11px] font-mono uppercase tracking-wider text-stone-600">
                       <th className="py-3 px-4 font-bold w-[22%]">Hành khách & Đơn</th>
@@ -1909,8 +1931,6 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                           equipmentName: eq.equipmentName,
                         }))
                       );
-                      const primaryEquipment =
-                        allocatedItems[0] || participant.equipmentItems[0] || null;
 
                       return (
                         <React.Fragment key={participant.participantId}>
@@ -1947,8 +1967,8 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                             <td className="py-3 px-3">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <button
-                                  type="button"
-                                  disabled={isCheckInLocked}
+                                  type="button" aria-pressed={participant.status === 'PRESENT'}
+disabled={isCheckInLocked}
                                   onClick={() =>
                                     handleMarkGuestCheckIn(participant.participantId, 'PRESENT')
                                   }
@@ -1964,8 +1984,8 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                 </button>
 
                                 <button
-                                  type="button"
-                                  disabled={isCheckInLocked}
+                                  type="button" aria-pressed={participant.status === 'ABSENT'}
+disabled={isCheckInLocked}
                                   onClick={() =>
                                     handleMarkGuestCheckIn(participant.participantId, 'ABSENT')
                                   }
@@ -2030,8 +2050,9 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
 
                                     <button
                                       type="button"
+                                      aria-expanded={isEqExpanded}
                                       onClick={() => toggleEquipmentRow(participant.participantId)}
-                                      className="px-2 py-1 rounded-md border border-stone-200 bg-stone-50 hover:bg-stone-100 text-[11px] font-semibold text-[#1F4E43] inline-flex items-center gap-1 shrink-0 cursor-pointer"
+                                      className="min-h-11 px-3 py-2 rounded-lg border border-stone-200 bg-stone-50 hover:bg-stone-100 text-sm font-semibold text-[#1F4E43] inline-flex items-center gap-1 shrink-0 cursor-pointer"
                                     >
                                       <span>{isEqExpanded ? 'Thu gọn' : 'Giao đồ'}</span>
                                       {isEqExpanded ? (
@@ -2046,72 +2067,14 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                             </td>
 
                             {/* 4. Compact Photos Column */}
-                            <td className="py-3 px-3">
-                              {!hasBookingEquipment || participant.status === 'ABSENT' ? (
-                                <span className="text-[11px] text-stone-400">—</span>
-                              ) : (
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                  {allPhotos.map((ph) => (
-                                    <div
-                                      key={ph.id}
-                                      className="relative group w-8 h-8 rounded-lg overflow-hidden border border-stone-300 bg-stone-100 shrink-0"
-                                      title={`${ph.equipmentName} • ${formatVietnamTimeOnly(
-                                        ph.capturedAt
-                                      )}`}
-                                    >
-                                      <img
-                                        src={ph.url}
-                                        alt={ph.fileName}
-                                        onClick={() => setPreviewPhotoUrl(ph.url)}
-                                        className="w-full h-full object-cover cursor-pointer"
-                                      />
-                                      {!isCheckInLocked && (
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleRemoveCheckInPhoto(
-                                              participant.participantId,
-                                              ph.equipmentId,
-                                              ph.id
-                                            )
-                                          }
-                                          className="absolute -top-1 -right-1 w-4 h-4 bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                          title="Xóa ảnh"
-                                        >
-                                          ×
-                                        </button>
-                                      )}
-                                    </div>
-                                  ))}
-
-                                  {!isCheckInLocked && primaryEquipment && (
-                                    <label className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-stone-300 hover:border-[#1F4E43] bg-stone-50/70 text-[11px] font-semibold text-stone-700 cursor-pointer">
-                                      {uploadingPhotoKey ===
-                                      `ci-${participant.participantId}-${primaryEquipment.equipmentId}` ? (
-                                        <Loader2 className="w-3 h-3 animate-spin text-[#1F4E43]" />
-                                      ) : (
-                                        <Camera className="w-3 h-3 text-[#1F4E43]" />
-                                      )}
-                                      <span>+ Ảnh</span>
-                                      <input
-                                        type="file"
-                                        accept="image/*"
-                                        capture="environment"
-                                        multiple
-                                        className="hidden"
-                                        onChange={(e) => {
-                                          handleUploadCheckInPhoto(
-                                            participant.participantId,
-                                            primaryEquipment.equipmentId,
-                                            e.target.files
-                                          );
-                                          e.target.value = '';
-                                        }}
-                                      />
-                                    </label>
-                                  )}
-                                </div>
-                              )}
+                            <td className="px-3 py-4">
+                              <div className="flex flex-wrap gap-2">
+                                {allPhotos.map((photo) => <button type="button" key={photo.id}
+                                  aria-label={`Xem ảnh ${photo.fileName}`} onClick={() => setPreviewPhotoUrl(photo.url)}
+                                  className="h-11 w-11 overflow-hidden rounded-lg border border-[#D6CEBE]">
+                                  <img src={photo.url} alt="" className="h-full w-full object-cover" />
+                                </button>)}
+                              </div>
                             </td>
 
                             {/* 5. Compact Optional Note Column */}
@@ -2119,6 +2082,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                               {!isNoteExpanded ? (
                                 <button
                                   type="button"
+                                  aria-expanded={isNoteExpanded}
                                   onClick={() => toggleNoteRow(noteRowKey)}
                                   className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-500 hover:text-[#1F4E43] cursor-pointer"
                                 >
@@ -2129,6 +2093,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                 <input
                                   type="text"
                                   disabled={isCheckInLocked}
+                                  aria-label={`Ghi chú cho ${participant.fullName}`}
                                   value={participant.note || ''}
                                   onChange={(e) =>
                                     handleGuestCheckInNoteChange(
@@ -2137,7 +2102,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                     )
                                   }
                                   placeholder="Ghi chú khách..."
-                                  className="w-full rounded-lg border border-stone-300 bg-white px-2 py-1 text-xs text-stone-800 outline-none focus:border-[#1F4E43]"
+                                  className="w-full rounded-lg border border-stone-300 bg-white px-2 min-h-11 py-2 text-base sm:text-sm text-stone-800 outline-none focus:border-[#1F4E43]"
                                 />
                               )}
                             </td>
@@ -2166,186 +2131,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                     </div>
 
                                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
-                                      {participant.equipmentItems.map((eq) => {
-                                        const orderedMax =
-                                          bookingOrderedEquipmentMap[participant.bookingId]?.[
-                                            eq.equipmentId
-                                          ]?.orderedQuantity ??
-                                          eq.bookingOrderedQuantity ??
-                                          0;
-                                        const totalBookingAllocated =
-                                          bookingAllocatedTotalsMap[participant.bookingId]?.[
-                                            eq.equipmentId
-                                          ] || 0;
-                                        const remainingForBooking = Math.max(
-                                          0,
-                                          orderedMax - totalBookingAllocated
-                                        );
-                                        const photoUploadKey = `ci-${participant.participantId}-${eq.equipmentId}`;
-                                        const needsIssueNote =
-                                          eq.allocatedQuantity > 0 &&
-                                          (eq.condition === 'DAMAGED' ||
-                                            eq.condition === 'MISSING');
-
-                                        return (
-                                          <div
-                                            key={eq.equipmentId}
-                                            className="rounded-xl border border-stone-200 bg-white p-2.5 space-y-2"
-                                          >
-                                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                              <div>
-                                                <span className="font-bold text-stone-900 text-xs">
-                                                  {eq.equipmentName}
-                                                </span>
-                                                <span className="block text-[10px] text-stone-500 font-mono">
-                                                  Đơn đặt {orderedMax} • Còn lại {remainingForBooking}
-                                                  {eq.handedOverAt
-                                                    ? ` • Giao lúc ${formatVietnamTimeOnly(
-                                                        eq.handedOverAt,
-                                                        true
-                                                      )}`
-                                                    : ''}
-                                                </span>
-                                              </div>
-
-                                              {/* Stepper */}
-                                              <div className="flex items-center gap-1">
-                                                <button
-                                                  type="button"
-                                                  disabled={
-                                                    isCheckInLocked || eq.allocatedQuantity <= 0
-                                                  }
-                                                  onClick={() =>
-                                                    handleEquipmentCheckInQuantityChange(
-                                                      participant.participantId,
-                                                      participant.bookingId,
-                                                      eq.equipmentId,
-                                                      eq.allocatedQuantity - 1
-                                                    )
-                                                  }
-                                                  className="w-6 h-6 rounded border border-stone-300 bg-stone-50 font-bold text-stone-700 disabled:opacity-40 cursor-pointer"
-                                                >
-                                                  -
-                                                </button>
-                                                <input
-                                                  type="number"
-                                                  min={0}
-                                                  max={eq.allocatedQuantity + remainingForBooking}
-                                                  disabled={isCheckInLocked}
-                                                  value={eq.allocatedQuantity}
-                                                  onChange={(e) =>
-                                                    handleEquipmentCheckInQuantityChange(
-                                                      participant.participantId,
-                                                      participant.bookingId,
-                                                      eq.equipmentId,
-                                                      Number(e.target.value || 0)
-                                                    )
-                                                  }
-                                                  className="w-11 h-6 rounded border border-stone-300 text-center font-mono text-xs font-bold"
-                                                />
-                                                <button
-                                                  type="button"
-                                                  disabled={
-                                                    isCheckInLocked || remainingForBooking <= 0
-                                                  }
-                                                  onClick={() =>
-                                                    handleEquipmentCheckInQuantityChange(
-                                                      participant.participantId,
-                                                      participant.bookingId,
-                                                      eq.equipmentId,
-                                                      eq.allocatedQuantity + 1
-                                                    )
-                                                  }
-                                                  className="w-6 h-6 rounded border border-stone-300 bg-stone-50 font-bold text-stone-700 disabled:opacity-40 cursor-pointer"
-                                                >
-                                                  +
-                                                </button>
-                                              </div>
-                                            </div>
-
-                                            {eq.allocatedQuantity > 0 && (
-                                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1.5 border-t border-stone-100">
-                                                <select
-                                                  disabled={isCheckInLocked}
-                                                  value={eq.condition}
-                                                  onChange={(e) =>
-                                                    handleEquipmentCheckInConditionChange(
-                                                      participant.participantId,
-                                                      eq.equipmentId,
-                                                      e.target.value as HandoverEquipmentCondition
-                                                    )
-                                                  }
-                                                  className="rounded-lg border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-800 outline-none focus:border-[#1F4E43]"
-                                                >
-                                                  <option value="GOOD">Tốt / Nguyên vẹn</option>
-                                                  <option value="NEEDS_INSPECTION">
-                                                    Cần kiểm tra
-                                                  </option>
-                                                  <option value="DAMAGED">
-                                                    Hư hỏng / Trầy xước
-                                                  </option>
-                                                  <option value="MISSING">Thiếu món</option>
-                                                </select>
-
-                                                <div className="flex items-center gap-1.5">
-                                                  <input
-                                                    type="text"
-                                                    disabled={isCheckInLocked}
-                                                    value={eq.note || ''}
-                                                    onChange={(e) =>
-                                                      handleEquipmentCheckInNoteChange(
-                                                        participant.participantId,
-                                                        eq.equipmentId,
-                                                        e.target.value
-                                                      )
-                                                    }
-                                                    placeholder={
-                                                      needsIssueNote
-                                                        ? 'Bắt buộc ghi chú hỏng/thiếu...'
-                                                        : 'Ghi chú thiết bị (tùy chọn)...'
-                                                    }
-                                                    className={cn(
-                                                      'flex-1 rounded-lg border px-2 py-1 text-xs outline-none',
-                                                      needsIssueNote && (!eq.note || !eq.note.trim())
-                                                        ? 'border-rose-400 bg-rose-50'
-                                                        : 'border-stone-300 bg-white'
-                                                    )}
-                                                  />
-
-                                                  {!isCheckInLocked && (
-                                                    <label
-                                                      className="px-2 py-1 rounded-lg border border-stone-300 bg-stone-50 hover:bg-stone-100 text-[11px] font-semibold text-stone-700 inline-flex items-center gap-1 cursor-pointer shrink-0"
-                                                      title="Chụp ảnh món thiết bị này"
-                                                    >
-                                                      {uploadingPhotoKey === photoUploadKey ? (
-                                                        <Loader2 className="w-3 h-3 animate-spin" />
-                                                      ) : (
-                                                        <Camera className="w-3 h-3 text-[#1F4E43]" />
-                                                      )}
-                                                      <span>Ảnh</span>
-                                                      <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        capture="environment"
-                                                        multiple
-                                                        className="hidden"
-                                                        onChange={(e) => {
-                                                          handleUploadCheckInPhoto(
-                                                            participant.participantId,
-                                                            eq.equipmentId,
-                                                            e.target.files
-                                                          );
-                                                          e.target.value = '';
-                                                        }}
-                                                      />
-                                                    </label>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
+                                      {participant.equipmentItems.map((eq) => renderCheckInEquipment(participant, eq))}
                                     </div>
                                   </div>
                                 </td>
@@ -2398,13 +2184,13 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
 
                       <div className="grid grid-cols-2 gap-2">
                         <button
-                          type="button"
+                          type="button" aria-pressed={participant.status === 'PRESENT'}
                           disabled={isCheckInLocked}
                           onClick={() =>
                             handleMarkGuestCheckIn(participant.participantId, 'PRESENT')
                           }
                           className={cn(
-                            'py-2 rounded-xl text-xs font-bold border inline-flex items-center justify-center gap-1.5',
+                            'min-h-11 py-2 rounded-xl text-sm font-semibold border inline-flex items-center justify-center gap-1.5',
                             participant.status === 'PRESENT'
                               ? 'bg-emerald-600 text-white border-emerald-600'
                               : 'bg-white text-stone-700 border-stone-300'
@@ -2414,13 +2200,13 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                           <span>Có mặt</span>
                         </button>
                         <button
-                          type="button"
+                          type="button" aria-pressed={participant.status === 'ABSENT'}
                           disabled={isCheckInLocked}
                           onClick={() =>
                             handleMarkGuestCheckIn(participant.participantId, 'ABSENT')
                           }
                           className={cn(
-                            'py-2 rounded-xl text-xs font-bold border inline-flex items-center justify-center gap-1.5',
+                            'min-h-11 py-2 rounded-xl text-sm font-semibold border inline-flex items-center justify-center gap-1.5',
                             participant.status === 'ABSENT'
                               ? 'bg-rose-600 text-white border-rose-600'
                               : 'bg-white text-stone-700 border-stone-300'
@@ -2436,6 +2222,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                         {hasBookingEquipment && participant.status !== 'ABSENT' ? (
                           <button
                             type="button"
+                            aria-expanded={isEqExpanded}
                             onClick={() => toggleEquipmentRow(participant.participantId)}
                             className="px-2.5 py-1.5 rounded-lg border border-stone-200 bg-stone-50 text-xs font-semibold text-[#1F4E43] inline-flex items-center gap-1"
                           >
@@ -2455,6 +2242,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
 
                         <button
                           type="button"
+                          aria-expanded={isNoteExpanded}
                           onClick={() => toggleNoteRow(noteRowKey)}
                           className="text-xs font-semibold text-stone-600 underline"
                         >
@@ -2466,6 +2254,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                         <input
                           type="text"
                           disabled={isCheckInLocked}
+                          aria-label={`Ghi chú cho ${participant.fullName}`}
                           value={participant.note || ''}
                           onChange={(e) =>
                             handleGuestCheckInNoteChange(
@@ -2474,121 +2263,20 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                             )
                           }
                           placeholder="Nhập ghi chú check-in cho khách..."
-                          className="w-full rounded-xl border border-stone-300 px-3 py-1.5 text-xs"
+                          className="w-full rounded-xl border border-stone-300 px-3 min-h-11 py-2 text-base sm:text-sm"
                         />
                       )}
 
                       {hasBookingEquipment && participant.status !== 'ABSENT' && isEqExpanded && (
                         <div className="space-y-2 rounded-xl bg-stone-50 p-2.5 border border-stone-200">
-                          {participant.equipmentItems.map((eq) => {
-                            const orderedMax =
-                              bookingOrderedEquipmentMap[participant.bookingId]?.[eq.equipmentId]
-                                ?.orderedQuantity ??
-                              eq.bookingOrderedQuantity ??
-                              0;
-                            const totalBookingAllocated =
-                              bookingAllocatedTotalsMap[participant.bookingId]?.[eq.equipmentId] ||
-                              0;
-                            const remainingForBooking = Math.max(
-                              0,
-                              orderedMax - totalBookingAllocated
-                            );
-                            return (
-                              <div
-                                key={eq.equipmentId}
-                                className="rounded-lg bg-white p-2.5 border border-stone-200 space-y-2"
-                              >
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-xs font-bold text-stone-800">
-                                    {eq.equipmentName} (còn {remainingForBooking}/{orderedMax})
-                                  </span>
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      disabled={isCheckInLocked || eq.allocatedQuantity <= 0}
-                                      onClick={() =>
-                                        handleEquipmentCheckInQuantityChange(
-                                          participant.participantId,
-                                          participant.bookingId,
-                                          eq.equipmentId,
-                                          eq.allocatedQuantity - 1
-                                        )
-                                      }
-                                      className="w-6 h-6 rounded border border-stone-300 bg-stone-50 font-bold"
-                                    >
-                                      -
-                                    </button>
-                                    <span className="px-2 font-mono text-xs font-bold">
-                                      {eq.allocatedQuantity}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      disabled={isCheckInLocked || remainingForBooking <= 0}
-                                      onClick={() =>
-                                        handleEquipmentCheckInQuantityChange(
-                                          participant.participantId,
-                                          participant.bookingId,
-                                          eq.equipmentId,
-                                          eq.allocatedQuantity + 1
-                                        )
-                                      }
-                                      className="w-6 h-6 rounded border border-stone-300 bg-stone-50 font-bold"
-                                    >
-                                      +
-                                    </button>
-                                  </div>
-                                </div>
-                                {eq.allocatedQuantity > 0 && (
-                                  <div className="space-y-1.5">
-                                    <select
-                                      disabled={isCheckInLocked}
-                                      value={eq.condition}
-                                      onChange={(e) =>
-                                        handleEquipmentCheckInConditionChange(
-                                          participant.participantId,
-                                          eq.equipmentId,
-                                          e.target.value as HandoverEquipmentCondition
-                                        )
-                                      }
-                                      className="w-full rounded-lg border border-stone-300 px-2 py-1 text-xs"
-                                    >
-                                      <option value="GOOD">Tốt / Nguyên vẹn</option>
-                                      <option value="NEEDS_INSPECTION">Cần kiểm tra</option>
-                                      <option value="DAMAGED">Hư hỏng</option>
-                                      <option value="MISSING">Thiếu món</option>
-                                    </select>
-                                    <input
-                                      type="text"
-                                      disabled={isCheckInLocked}
-                                      value={eq.note || ''}
-                                      onChange={(e) =>
-                                        handleEquipmentCheckInNoteChange(
-                                          participant.participantId,
-                                          eq.equipmentId,
-                                          e.target.value
-                                        )
-                                      }
-                                      placeholder="Ghi chú tình trạng thiết bị..."
-                                      className="w-full rounded-lg border border-stone-300 px-2 py-1 text-xs"
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                          {participant.equipmentItems.map((eq) => renderCheckInEquipment(participant, eq))}
                         </div>
                       )}
 
                       {allPhotos.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
                           {allPhotos.map((ph) => (
-                            <img
-                              key={ph.id}
-                              src={ph.url}
-                              alt={ph.fileName}
-                              onClick={() => setPreviewPhotoUrl(ph.url)}
-                              className="w-9 h-9 rounded-lg object-cover border border-stone-300"
-                            />
+                            <button type="button" key={ph.id} aria-label={`Xem ảnh ${ph.fileName}`} onClick={() => setPreviewPhotoUrl(ph.url)} className="w-11 h-11 rounded-lg object-cover border border-stone-300"><img src={ph.url} alt="" className="h-full w-full object-cover" /></button>
                           ))}
                         </div>
                       )}
@@ -2659,7 +2347,8 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                       <input
                         type="text"
                         disabled={isCheckInLocked}
-                        value={checkInReport.generalNote || ''}
+                        aria-label="Ghi chú chung lượt check-in"
+                          value={checkInReport.generalNote || ''}
                         onChange={(e) =>
                           updateCheckInDraft((prev) => ({
                             ...prev,
@@ -2667,7 +2356,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                           }))
                         }
                         placeholder="Ghi chú chung lượt Check-in toàn đoàn..."
-                        className="w-full max-w-md rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs text-stone-800 outline-none focus:border-[#1F4E43]"
+                        className="w-full max-w-md rounded-xl border border-stone-300 bg-white px-3 min-h-11 py-2 text-base sm:text-sm text-stone-800 outline-none focus:border-[#1F4E43]"
                       />
                     )}
                   </div>
@@ -2757,7 +2446,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
 
                   {/* DESKTOP TABLE FOR CHECK-OUT */}
                   <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
+                    <table className="w-full text-left border-collapse text-sm">
                       <thead>
                         <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-[11px] font-mono uppercase tracking-wider text-stone-600">
                           <th className="py-3 px-4 font-bold w-[22%]">Hành khách & Đơn</th>
@@ -2787,7 +2476,6 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                               equipmentName: eq.equipmentName,
                             }))
                           );
-                          const primaryEquipment = participant.equipmentItems[0] || null;
 
                           return (
                             <React.Fragment key={participant.participantId}>
@@ -2826,7 +2514,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                   ) : (
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       <button
-                                        type="button"
+                                        type="button" aria-pressed={participant.status === 'COMPLETED'}
                                         disabled={isCheckOutLocked}
                                         onClick={() =>
                                           handleMarkGuestCheckOut(
@@ -2846,7 +2534,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                       </button>
 
                                       <button
-                                        type="button"
+                                        type="button" aria-pressed={participant.status === 'EARLY_DEPARTURE'}
                                         disabled={isCheckOutLocked}
                                         onClick={() =>
                                           handleMarkGuestCheckOut(
@@ -2905,7 +2593,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                         onClick={() =>
                                           toggleEquipmentRow(participant.participantId)
                                         }
-                                        className="px-2 py-1 rounded-md border border-stone-200 bg-stone-50 hover:bg-stone-100 text-[11px] font-semibold text-[#1F4E43] inline-flex items-center gap-1 shrink-0 cursor-pointer"
+                                        className="min-h-11 px-3 py-2 rounded-lg border border-stone-200 bg-stone-50 hover:bg-stone-100 text-sm font-semibold text-[#1F4E43] inline-flex items-center gap-1 shrink-0 cursor-pointer"
                                       >
                                         <span>{isEqExpanded ? 'Thu gọn' : 'Thu đồ'}</span>
                                         {isEqExpanded ? (
@@ -2919,75 +2607,22 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                 </td>
 
                                 {/* 4. Return Photos */}
-                                <td className="py-3 px-3">
-                                  {!hasIssuedEquipment ? (
-                                    <span className="text-[11px] text-stone-400">—</span>
-                                  ) : (
-                                    <div className="flex flex-wrap items-center gap-1.5">
-                                      {allPhotos.map((ph) => (
-                                        <div
-                                          key={ph.id}
-                                          className="relative group w-8 h-8 rounded-lg overflow-hidden border border-stone-300 bg-stone-100 shrink-0"
-                                        >
-                                          <img
-                                            src={ph.url}
-                                            alt={ph.fileName}
-                                            onClick={() => setPreviewPhotoUrl(ph.url)}
-                                            className="w-full h-full object-cover cursor-pointer"
-                                          />
-                                          {!isCheckOutLocked && (
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                handleRemoveCheckOutPhoto(
-                                                  participant.participantId,
-                                                  ph.equipmentId,
-                                                  ph.id
-                                                )
-                                              }
-                                              className="absolute -top-1 -right-1 w-4 h-4 bg-rose-600 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                                            >
-                                              ×
-                                            </button>
-                                          )}
-                                        </div>
-                                      ))}
-
-                                      {!isCheckOutLocked && primaryEquipment && (
-                                        <label className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-stone-300 hover:border-[#1F4E43] bg-stone-50/70 text-[11px] font-semibold text-stone-700 cursor-pointer">
-                                          {uploadingPhotoKey ===
-                                          `co-${participant.participantId}-${primaryEquipment.equipmentId}` ? (
-                                            <Loader2 className="w-3 h-3 animate-spin text-[#1F4E43]" />
-                                          ) : (
-                                            <Camera className="w-3 h-3 text-[#1F4E43]" />
-                                          )}
-                                          <span>+ Ảnh</span>
-                                          <input
-                                            type="file"
-                                            accept="image/*"
-                                            capture="environment"
-                                            multiple
-                                            className="hidden"
-                                            onChange={(e) => {
-                                              handleUploadCheckOutPhoto(
-                                                participant.participantId,
-                                                primaryEquipment.equipmentId,
-                                                e.target.files
-                                              );
-                                              e.target.value = '';
-                                            }}
-                                          />
-                                        </label>
-                                      )}
-                                    </div>
-                                  )}
-                                </td>
+                                <td className="px-3 py-4">
+                              <div className="flex flex-wrap gap-2">
+                                {allPhotos.map((photo) => <button type="button" key={photo.id}
+                                  aria-label={`Xem ảnh ${photo.fileName}`} onClick={() => setPreviewPhotoUrl(photo.url)}
+                                  className="h-11 w-11 overflow-hidden rounded-lg border border-[#D6CEBE]">
+                                  <img src={photo.url} alt="" className="h-full w-full object-cover" />
+                                </button>)}
+                              </div>
+                            </td>
 
                                 {/* 5. Optional Note */}
                                 <td className="py-3 px-4">
                                   {!isNoteExpanded ? (
                                     <button
                                       type="button"
+                                      aria-expanded={isNoteExpanded}
                                       onClick={() => toggleNoteRow(noteRowKey)}
                                       className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-500 hover:text-[#1F4E43] cursor-pointer"
                                     >
@@ -2998,6 +2633,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                     <input
                                       type="text"
                                       disabled={isCheckOutLocked}
+                                      aria-label={`Ghi chú cho ${participant.fullName}`}
                                       value={participant.note || ''}
                                       onChange={(e) =>
                                         handleGuestCheckOutNoteChange(
@@ -3006,7 +2642,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                         )
                                       }
                                       placeholder="Ghi chú kết thúc..."
-                                      className="w-full rounded-lg border border-stone-300 bg-white px-2 py-1 text-xs text-stone-800 outline-none focus:border-[#1F4E43]"
+                                      className="w-full rounded-lg border border-stone-300 bg-white px-2 min-h-11 py-2 text-base sm:text-sm text-stone-800 outline-none focus:border-[#1F4E43]"
                                     />
                                   )}
                                 </td>
@@ -3017,162 +2653,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                 <tr className="bg-[#F7F4EE]/60">
                                   <td colSpan={5} className="px-4 py-3 border-t border-stone-200/70">
                                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
-                                      {participant.equipmentItems.map((eq) => {
-                                        const isShortage = eq.returnedQuantity < eq.issuedQuantity;
-                                        const needsNote =
-                                          isShortage || eq.condition !== 'GOOD';
-                                        const photoUploadKey = `co-${participant.participantId}-${eq.equipmentId}`;
-
-                                        return (
-                                          <div
-                                            key={eq.equipmentId}
-                                            className="rounded-xl border border-stone-200 bg-white p-2.5 space-y-2"
-                                          >
-                                            <div className="flex flex-wrap items-center justify-between gap-2">
-                                              <div>
-                                                <span className="font-bold text-stone-900 text-xs">
-                                                  {eq.equipmentName}
-                                                </span>
-                                                <span className="block text-[10px] font-mono text-stone-500">
-                                                  Đã giao: {eq.issuedQuantity} • Nhận lại tối đa:{' '}
-                                                  {eq.issuedQuantity}
-                                                  {eq.returnedAt
-                                                    ? ` • Thu lúc ${formatVietnamTimeOnly(
-                                                        eq.returnedAt,
-                                                        true
-                                                      )}`
-                                                    : ''}
-                                                </span>
-                                              </div>
-
-                                              <div className="flex items-center gap-1">
-                                                <button
-                                                  type="button"
-                                                  disabled={
-                                                    isCheckOutLocked || eq.returnedQuantity <= 0
-                                                  }
-                                                  onClick={() =>
-                                                    handleEquipmentCheckOutQuantityChange(
-                                                      participant.participantId,
-                                                      eq.equipmentId,
-                                                      eq.returnedQuantity - 1
-                                                    )
-                                                  }
-                                                  className="w-6 h-6 rounded border border-stone-300 bg-stone-50 font-bold text-stone-700 disabled:opacity-40 cursor-pointer"
-                                                >
-                                                  -
-                                                </button>
-                                                <input
-                                                  type="number"
-                                                  min={0}
-                                                  max={eq.issuedQuantity}
-                                                  disabled={isCheckOutLocked}
-                                                  value={eq.returnedQuantity}
-                                                  onChange={(e) =>
-                                                    handleEquipmentCheckOutQuantityChange(
-                                                      participant.participantId,
-                                                      eq.equipmentId,
-                                                      Number(e.target.value || 0)
-                                                    )
-                                                  }
-                                                  className="w-11 h-6 rounded border border-stone-300 text-center font-mono text-xs font-bold"
-                                                />
-                                                <button
-                                                  type="button"
-                                                  disabled={
-                                                    isCheckOutLocked ||
-                                                    eq.returnedQuantity >= eq.issuedQuantity
-                                                  }
-                                                  onClick={() =>
-                                                    handleEquipmentCheckOutQuantityChange(
-                                                      participant.participantId,
-                                                      eq.equipmentId,
-                                                      eq.returnedQuantity + 1
-                                                    )
-                                                  }
-                                                  className="w-6 h-6 rounded border border-stone-300 bg-stone-50 font-bold text-stone-700 disabled:opacity-40 cursor-pointer"
-                                                >
-                                                  +
-                                                </button>
-                                              </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1.5 border-t border-stone-100">
-                                              <select
-                                                disabled={isCheckOutLocked}
-                                                value={eq.condition}
-                                                onChange={(e) =>
-                                                  handleEquipmentCheckOutConditionChange(
-                                                    participant.participantId,
-                                                    eq.equipmentId,
-                                                    e.target.value as HandoverEquipmentCondition
-                                                  )
-                                                }
-                                                className="rounded-lg border border-stone-300 bg-white px-2 py-1 text-xs font-medium text-stone-800 outline-none focus:border-[#1F4E43]"
-                                              >
-                                                <option value="GOOD">Tốt / Trả đủ</option>
-                                                <option value="NEEDS_INSPECTION">
-                                                  Cần kiểm tra
-                                                </option>
-                                                <option value="DAMAGED">Hư hỏng</option>
-                                                <option value="MISSING">Thiếu / Chưa trả</option>
-                                              </select>
-
-                                              <div className="flex items-center gap-1.5">
-                                                <input
-                                                  type="text"
-                                                  disabled={isCheckOutLocked}
-                                                  value={eq.note || ''}
-                                                  onChange={(e) =>
-                                                    handleEquipmentCheckOutNoteChange(
-                                                      participant.participantId,
-                                                      eq.equipmentId,
-                                                      e.target.value
-                                                    )
-                                                  }
-                                                  placeholder={
-                                                    needsNote
-                                                      ? 'Bắt buộc ghi chú thiếu/hỏng...'
-                                                      : 'Ghi chú nhận lại...'
-                                                  }
-                                                  className={cn(
-                                                    'flex-1 rounded-lg border px-2 py-1 text-xs outline-none',
-                                                    needsNote && (!eq.note || !eq.note.trim())
-                                                      ? 'border-rose-400 bg-rose-50'
-                                                      : 'border-stone-300 bg-white'
-                                                  )}
-                                                />
-
-                                                {!isCheckOutLocked && (
-                                                  <label className="px-2 py-1 rounded-lg border border-stone-300 bg-stone-50 hover:bg-stone-100 text-[11px] font-semibold text-stone-700 inline-flex items-center gap-1 cursor-pointer shrink-0">
-                                                    {uploadingPhotoKey === photoUploadKey ? (
-                                                      <Loader2 className="w-3 h-3 animate-spin" />
-                                                    ) : (
-                                                      <Camera className="w-3 h-3 text-[#1F4E43]" />
-                                                    )}
-                                                    <span>Ảnh</span>
-                                                    <input
-                                                      type="file"
-                                                      accept="image/*"
-                                                      capture="environment"
-                                                      multiple
-                                                      className="hidden"
-                                                      onChange={(e) => {
-                                                        handleUploadCheckOutPhoto(
-                                                          participant.participantId,
-                                                          eq.equipmentId,
-                                                          e.target.files
-                                                        );
-                                                        e.target.value = '';
-                                                      }}
-                                                    />
-                                                  </label>
-                                                )}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
+                                      {participant.equipmentItems.map((eq) => renderCheckOutEquipment(participant, eq))}
                                     </div>
                                   </td>
                                 </tr>
@@ -3188,6 +2669,9 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                   <div className="md:hidden divide-y divide-stone-200">
                     {filteredCheckOutParticipants.map((participant, idx) => {
                       const hasIssuedEquipment = participant.equipmentItems.length > 0;
+                      const noteRowKey = `co-note-${participant.participantId}`;
+                      const isNoteExpanded =
+                        Boolean(expandedNoteRows[noteRowKey]) || Boolean(participant.note);
                       const isEqExpanded = Boolean(
                         expandedEquipmentRows[participant.participantId]
                       );
@@ -3206,19 +2690,19 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                           </div>
 
                           {participant.checkInStatus === 'ABSENT' ? (
-                            <div className="rounded-lg bg-stone-100 px-3 py-1.5 text-xs text-stone-600 font-semibold">
+                            <div className="rounded-lg bg-stone-100 px-3 min-h-11 py-2 text-base sm:text-sm text-stone-600 font-semibold">
                               Khách vắng mặt từ lượt Check-in
                             </div>
                           ) : (
                             <div className="grid grid-cols-2 gap-2">
                               <button
-                                type="button"
+                                type="button" aria-pressed={participant.status === 'COMPLETED'}
                                 disabled={isCheckOutLocked}
                                 onClick={() =>
                                   handleMarkGuestCheckOut(participant.participantId, 'COMPLETED')
                                 }
                                 className={cn(
-                                  'py-2 rounded-xl text-xs font-bold border inline-flex items-center justify-center gap-1.5',
+                                  'min-h-11 py-2 rounded-xl text-sm font-semibold border inline-flex items-center justify-center gap-1.5',
                                   participant.status === 'COMPLETED'
                                     ? 'bg-emerald-600 text-white border-emerald-600'
                                     : 'bg-white text-stone-700 border-stone-300'
@@ -3228,7 +2712,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                 <span>Hoàn thành</span>
                               </button>
                               <button
-                                type="button"
+                                type="button" aria-pressed={participant.status === 'EARLY_DEPARTURE'}
                                 disabled={isCheckOutLocked}
                                 onClick={() =>
                                   handleMarkGuestCheckOut(
@@ -3237,7 +2721,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                   )
                                 }
                                 className={cn(
-                                  'py-2 rounded-xl text-xs font-bold border inline-flex items-center justify-center gap-1.5',
+                                  'min-h-11 py-2 rounded-xl text-sm font-semibold border inline-flex items-center justify-center gap-1.5',
                                   participant.status === 'EARLY_DEPARTURE'
                                     ? 'bg-amber-600 text-white border-amber-600'
                                     : 'bg-white text-stone-700 border-stone-300'
@@ -3248,10 +2732,40 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                             </div>
                           )}
 
+                          <div className="space-y-2">
+                            {!isNoteExpanded ? (
+                              <button
+                                type="button"
+                                aria-expanded={isNoteExpanded}
+                                onClick={() => toggleNoteRow(noteRowKey)}
+                                className="min-h-11 inline-flex items-center gap-2 text-sm font-medium text-stone-600"
+                              >
+                                <Plus className="h-4 w-4" />
+                                <span>{participant.note ? 'Xem ghi chú' : 'Thêm ghi chú'}</span>
+                              </button>
+                            ) : (
+                              <input
+                                type="text"
+                                disabled={isCheckOutLocked}
+                                aria-label={`Ghi chú kết thúc cho ${participant.fullName}`}
+                                value={participant.note || ''}
+                                onChange={(e) =>
+                                  handleGuestCheckOutNoteChange(
+                                    participant.participantId,
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Ghi chú kết thúc..."
+                                className="w-full min-h-11 rounded-lg border border-stone-300 bg-white px-3 py-2 text-base text-stone-800 outline-none focus:border-[#1F4E43]"
+                              />
+                            )}
+                          </div>
+
                           {hasIssuedEquipment && (
                             <div className="space-y-2">
                               <button
                                 type="button"
+                                aria-expanded={isEqExpanded}
                                 onClick={() => toggleEquipmentRow(participant.participantId)}
                                 className="px-2.5 py-1.5 rounded-lg border border-stone-200 bg-stone-50 text-xs font-semibold text-[#1F4E43] inline-flex items-center gap-1"
                               >
@@ -3262,68 +2776,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                               </button>
                               {isEqExpanded && (
                                 <div className="space-y-2 rounded-xl bg-stone-50 p-2.5 border border-stone-200">
-                                  {participant.equipmentItems.map((eq) => (
-                                    <div
-                                      key={eq.equipmentId}
-                                      className="rounded-lg bg-white p-2.5 border border-stone-200 space-y-2"
-                                    >
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-xs font-bold text-stone-800">
-                                          {eq.equipmentName} (Giao {eq.issuedQuantity})
-                                        </span>
-                                        <div className="flex items-center gap-1">
-                                          <button
-                                            type="button"
-                                            disabled={isCheckOutLocked || eq.returnedQuantity <= 0}
-                                            onClick={() =>
-                                              handleEquipmentCheckOutQuantityChange(
-                                                participant.participantId,
-                                                eq.equipmentId,
-                                                eq.returnedQuantity - 1
-                                              )
-                                            }
-                                            className="w-6 h-6 rounded border border-stone-300 bg-stone-50 font-bold"
-                                          >
-                                            -
-                                          </button>
-                                          <span className="px-2 font-mono text-xs font-bold">
-                                            {eq.returnedQuantity}
-                                          </span>
-                                          <button
-                                            type="button"
-                                            disabled={
-                                              isCheckOutLocked ||
-                                              eq.returnedQuantity >= eq.issuedQuantity
-                                            }
-                                            onClick={() =>
-                                              handleEquipmentCheckOutQuantityChange(
-                                                participant.participantId,
-                                                eq.equipmentId,
-                                                eq.returnedQuantity + 1
-                                              )
-                                            }
-                                            className="w-6 h-6 rounded border border-stone-300 bg-stone-50 font-bold"
-                                          >
-                                            +
-                                          </button>
-                                        </div>
-                                      </div>
-                                      <input
-                                        type="text"
-                                        disabled={isCheckOutLocked}
-                                        value={eq.note || ''}
-                                        onChange={(e) =>
-                                          handleEquipmentCheckOutNoteChange(
-                                            participant.participantId,
-                                            eq.equipmentId,
-                                            e.target.value
-                                          )
-                                        }
-                                        placeholder="Ghi chú thiết bị trả..."
-                                        className="w-full rounded-lg border border-stone-300 px-2 py-1 text-xs"
-                                      />
-                                    </div>
-                                  ))}
+                                  {participant.equipmentItems.map((eq) => renderCheckOutEquipment(participant, eq))}
                                 </div>
                               )}
                             </div>
@@ -3363,6 +2816,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                         <input
                           type="text"
                           disabled={isCheckOutLocked}
+                          aria-label="Ghi chú chung lượt check-out"
                           value={checkOutReport.generalNote || ''}
                           onChange={(e) =>
                             updateCheckOutDraft((prev) => ({
@@ -3371,7 +2825,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                             }))
                           }
                           placeholder="Ghi chú tổng kết cuối hành trình (tùy chọn)..."
-                          className="w-full max-w-md rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs text-stone-800 outline-none focus:border-[#1F4E43]"
+                          className="w-full max-w-md rounded-xl border border-stone-300 bg-white px-3 min-h-11 py-2 text-base sm:text-sm text-stone-800 outline-none focus:border-[#1F4E43]"
                         />
                       </div>
 
@@ -3409,39 +2863,9 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
         </section>
       </div>
 
-      {/* Lightbox Modal for Condition Photos (Responsive & Contained within Viewport) */}
-      {previewPhotoUrl && (
-        <div
-          onClick={() => setPreviewPhotoUrl(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-h-[90vh] max-w-2xl w-full overflow-hidden rounded-2xl bg-white p-3 shadow-2xl space-y-2"
-          >
-            <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
-                <Eye className="w-3.5 h-3.5 text-[#1F4E43]" />
-                <span>Ảnh hiện trạng thiết bị</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setPreviewPhotoUrl(null)}
-                className="p-1 rounded-lg hover:bg-stone-100 text-stone-600 cursor-pointer"
-              >
-                <XCircle className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="flex items-center justify-center bg-stone-900 rounded-xl overflow-hidden max-h-[75vh]">
-              <img
-                src={previewPhotoUrl}
-                alt="Ảnh hiện trạng thiết bị"
-                className="max-h-[75vh] w-auto object-contain"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal isOpen={Boolean(previewPhotoUrl)} onClose={() => setPreviewPhotoUrl(null)} title="Ảnh hiện trạng thiết bị" maxWidth="2xl">
+        {previewPhotoUrl && <img src={previewPhotoUrl} alt="Ảnh hiện trạng thiết bị" className="mx-auto max-h-[70vh] max-w-full object-contain" />}
+      </Modal>
     </div>
   );
 };

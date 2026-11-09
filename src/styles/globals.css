@@ -50,6 +50,11 @@
 }
 
 /* Custom subtle scrollbar */
+.wetrek-dialog::backdrop {
+  background: rgb(20 35 31 / 55%);
+  backdrop-filter: blur(3px);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

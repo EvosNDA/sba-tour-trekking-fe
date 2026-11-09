@@ -1,32 +1,20 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Calendar as CalendarIcon,
-  Clock,
-  Users,
   Search,
-  ArrowRight,
   AlertTriangle,
   Loader2,
-  ShieldCheck,
-  CheckCircle2,
   RefreshCw,
-  Lock,
 } from 'lucide-react';
+import { GuideScheduleCard } from './GuideScheduleCard';
 import { apiClient } from '../../../lib/axios';
 import { toursApi } from '../../../features/tours/api/tours.api';
 import {
   attendanceApi,
-  evaluateCheckInTimeWindow,
-  evaluateCheckOutTimeWindow,
-  formatVietnamDateOnly,
-  formatVietnamDateTime,
-  formatVietnamTimeOnly,
   LOCAL_SCHEDULE_OPERATIONS_REPORTS_KEY,
 } from '../../../features/tours/api/attendance.api';
 import { bookingsApi } from '../../../features/bookings/api/bookings.api';
 import { useAuthStore } from '../../../stores/auth.store';
-import { ROUTES } from '../../../constants/routes';
-import { navigateTo } from '../../../lib/navigation';
 import { cn } from '../../../lib/utils';
 import type {
   BatchRoundStatus,
@@ -413,13 +401,13 @@ export const GuideScheduleListPage: React.FC = () => {
       {/* Compact Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white rounded-2xl border border-[#E6E1D8] px-5 py-4 shadow-2xs">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#51756a]">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wider text-[#51756a]">
             <span>Nhiệm vụ Hướng dẫn viên</span>
             <span>•</span>
             <span>Múi giờ Việt Nam (GMT+7)</span>
           </div>
-          <h1 className="font-editorial text-xl sm:text-2xl font-bold text-[#1C2526] mt-0.5">
-            Lịch được phân công ({assignedSchedules.length})
+          <h1 className="font-editorial text-3xl sm:text-4xl font-semibold tracking-tight text-[#1C2526] mt-0.5">
+            Lịch được phân công {!isLoading && !error ? `(${assignedSchedules.length})` : ''}
           </h1>
         </div>
 
@@ -441,7 +429,7 @@ export const GuideScheduleListPage: React.FC = () => {
         {/* Filter Bar */}
         <div className="p-4 border-b border-stone-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-[#FDFBF7]/60">
           {/* Status Filter Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div role="group" aria-label="Lọc lịch theo trạng thái" className="flex flex-wrap items-center gap-1.5">
             {(
               [
                 { id: 'ALL', label: 'Tất cả', count: tabCounts.ALL },
@@ -455,9 +443,10 @@ export const GuideScheduleListPage: React.FC = () => {
                 <button
                   key={tab.id}
                   type="button"
+                  aria-pressed={isActive}
                   onClick={() => setActiveTab(tab.id)}
                   className={cn(
-                    'px-3 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer',
+                    'min-h-11 px-3 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer',
                     isActive
                       ? 'bg-[#1F4E43] text-white shadow-2xs'
                       : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50 hover:text-stone-900'
@@ -481,18 +470,19 @@ export const GuideScheduleListPage: React.FC = () => {
           <div className="relative w-full lg:w-72 shrink-0">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
             <input
-              type="text"
+              type="search"
+              aria-label="Tìm lịch theo tên tour hoặc mã lịch"
               placeholder="Tìm tên tour hoặc mã lịch..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-stone-300 bg-white py-1.5 pl-8 pr-3 text-xs text-stone-800 outline-none transition focus:border-[#1F4E43] focus:ring-2 focus:ring-[#1F4E43]/15"
+              className="w-full rounded-xl border border-stone-300 bg-white min-h-11 py-2 pl-8 pr-3 text-base sm:text-sm text-stone-800 outline-none transition focus:border-[#1F4E43] focus:ring-2 focus:ring-[#1F4E43]/15"
             />
           </div>
         </div>
 
         {/* Content States */}
         {isLoading ? (
-          <div className="py-14 text-center text-xs text-stone-500 flex flex-col items-center justify-center gap-2">
+          <div role="status" className="py-14 text-center text-xs text-stone-500 flex flex-col items-center justify-center gap-2">
             <Loader2 className="w-6 h-6 animate-spin text-[#1F4E43]" />
             <span>Đang tải danh sách lịch khởi hành được phân công...</span>
           </div>
@@ -529,325 +519,17 @@ export const GuideScheduleListPage: React.FC = () => {
                 ? 'Chỉ những lịch khởi hành mà Admin đã phân công trực tiếp cho tài khoản của bạn mới hiển thị tại đây.'
                 : 'Hãy thử đổi từ khóa tìm kiếm hoặc chọn trạng thái "Tất cả".'}
             </p>
+            {assignedSchedules.length > 0 && <button type="button" onClick={() => { setSearchQuery(''); setActiveTab('ALL'); }} className="mt-3 min-h-11 rounded-lg border border-[#D6CEBE] px-4 py-2 text-sm font-semibold text-[#1F4E43] hover:bg-[#F7F4EE]">Xóa bộ lọc</button>}
           </div>
         ) : (
-          <>
-            {/* DESKTOP TABLE VIEW (lg: 1024px+) */}
-            <div className="hidden lg:block overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-[11px] font-mono uppercase tracking-wider text-stone-600">
-                    <th className="py-3 px-4 font-bold">Chuyến & Tên tour</th>
-                    <th className="py-3 px-3.5 font-bold">Thời gian (VN)</th>
-                    <th className="py-3 px-3.5 font-bold">Trạng thái</th>
-                    <th className="py-3 px-3.5 font-bold">Tiến độ xử lý khách</th>
-                    <th className="py-3 px-3.5 font-bold">Check-in / Check-out</th>
-                    <th className="py-3 px-4 font-bold text-right">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-200">
-                  {filteredSchedules.map((schedule) => {
-                    const checkInWindow = evaluateCheckInTimeWindow(schedule.startsAt, nowMs);
-                    const checkOutWindow = evaluateCheckOutTimeWindow(schedule.endsAt, nowMs);
-                    const checkInBadge = ROUND_STATUS_CONFIG[schedule.checkInRoundStatus];
-                    const checkOutBadge = ROUND_STATUS_CONFIG[schedule.checkOutRoundStatus];
-
-                    const isCheckInDone = schedule.checkInRoundStatus === 'CONFIRMED';
-                    const activeProcessed = isCheckInDone
-                      ? schedule.checkOutProcessedCount
-                      : schedule.checkInProcessedCount;
-                    const totalGuests = schedule.passengerCount;
-                    const progressPercent =
-                      totalGuests > 0
-                        ? Math.min(100, Math.round((activeProcessed / totalGuests) * 100))
-                        : 0;
-
-                    return (
-                      <tr
-                        key={schedule.scheduleId}
-                        onClick={() =>
-                          navigateTo(ROUTES.GUIDE.SCHEDULE_DETAIL(schedule.scheduleId))
-                        }
-                        className="hover:bg-[#FDFBF7] transition-colors cursor-pointer group"
-                      >
-                        {/* Tour & Role */}
-                        <td className="py-3.5 px-4 align-middle max-w-[280px]">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span className="font-mono text-[11px] font-bold text-stone-500">
-                              #{schedule.scheduleId}
-                            </span>
-                            <span
-                              className={cn(
-                                'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold border',
-                                schedule.isLead
-                                  ? 'border-amber-200 bg-amber-50 text-amber-800'
-                                  : 'border-stone-200 bg-stone-50 text-stone-700'
-                              )}
-                            >
-                              <ShieldCheck className="w-3 h-3" />
-                              {schedule.isLead ? 'Trưởng đoàn' : 'Phụ trách'}
-                            </span>
-                          </div>
-                          <div className="font-bold text-stone-900 text-sm group-hover:text-[#1F4E43] transition-colors line-clamp-2">
-                            {schedule.tourTitle}
-                          </div>
-                        </td>
-
-                        {/* Time Window */}
-                        <td className="py-3.5 px-3.5 align-middle whitespace-nowrap">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1.5 text-stone-900 font-semibold">
-                              <span className="text-[10px] font-mono uppercase text-stone-400 w-9">
-                                Đi:
-                              </span>
-                              <span>
-                                {formatVietnamTimeOnly(schedule.startsAt)}{' '}
-                                {formatVietnamDateOnly(schedule.startsAt)}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-stone-600">
-                              <span className="text-[10px] font-mono uppercase text-stone-400 w-9">
-                                Về:
-                              </span>
-                              <span>
-                                {formatVietnamTimeOnly(schedule.endsAt)}{' '}
-                                {formatVietnamDateOnly(schedule.endsAt)}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Trip Status */}
-                        <td className="py-3.5 px-3.5 align-middle whitespace-nowrap">
-                          {renderTripStageBadge(schedule)}
-                        </td>
-
-                        {/* Guest Progress */}
-                        <td className="py-3.5 px-3.5 align-middle min-w-[170px]">
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between gap-2 text-xs">
-                              <span className="font-semibold text-stone-800 inline-flex items-center gap-1">
-                                <Users className="w-3.5 h-3.5 text-[#1F4E43]" />
-                                {totalGuests} / {schedule.capacity} khách
-                              </span>
-                              <span className="font-mono text-[11px] text-stone-500">
-                                {isCheckInDone ? 'Check-out' : 'Check-in'}: {activeProcessed}/
-                                {totalGuests}
-                              </span>
-                            </div>
-                            <div className="w-full h-1.5 rounded-full bg-stone-100 overflow-hidden">
-                              <div
-                                className={cn(
-                                  'h-full rounded-full transition-all',
-                                  schedule.checkOutRoundStatus === 'CONFIRMED'
-                                    ? 'bg-emerald-600'
-                                    : isCheckInDone
-                                    ? 'bg-teal-600'
-                                    : 'bg-[#1F4E43]'
-                                )}
-                                style={{ width: `${progressPercent}%` }}
-                              />
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Check-in & Check-out Status + Allowed Time Window */}
-                        <td className="py-3.5 px-3.5 align-middle">
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] font-semibold text-stone-500 w-16 shrink-0">
-                                Check-in:
-                              </span>
-                              <span
-                                className={cn(
-                                  'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap',
-                                  checkInBadge.badgeClass
-                                )}
-                              >
-                                <span
-                                  className={cn('h-1.5 w-1.5 rounded-full', checkInBadge.dotClass)}
-                                />
-                                {checkInBadge.label}
-                              </span>
-                              <span className="text-[11px] text-stone-500 whitespace-nowrap">
-                                {schedule.checkInRoundStatus === 'CONFIRMED' &&
-                                schedule.checkInSubmittedAt ? (
-                                  formatVietnamDateTime(schedule.checkInSubmittedAt)
-                                ) : checkInWindow.allowed ? (
-                                  <span className="text-emerald-700 font-medium">
-                                    Đang mở thao tác
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-stone-500">
-                                    <Lock className="w-3 h-3" />
-                                    Mở {formatVietnamDateTime(checkInWindow.unlockAtIso)}
-                                  </span>
-                                )}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] font-semibold text-stone-500 w-16 shrink-0">
-                                Check-out:
-                              </span>
-                              <span
-                                className={cn(
-                                  'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap',
-                                  checkOutBadge.badgeClass
-                                )}
-                              >
-                                <span
-                                  className={cn(
-                                    'h-1.5 w-1.5 rounded-full',
-                                    checkOutBadge.dotClass
-                                  )}
-                                />
-                                {checkOutBadge.label}
-                              </span>
-                              <span className="text-[11px] text-stone-500 whitespace-nowrap">
-                                {schedule.checkOutRoundStatus === 'CONFIRMED' &&
-                                schedule.checkOutSubmittedAt ? (
-                                  formatVietnamDateTime(schedule.checkOutSubmittedAt)
-                                ) : checkOutWindow.allowed ? (
-                                  <span className="text-emerald-700 font-medium">
-                                    Đang mở thao tác
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-stone-500">
-                                    <Lock className="w-3 h-3" />
-                                    Mở {formatVietnamDateTime(schedule.endsAt)}
-                                  </span>
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Action */}
-                        <td className="py-3.5 px-4 align-middle text-right whitespace-nowrap">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigateTo(ROUTES.GUIDE.SCHEDULE_DETAIL(schedule.scheduleId));
-                            }}
-                            className="px-3 py-1.5 rounded-lg bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
-                          >
-                            <span>Mở chuyến</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* TABLET & MOBILE COMPACT LIST VIEW */}
-            <div className="lg:hidden grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
-              {filteredSchedules.map((schedule) => {
-                const checkInWindow = evaluateCheckInTimeWindow(schedule.startsAt, nowMs);
-                const checkOutWindow = evaluateCheckOutTimeWindow(schedule.endsAt, nowMs);
-                const checkInBadge = ROUND_STATUS_CONFIG[schedule.checkInRoundStatus];
-                const checkOutBadge = ROUND_STATUS_CONFIG[schedule.checkOutRoundStatus];
-                const isCheckInDone = schedule.checkInRoundStatus === 'CONFIRMED';
-                const activeProcessed = isCheckInDone
-                  ? schedule.checkOutProcessedCount
-                  : schedule.checkInProcessedCount;
-                const totalGuests = schedule.passengerCount;
-
-                return (
-                  <div
-                    key={schedule.scheduleId}
-                    onClick={() => navigateTo(ROUTES.GUIDE.SCHEDULE_DETAIL(schedule.scheduleId))}
-                    className="p-4 rounded-xl border border-stone-200 bg-white hover:bg-[#FDFBF7] transition-colors space-y-3 cursor-pointer flex flex-col justify-between"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                          <span className="font-mono text-xs font-bold text-stone-500">
-                            #{schedule.scheduleId}
-                          </span>
-                          {renderTripStageBadge(schedule)}
-                          <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold border border-stone-200 bg-stone-50 text-stone-700">
-                            {schedule.isLead ? 'Trưởng đoàn' : 'Phụ trách'}
-                          </span>
-                        </div>
-                        <h3 className="text-sm font-bold text-stone-900 leading-snug">
-                          {schedule.tourTitle}
-                        </h3>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-xs bg-stone-50 rounded-xl p-2.5 border border-stone-200/70">
-                      <div>
-                        <span className="text-[10px] text-stone-500 block">Khởi hành (VN)</span>
-                        <span className="font-semibold text-stone-800">
-                          {formatVietnamTimeOnly(schedule.startsAt)} •{' '}
-                          {formatVietnamDateOnly(schedule.startsAt)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-stone-500 block">Kết thúc (VN)</span>
-                        <span className="font-semibold text-stone-800">
-                          {formatVietnamTimeOnly(schedule.endsAt)} •{' '}
-                          {formatVietnamDateOnly(schedule.endsAt)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={cn(
-                            'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold',
-                            checkInBadge.badgeClass
-                          )}
-                        >
-                          CI: {checkInBadge.label}
-                        </span>
-                        <span
-                          className={cn(
-                            'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-semibold',
-                            checkOutBadge.badgeClass
-                          )}
-                        >
-                          CO: {checkOutBadge.label}
-                        </span>
-                      </div>
-                      <span className="font-mono text-[11px] text-stone-600">
-                        Đã xử lý {activeProcessed}/{totalGuests} khách
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[11px] text-stone-500">
-                        {!isCheckInDone
-                          ? checkInWindow.allowed
-                            ? 'Đã mở khung giờ Check-in'
-                            : `Check-in mở ${formatVietnamDateTime(checkInWindow.unlockAtIso)}`
-                          : checkOutWindow.allowed
-                          ? 'Đã mở khung giờ Check-out'
-                          : `Check-out mở ${formatVietnamDateTime(schedule.endsAt)}`}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigateTo(ROUTES.GUIDE.SCHEDULE_DETAIL(schedule.scheduleId));
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-[#1F4E43] text-white text-xs font-semibold inline-flex items-center gap-1"
-                      >
-                        <span>Mở chuyến</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
+          <div className="grid grid-cols-1 gap-5 p-4 sm:p-6 xl:grid-cols-2">
+            {filteredSchedules.map((schedule) => (
+              <GuideScheduleCard key={schedule.scheduleId} schedule={schedule}
+                stageBadge={renderTripStageBadge(schedule)} nowMs={nowMs}
+                checkInLabel={ROUND_STATUS_CONFIG[schedule.checkInRoundStatus].label}
+                checkOutLabel={ROUND_STATUS_CONFIG[schedule.checkOutRoundStatus].label} />
+            ))}
+          </div>
         )}
       </div>
     </div>

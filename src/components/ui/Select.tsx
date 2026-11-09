@@ -1,4 +1,4 @@
-import React, { SelectHTMLAttributes, forwardRef } from 'react';
+import React, { SelectHTMLAttributes, forwardRef, useId } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { SelectOption } from '../../types/common.types';
@@ -12,13 +12,15 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, error, options, placeholder, className, id, ...props }, ref) => {
-    const selectId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+    const generatedId = useId();
+    const selectId = id || generatedId;
+    const errorId = `${selectId}-error`;
 
     return (
       <div className="w-full flex flex-col gap-1.5 text-left">
         {label && (
-          <label htmlFor={selectId} className="text-xs font-semibold uppercase tracking-wider text-[#4A5568]">
-            {label}
+          <label htmlFor={selectId} className="text-sm font-medium text-[#1C2526]">
+            {label}{props.required && <span aria-hidden="true" className="ml-1 text-[#C2410C]">*</span>}
           </label>
         )}
         <div className="relative flex items-center">
@@ -26,11 +28,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             id={selectId}
             ref={ref}
             className={cn(
-              'w-full bg-white border border-[#E2E8F0] text-[#1A202C] text-sm rounded-lg px-3 py-2 pr-9 appearance-none transition-colors focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 focus:border-[#C2410C] cursor-pointer',
+              'min-h-11 w-full bg-white border border-[#E6E1D8] text-[#1C2526] text-base sm:text-sm rounded-lg px-3 py-2.5 pr-9 appearance-none transition-colors focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 focus:border-[#C2410C] cursor-pointer disabled:bg-[#F7F4EE] disabled:text-[#6B7068]',
               error && 'border-red-500 focus:ring-red-200 focus:border-red-500',
               className
             )}
             {...props}
+            aria-invalid={error ? true : props['aria-invalid']}
+            aria-describedby={[props['aria-describedby'], error ? errorId : undefined].filter(Boolean).join(' ') || undefined}
           >
             {placeholder && (
               <option value="" disabled>
@@ -47,7 +51,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             <ChevronDown className="w-4 h-4" />
           </div>
         </div>
-        {error && <span className="text-xs text-red-600 font-medium">{error}</span>}
+        {error && <span id={errorId} className="text-sm text-red-700">{error}</span>}
       </div>
     );
   }

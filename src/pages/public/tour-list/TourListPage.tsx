@@ -119,8 +119,8 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
           </p>
         </div>
 
-        <div className="text-xs font-mono text-[#78716C] bg-white border border-[#E6E1D8] px-3.5 py-2 rounded-xl self-start md:self-auto">
-          Tìm thấy <strong className="text-[#1C2526]">{totalElements}</strong> hành trình
+        <div role="status" className="text-sm text-[#5C645E] bg-white border border-[#E6E1D8] px-3.5 py-2 rounded-xl self-start md:self-auto">
+          {isLoading ? 'Đang tìm hành trình…' : error ? 'Chưa thể tải kết quả' : <>Tìm thấy <strong className="text-[#1C2526]">{totalElements}</strong> hành trình</>}
         </div>
       </div>
 
@@ -149,7 +149,7 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
                   setPage(0);
                 }}
                 placeholder="Nhập tên tour, đỉnh núi, khu bảo tồn..."
-                className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-[#F7F4EE] focus:bg-white border border-[#E6E1D8] rounded-xl text-[#1C2526] focus:outline-none focus:border-[#C2410C]"
+                className="w-full pl-10 pr-4 py-2.5 text-base bg-[#F7F4EE] focus:bg-white border border-[#E6E1D8] rounded-xl text-[#1C2526] focus:outline-none focus:border-[#C2410C]"
               />
             </div>
           </div>
@@ -171,7 +171,7 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
                   setDifficulty(e.target.value as DifficultyLevel | '');
                   setPage(0);
                 }}
-                className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-[#F7F4EE] focus:bg-white border border-[#E6E1D8] rounded-xl text-[#1C2526] focus:outline-none focus:border-[#C2410C] cursor-pointer"
+                className="w-full pl-10 pr-4 py-2.5 text-base bg-[#F7F4EE] focus:bg-white border border-[#E6E1D8] rounded-xl text-[#1C2526] focus:outline-none focus:border-[#C2410C] cursor-pointer"
               >
                 <option value="">Tất cả cấp độ</option>
                 <option value="EASY">Dễ</option>
@@ -203,7 +203,7 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
                   setPage(0);
                 }}
                 placeholder="Tất cả"
-                className="w-full pl-10 pr-3 py-2.5 text-xs sm:text-sm bg-[#F7F4EE] focus:bg-white border border-[#E6E1D8] rounded-xl text-[#1C2526] focus:outline-none focus:border-[#C2410C]"
+                className="w-full pl-10 pr-3 py-2.5 text-base bg-[#F7F4EE] focus:bg-white border border-[#E6E1D8] rounded-xl text-[#1C2526] focus:outline-none focus:border-[#C2410C]"
               />
             </div>
           </div>
@@ -249,11 +249,12 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
             <button
               key={item.value}
               type="button"
+              aria-pressed={difficulty === item.value}
               onClick={() => {
                 setDifficulty(item.value);
                 setPage(0);
               }}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
+              className={`min-h-11 px-3 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
                 difficulty === item.value
                   ? 'bg-[#1F4E43] text-white font-semibold'
                   : 'bg-[#F7F4EE] text-[#2D3748] hover:bg-[#EFECE4]'

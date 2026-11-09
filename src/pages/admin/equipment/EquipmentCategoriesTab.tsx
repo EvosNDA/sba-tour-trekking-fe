@@ -1,3 +1,4 @@
+import { Modal } from '../../../components/ui/Modal';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus,
@@ -298,27 +299,11 @@ export const EquipmentCategoriesTab: React.FC = () => {
 
       {/* Modal: Tạo / Chỉnh sửa nhóm */}
       {isModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
-        >
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-[#E6E1D8] space-y-5 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-              <h3 className="font-bold text-lg text-[#1C2526]">
-                {editingCategory ? 'Chỉnh sửa nhóm thiết bị' : 'Tạo nhóm thiết bị mới'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-full hover:bg-stone-100 text-stone-500 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} preventClose={isSubmitting} maxWidth="md" title={editingCategory ? 'Chỉnh sửa nhóm thiết bị' : 'Tạo nhóm thiết bị mới'}><div className="space-y-5">
+
 
             {formError && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
+              <div role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{formError}</span>
               </div>
@@ -326,11 +311,10 @@ export const EquipmentCategoriesTab: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#1C2526] mb-1.5">
+                <label htmlFor="equipmentcategoriestab-field-1" className="block text-sm font-medium text-[#1C2526] mb-2">
                   Tên nhóm <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
+              <input id="equipmentcategoriestab-field-1"                   type="text"
                   maxLength={120}
                   required
                   placeholder="Ví dụ: Lều trại & Túi ngủ, Dụng cụ nấu ăn..."
@@ -341,11 +325,10 @@ export const EquipmentCategoriesTab: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#1C2526] mb-1.5">
+                <label htmlFor="equipmentcategoriestab-field-2" className="block text-sm font-medium text-[#1C2526] mb-2">
                   Mô tả nhóm
                 </label>
-                <textarea
-                  rows={3}
+              <textarea id="equipmentcategoriestab-field-2"                   rows={3}
                   placeholder="Mô tả công dụng hoặc phạm vi của nhóm thiết bị này..."
                   value={formData.description || ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -356,7 +339,7 @@ export const EquipmentCategoriesTab: React.FC = () => {
               <div className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] border border-[#E6E1D8]">
                 <div>
                   <span className="text-xs font-bold text-[#1C2526] block">Trạng thái hoạt động</span>
-                  <span className="text-[11px] text-stone-500 block">
+                  <span className="text-xs text-stone-500 block">
                     Cho phép chọn nhóm này khi tạo thiết bị mới
                   </span>
                 </div>
@@ -365,16 +348,16 @@ export const EquipmentCategoriesTab: React.FC = () => {
                     type="checkbox"
                     checked={formData.active ?? true}
                     onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-                    className="sr-only peer"
+                    aria-label="Active" className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1F4E43]"></div>
+                  <div className="w-11 h-6 bg-stone-300 peer-focus-visible:ring-2 peer-focus-visible:ring-[#1F4E43] peer-focus-visible:ring-offset-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1F4E43]"></div>
                 </label>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-100">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  disabled={isSubmitting} onClick={() => { if (!isSubmitting) setIsModalOpen(false); }}
                   className="px-4 py-2.5 rounded-xl border border-stone-200 text-stone-600 text-xs font-semibold hover:bg-stone-50 cursor-pointer"
                 >
                   Hủy bỏ
@@ -389,31 +372,25 @@ export const EquipmentCategoriesTab: React.FC = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+          </div></Modal>
       )}
 
       {/* Modal: Xác nhận xóa nhóm */}
       {deletingCategory && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
-        >
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4">
+        <Modal isOpen={Boolean(deletingCategory)} onClose={() => setDeletingCategory(null)} preventClose={isDeleting} maxWidth="md" title="Xác nhận xóa nhóm thiết bị"><div className="space-y-5">
             <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />
             </div>
 
             <div className="text-center space-y-2">
-              <h3 className="font-bold text-lg text-[#1C2526]">Xác nhận xóa nhóm thiết bị</h3>
+
               <p className="text-xs text-stone-600">
                 Bạn có chắc chắn muốn xóa nhóm <strong className="text-stone-900">"{deletingCategory.name}"</strong>?
               </p>
             </div>
 
             {deleteError && (
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+              <div role="alert" className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-700" />
                 <span>{deleteError}</span>
               </div>
@@ -438,8 +415,7 @@ export const EquipmentCategoriesTab: React.FC = () => {
                 <span>Xóa vĩnh viễn</span>
               </button>
             </div>
-          </div>
-        </div>
+          </div></Modal>
       )}
     </div>
   );

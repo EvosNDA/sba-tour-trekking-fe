@@ -1,3 +1,4 @@
+import { Modal } from '../../../components/ui/Modal';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Package,
@@ -227,13 +228,12 @@ export const EquipmentPackagesTab: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {deletePackageTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+        <Modal isOpen={Boolean(deletePackageTarget)} onClose={() => setDeletePackageTarget(null)} preventClose={isDeleting} title="Xóa combo thiết bị"><div className="space-y-5">
             <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />
             </div>
             <div className="text-center space-y-1">
-              <h3 className="text-lg font-bold text-stone-900">Xóa combo thiết bị?</h3>
+
               <p className="text-sm text-stone-600">
                 Bạn có chắc chắn muốn xóa combo{' '}
                 <strong className="text-stone-800">"{deletePackageTarget.title}"</strong>?
@@ -262,8 +262,7 @@ export const EquipmentPackagesTab: React.FC = () => {
                 <span>{isDeleting ? 'Đang xóa...' : 'Xác nhận xóa'}</span>
               </button>
             </div>
-          </div>
-        </div>
+          </div></Modal>
       )}
     </div>
   );
@@ -283,6 +282,7 @@ interface PackageCardProps {
 const PackageCard: React.FC<PackageCardProps> = ({ pkg, onEdit, onDelete, onRefresh }) => {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isDeletingImage, setIsDeletingImage] = useState(false);
+  const [confirmImageDelete, setConfirmImageDelete] = useState(false);
 
   const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -302,10 +302,10 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, onEdit, onDelete, onRefr
   };
 
   const handleDeleteImage = async () => {
-    if (!window.confirm('Bạn có chắc muốn xóa ảnh đại diện của combo này?')) return;
     setIsDeletingImage(true);
     try {
       await equipmentApi.deletePackageImage(pkg.id);
+      setConfirmImageDelete(false);
       toast.success('Đã xóa ảnh combo');
       onRefresh();
     } catch (err: unknown) {
@@ -318,6 +318,10 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, onEdit, onDelete, onRefr
 
   return (
     <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs hover:shadow-md transition-shadow flex flex-col">
+      <Modal isOpen={confirmImageDelete} onClose={() => setConfirmImageDelete(false)} preventClose={isDeletingImage} title="Xóa ảnh đại diện combo">
+        <p className="text-sm leading-relaxed text-stone-600">Xóa ảnh đại diện của “{pkg.title}”? Bạn có thể tải ảnh khác lên sau.</p>
+        <div className="mt-6 flex flex-wrap justify-end gap-3"><button type="button" disabled={isDeletingImage} onClick={() => setConfirmImageDelete(false)} className="min-h-11 rounded-lg border border-stone-200 px-4 text-sm font-medium">Hủy</button><button type="button" disabled={isDeletingImage} onClick={handleDeleteImage} className="min-h-11 rounded-lg bg-rose-700 px-4 text-sm font-medium text-white disabled:opacity-50">{isDeletingImage ? 'Đang xóa…' : 'Xóa ảnh'}</button></div>
+      </Modal>
       {/* Image Banner */}
       <div className="relative h-44 bg-stone-100 group overflow-hidden">
         {pkg.imageUrl ? (
@@ -334,7 +338,7 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, onEdit, onDelete, onRefr
         )}
 
         {/* Floating Item Count Badge */}
-        <div className="absolute top-3 left-3 bg-[#1C2526]/80 backdrop-blur-xs text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-xs">
+        <div className="absolute top-3 left-3 bg-[#1C2526]/80 backdrop-blur-xs text-white text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-xs">
           <Layers className="w-3 h-3 text-[#B9EADB]" />
           <span>{pkg.items?.length || 0} món</span>
         </div>
@@ -364,7 +368,7 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, onEdit, onDelete, onRefr
             <button
               type="button"
               disabled={isDeletingImage}
-              onClick={handleDeleteImage}
+              onClick={() => setConfirmImageDelete(true)}
               className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-rose-600 shadow-xs transition-colors cursor-pointer"
               title="Xóa ảnh"
             >
@@ -600,31 +604,9 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-xl space-y-5 my-8 max-h-[90vh] flex flex-col">
+    <Modal isOpen onClose={onClose} preventClose={isSubmitting} maxWidth="2xl" title={isEdit ? 'Chỉnh sửa combo thiết bị' : 'Tạo combo thiết bị mới'}><div className="space-y-5">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-stone-200 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#1F4E43]/10 text-[#1F4E43] flex items-center justify-center">
-              <Package className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-stone-900">
-                {isEdit ? 'Chỉnh sửa combo thiết bị' : 'Tạo combo thiết bị mới'}
-              </h3>
-              <p className="text-xs text-stone-500">
-                Tập hợp các món thiết bị trekking thành một gói thuê đồng bộ
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 hover:bg-stone-100 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+
 
         {isEdit && (
           <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900 flex items-start gap-2 shrink-0">
@@ -638,23 +620,22 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
         )}
 
         {formError && (
-          <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs sm:text-sm text-red-700 flex items-center gap-2 shrink-0">
+          <div role="alert" className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs sm:text-sm text-red-700 flex items-center gap-2 shrink-0">
             <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
             <span>{formError}</span>
           </div>
         )}
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-5 pr-1">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Title & Price */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1 sm:col-span-2">
-              <label className="text-xs font-semibold text-stone-700 flex items-center gap-1">
+              <label htmlFor="equipmentpackagestab-field-1" className="text-sm font-medium text-stone-700 flex items-center gap-1">
                 <span>Tên combo</span>
                 <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
+              <input id="equipmentpackagestab-field-1"                 type="text"
                 required
                 placeholder="Ví dụ: Combo Trekking Chuyên Nghiệp (Lều + Túi ngủ + Gậy)..."
                 value={title}
@@ -664,7 +645,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
             </div>
 
             <div className="space-y-1 sm:col-span-2">
-              <label className="text-xs font-semibold text-stone-700 flex items-center gap-1">
+              <label className="text-sm font-medium text-stone-700 flex items-center gap-1">
                 <span>Giá thuê cả combo (VND / chuyến)</span>
                 <span className="text-red-500">*</span>
               </label>
@@ -683,7 +664,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
                   VND
                 </span>
               </div>
-              <p className="text-[11px] text-stone-500">
+              <p className="text-xs text-stone-500">
                 Giá thuê trọn gói cho toàn bộ chuyến đi (0 VND là hợp lệ).
               </p>
             </div>
@@ -691,7 +672,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
 
           {/* Image Picker */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-stone-700">Ảnh đại diện combo</label>
+            <label className="text-sm font-medium text-stone-700">Ảnh đại diện combo</label>
             <div className="flex items-center gap-4">
               <div className="w-20 h-20 rounded-xl border border-stone-200 bg-stone-50 overflow-hidden flex items-center justify-center relative shrink-0">
                 {imagePreviewUrl ? (
@@ -715,7 +696,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
                     className="hidden"
                   />
                 </label>
-                <p className="text-[11px] text-stone-500">Hỗ trợ JPG, PNG, WebP (tối đa 5MB)</p>
+                <p className="text-xs text-stone-500">Hỗ trợ JPG, PNG, WebP (tối đa 5MB)</p>
               </div>
             </div>
           </div>
@@ -727,7 +708,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
                 <label className="text-xs font-bold text-stone-900 uppercase tracking-wider block">
                   Danh sách món trong combo ({items.length})
                 </label>
-                <p className="text-[11px] text-stone-500">
+                <p className="text-xs text-stone-500">
                   Chọn các thiết bị lẻ có sẵn và gán số lượng tương ứng
                 </p>
               </div>
@@ -761,7 +742,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
             {items.length === 0 ? (
               <div className="p-6 text-center rounded-xl bg-stone-50 border border-dashed border-stone-200 space-y-1">
                 <p className="text-xs text-stone-500">Chưa có thiết bị nào trong combo này.</p>
-                <p className="text-[11px] text-stone-400">
+                <p className="text-xs text-stone-400">
                   Dùng danh sách chọn ở góc trên bên phải để thêm món vào combo.
                 </p>
               </div>
@@ -778,7 +759,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
                         <p className="font-semibold text-stone-900 truncate">
                           {catItem?.name || `Thiết bị #${item.equipmentId}`}
                         </p>
-                        <p className="text-[11px] text-stone-500">
+                        <p className="text-xs text-stone-500">
                           Giá thuê lẻ tham khảo:{' '}
                           <span className="font-mono text-stone-700">
                             {catItem?.individualRentalPriceVnd != null
@@ -790,7 +771,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
 
                       {/* Quantity Input */}
                       <div className="flex items-center gap-2">
-                        <span className="text-stone-500 text-[11px]">Số lượng:</span>
+                        <span className="text-stone-500 text-xs">Số lượng:</span>
                         <input
                           type="number"
                           min="1"
@@ -838,7 +819,6 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
             <span>{isSubmitting ? 'Đang lưu combo...' : isEdit ? 'Lưu thay đổi' : 'Tạo combo'}</span>
           </button>
         </div>
-      </div>
-    </div>
+      </div></Modal>
   );
 };

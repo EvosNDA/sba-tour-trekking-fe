@@ -119,15 +119,16 @@ export const TourDetailPage: React.FC<TourDetailPageProps> = ({ tourId: propTour
     if (element) {
       const yOffset = -80; // Offset for sticky header
       const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
+      window.scrollTo({ top: y, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
     }
   };
 
   // Scroll to booking frame on mobile
   const handleScrollToBooking = () => {
-    const frame = document.getElementById('khung-dat-tour');
+    const frame = document.getElementById('tour-booking');
     if (frame) {
-      frame.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      frame.focus({ preventScroll: true });
+      frame.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
     }
   };
 
@@ -182,7 +183,7 @@ export const TourDetailPage: React.FC<TourDetailPageProps> = ({ tourId: propTour
   }
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 xl:px-12 py-6 space-y-8">
+    <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 xl:px-12 pt-6 pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-6 space-y-8">
       {/* Top Back Navigation Bar */}
       <div className="flex items-center justify-between gap-4">
         <button
@@ -293,7 +294,7 @@ export const TourDetailPage: React.FC<TourDetailPageProps> = ({ tourId: propTour
         </div>
 
         {/* Right Column (4 cols): Sticky Booking Frame on Desktop */}
-        <aside className="min-w-0 lg:sticky lg:top-20 space-y-4">
+        <aside id="tour-booking" tabIndex={-1} aria-label="Chọn lịch khởi hành và số khách" className="min-w-0 scroll-mt-24 lg:sticky lg:top-20 space-y-4">
           <TourBookingFrame
             tourId={tour.id}
             tourTitle={tour.title}
@@ -303,12 +304,12 @@ export const TourDetailPage: React.FC<TourDetailPageProps> = ({ tourId: propTour
       </div>
 
       {/* Sticky Bottom Bar on Mobile */}
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E6E1D8] px-4 py-3 shadow-lg flex items-center justify-between gap-4">
-        <div>
+      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E6E1D8] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-lg flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <div className="text-[10px] text-[#64748B] font-semibold uppercase tracking-wider">
             Đặt tour ngay
           </div>
-          <div className="font-bold text-xs text-[#1C2526] truncate max-w-[180px]">
+          <div className="font-semibold text-sm text-[#1C2526] truncate">
             {tour.title}
           </div>
         </div>
@@ -316,7 +317,8 @@ export const TourDetailPage: React.FC<TourDetailPageProps> = ({ tourId: propTour
         <button
           type="button"
           onClick={handleScrollToBooking}
-          className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-[#1F4E43] text-white shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
+          aria-controls="tour-booking"
+          className="inline-flex min-h-12 items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#1F4E43] text-white shadow-md transition-colors hover:bg-[#15372F] cursor-pointer shrink-0"
         >
           <span>Xem ngày khởi hành</span>
           <ChevronDown className="w-4 h-4" />

@@ -1,3 +1,4 @@
+import { AdminSectionNav } from '../components/AdminSectionNav';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft,
@@ -304,7 +305,8 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
           ) : (
             <>
               {/* Header Overview Card */}
-              <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-2xs space-y-5">
+              <AdminSectionNav items={[{id: 'tour-overview', label: 'Tổng quan'}, {id: 'tour-statistics', label: 'Thống kê'}, {id: 'tour-itinerary', label: 'Lịch trình'}, {id: 'tour-terms', label: 'Điều khoản'}, {id: 'tour-equipment', label: 'Thiết bị'}, {id: 'tour-schedules', label: 'Khởi hành'}]} />
+              <div id="tour-overview" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-2xs space-y-5">
                 <div className="flex flex-wrap items-start justify-between gap-4 border-b border-stone-200 pb-5">
                   <div className="space-y-1.5">
                     <h1 className="font-editorial text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1C2526]">
@@ -321,7 +323,7 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
                 {/* Key Attributes Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs sm:text-sm">
                   <div className="p-3.5 rounded-xl bg-[#FDFBF7] border border-[#E6E1D8]/80 flex flex-col justify-between">
-                    <span className="text-[11px] font-mono uppercase text-stone-500 block mb-1.5">
+                    <span className="text-xs font-mono uppercase text-stone-500 block mb-1.5">
                       Trạng thái
                     </span>
                     <div>
@@ -330,7 +332,7 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-[#FDFBF7] border border-[#E6E1D8]/80 flex flex-col justify-between">
-                    <span className="text-[11px] font-mono uppercase text-stone-500 block mb-1.5">
+                    <span className="text-xs font-mono uppercase text-stone-500 block mb-1.5">
                       Độ khó
                     </span>
                     <div>
@@ -339,7 +341,7 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-[#FDFBF7] border border-[#E6E1D8]/80 flex flex-col justify-between">
-                    <span className="text-[11px] font-mono uppercase text-stone-500 block mb-1.5">
+                    <span className="text-xs font-mono uppercase text-stone-500 block mb-1.5">
                       Thời lượng
                     </span>
                     <strong className="font-mono text-stone-900 inline-flex items-center gap-1.5">
@@ -349,7 +351,7 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-[#FDFBF7] border border-[#E6E1D8]/80 flex flex-col justify-between">
-                    <span className="text-[11px] font-mono uppercase text-stone-500 block mb-1.5">
+                    <span className="text-xs font-mono uppercase text-stone-500 block mb-1.5">
                       Số lượng media
                     </span>
                     <strong className="font-mono text-stone-900">
@@ -359,10 +361,10 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
                 </div>
               </div>
 
-              <TourStatistics tourId={tour.id} scheduleTotal={scheduleTotal} />
-              <TourItineraryEditor tourId={tour.id} durationDays={tour.durationDays} />
-              <TourTermsEditor tourId={tour.id} cancellationId={tour.cancellationPolicyVersionId} status={tour.status} onUpdated={fetchTourDetail} />
-              <TourEquipmentEditor tourId={tour.id} />
+              <div id="tour-statistics" className="scroll-mt-48"><TourStatistics tourId={tour.id} scheduleTotal={scheduleTotal} /></div>
+              <div id="tour-itinerary" className="scroll-mt-48"><TourItineraryEditor tourId={tour.id} durationDays={tour.durationDays} /></div>
+              <div id="tour-terms" className="scroll-mt-48"><TourTermsEditor tourId={tour.id} cancellationId={tour.cancellationPolicyVersionId} status={tour.status} onUpdated={fetchTourDetail} /></div>
+              <div id="tour-equipment" className="scroll-mt-48"><TourEquipmentEditor tourId={tour.id} /></div>
 
               {/* Detail Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -526,20 +528,20 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
 
                             <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
                               {m.isCover && (
-                                <span className="px-2 py-0.5 rounded-md bg-[#C2410C] text-white font-mono text-[10px] font-bold inline-flex items-center gap-1">
+                                <span className="px-2 py-0.5 rounded-md bg-[#C2410C] text-white font-mono text-xs font-bold inline-flex items-center gap-1">
                                   <Star className="w-3 h-3 fill-current" />
                                   Ảnh bìa
                                 </span>
                               )}
                             </div>
 
-                            <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/60 text-white font-mono text-[10px]">
+                            <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/60 text-white font-mono text-xs">
                               Thứ tự: {m.displayOrder}
                             </span>
                           </div>
 
                           <div className="p-3 text-xs space-y-2">
-                            <div className="flex items-center justify-between text-stone-500 font-mono text-[11px]">
+                            <div className="flex items-center justify-between text-stone-500 font-mono text-xs">
                               
                               <div className="flex items-center gap-2">
                                 {!m.isCover && (
@@ -575,7 +577,7 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
               </div>
 
               {/* Bottom Section: Departure Schedules List */}
-              <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-4">
+              <div id="tour-schedules" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-4">
                 <div className="flex items-center justify-between border-b border-stone-200 pb-3">
                   <div>
                     <h2 className="text-base font-bold text-[#1C2526] flex items-center gap-2">
@@ -615,7 +617,7 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-[11px] font-mono uppercase tracking-wider text-stone-600">
+                        <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-xs font-mono uppercase tracking-wider text-stone-600">
                           
                           <th className="py-3 px-3.5 font-bold">Bắt đầu</th>
                           <th className="py-3 px-3.5 font-bold">Kết thúc</th>

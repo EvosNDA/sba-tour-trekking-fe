@@ -1,3 +1,8 @@
+import { AdminPageHeader } from '../../../components/ui/AdminPageHeader';
+import { FilterToolbar } from '../../../components/ui/FilterToolbar';
+import { Pagination } from '../../../components/ui/Pagination';
+import { DataTable } from '../../../components/ui/DataTable';
+import { DataState } from '../../../components/ui/DataState';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search,
@@ -114,20 +119,20 @@ export const AdminAccountListPage: React.FC = () => {
     switch (role.toLowerCase()) {
       case 'admin':
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold text-[11px] bg-purple-50 text-purple-700 border border-purple-200/60">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold text-xs bg-purple-50 text-purple-700 border border-purple-200/60">
             Quản trị viên
           </span>
         );
       case 'guide':
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold text-[11px] bg-blue-50 text-blue-700 border border-blue-200/60">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-semibold text-xs bg-blue-50 text-blue-700 border border-blue-200/60">
             Hướng dẫn viên
           </span>
         );
       case 'customer':
       default:
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium text-[11px] bg-stone-100 text-stone-700 border border-stone-200">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium text-xs bg-stone-100 text-stone-700 border border-stone-200">
             Khách hàng
           </span>
         );
@@ -218,21 +223,7 @@ export const AdminAccountListPage: React.FC = () => {
     <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Top Header Card theo spec chuẩn */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-[#1F4E43] font-bold">
-              <ShieldCheck className="w-4 h-4 text-[#C2410C]" />
-              <span>QUẢN TRỊ NGƯỜI DÙNG</span>
-            </div>
-            <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-[#1C2526]">
-              Quản trị người dùng & Tài khoản
-            </h1>
-            <p className="text-xs sm:text-sm text-stone-600">
-              Tra cứu thông tin, giám sát vai trò và kiểm soát quyền truy cập của các tài khoản hệ thống
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+        <AdminPageHeader title="Quản trị người dùng & Tài khoản" description="Tra cứu thông tin, giám sát vai trò và kiểm soát quyền truy cập của các tài khoản hệ thống" actions={<div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <button
               type="button"
               onClick={fetchAccounts}
@@ -244,11 +235,10 @@ export const AdminAccountListPage: React.FC = () => {
               />
               <span>Làm mới</span>
             </button>
-          </div>
-        </div>
+          </div>} />
 
         {/* Filter Toolbar Card theo spec chuẩn */}
-        <div className="bg-white rounded-2xl border border-[#E6E1D8] p-5 shadow-2xs space-y-4">
+        <FilterToolbar>
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* Search Input */}
             <div className="relative flex-1 max-w-md">
@@ -305,7 +295,7 @@ export const AdminAccountListPage: React.FC = () => {
               </select>
             </div>
           </div>
-        </div>
+        </FilterToolbar>
 
         {/* Error Banner */}
         {error && (
@@ -326,8 +316,24 @@ export const AdminAccountListPage: React.FC = () => {
 
         {/* Main Table Card theo spec chuẩn */}
         <div className="bg-white rounded-2xl border border-[#E6E1D8] overflow-hidden shadow-2xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="divide-y divide-[#E6E1D8] md:hidden" aria-busy={isLoading}>
+            {isLoading ? <p role="status" className="p-6 text-sm text-stone-600">Đang tải tài khoản…</p> : items.length === 0 ? <DataState title="Không tìm thấy tài khoản" description="Thử thay đổi hoặc xóa bộ lọc để xem kết quả khác." /> : items.map((acc) => {
+              const isSelf = currentAccountId !== null && acc.id === currentAccountId;
+              const isAdminRole = acc.roles?.some((r) => r.toLowerCase() === 'admin');
+              const canMutate = !isSelf && !isAdminRole && acc.status !== 'disabled';
+              return <article key={acc.id} className="space-y-4 p-5">
+                <div className="flex items-start gap-3"><UserAvatar name={acc.fullName} size="sm" /><div className="min-w-0 flex-1"><h2 className="break-words text-base font-semibold">{acc.fullName} {isSelf && <span className="text-sm font-normal text-[#1F4E43]">(Bạn)</span>}</h2><p className="mt-1 break-all text-sm text-stone-600">{acc.email}</p><p className="mt-1 text-sm text-stone-600">{acc.phone || 'Chưa có số điện thoại'}</p></div></div>
+                <div className="flex flex-wrap gap-2">{acc.roles.map((r) => <React.Fragment key={r}>{renderRoleBadge(r)}</React.Fragment>)}{renderStatusBadge(acc.status)}</div>
+                <p className="text-sm text-stone-500">Ngày tạo: {formatDate(acc.createdAt)}</p>
+                <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-4">
+                  <button type="button" onClick={() => { setDetailAccountId(acc.id); setDetailModalOpen(true); }} className="min-h-11 rounded-lg border border-stone-200 px-3 text-sm font-medium">Xem hồ sơ</button>
+                  {(acc.status === 'active' || acc.status === 'blocked') && <button type="button" disabled={!canMutate} onClick={() => handleOpenAction(acc, acc.status === 'active' ? 'block' : 'unblock')} className="min-h-11 rounded-lg border border-stone-200 px-3 text-sm font-medium text-[#1F4E43] disabled:cursor-not-allowed disabled:opacity-50">{acc.status === 'active' ? 'Khóa tài khoản' : 'Mở khóa'}</button>}
+                </div>
+                {!canMutate && <p className="text-xs text-stone-500">{isSelf ? 'Bạn không thể thay đổi trạng thái tài khoản của mình.' : isAdminRole ? 'Không thể thay đổi trạng thái tài khoản quản trị viên.' : 'Tài khoản đã vô hiệu.'}</p>}
+              </article>;
+            })}
+          </div>
+          <DataTable className="hidden md:block" tableClassName="w-full text-left text-sm border-collapse">
               <thead className="bg-stone-50/80 text-stone-500 border-b border-[#E6E1D8]">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Người dùng</th>
@@ -397,7 +403,7 @@ export const AdminAccountListPage: React.FC = () => {
                               <div className="font-semibold text-stone-900 truncate" title={acc.fullName}>
                                 {acc.fullName}
                               </div>
-                              <div className="text-[10px] text-stone-400 font-mono">
+                              <div className="text-xs text-stone-400 font-mono">
                                 #{acc.id}
                                 {isSelf && (
                                   <span className="ml-1.5 text-emerald-800 font-semibold">
@@ -469,7 +475,7 @@ export const AdminAccountListPage: React.FC = () => {
                                     ? 'Không thể khóa tài khoản có quyền Quản trị viên'
                                     : 'Khóa tài khoản'
                                 }
-                                className={`px-2.5 py-1 rounded-lg font-semibold text-[11px] whitespace-nowrap transition-colors ${
+                                className={`px-2.5 py-1 rounded-lg font-semibold text-xs whitespace-nowrap transition-colors ${
                                   canMutate
                                     ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 cursor-pointer'
                                     : 'bg-stone-100 text-stone-400 cursor-not-allowed opacity-60'
@@ -491,7 +497,7 @@ export const AdminAccountListPage: React.FC = () => {
                                     ? 'Không thể thao tác trên tài khoản Quản trị viên'
                                     : 'Mở khóa tài khoản'
                                 }
-                                className={`px-2.5 py-1 rounded-lg font-semibold text-[11px] whitespace-nowrap transition-colors ${
+                                className={`px-2.5 py-1 rounded-lg font-semibold text-xs whitespace-nowrap transition-colors ${
                                   canMutate
                                     ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 cursor-pointer'
                                     : 'bg-stone-100 text-stone-400 cursor-not-allowed opacity-60'
@@ -507,46 +513,10 @@ export const AdminAccountListPage: React.FC = () => {
                   })
                 )}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
 
           {/* Pagination Footer */}
-          <div className="p-4 border-t border-[#E6E1D8] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
-            <div>
-              Hiển thị{' '}
-              <strong className="text-stone-800 font-mono">
-                {totalElements === 0 ? 0 : page * size + 1}
-              </strong>{' '}
-              đến{' '}
-              <strong className="text-stone-800 font-mono">
-                {Math.min((page + 1) * size, totalElements)}
-              </strong>{' '}
-              trong tổng số{' '}
-              <strong className="text-stone-800 font-mono">{totalElements}</strong> tài khoản
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page === 0 || isLoading}
-                className="p-1.5 rounded-lg border border-stone-200 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="font-mono text-stone-700 px-2 font-medium">
-                Trang {totalPages === 0 ? 0 : page + 1} / {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={page >= totalPages - 1 || isLoading}
-                className="p-1.5 rounded-lg border border-stone-200 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          <Pagination page={page} totalPages={totalPages} totalElements={totalElements} pageSize={size} onPageChange={(next) => { if (!isLoading) setPage(next); }} />
         </div>
 
         {/* Modal xác nhận Khóa / Mở khóa */}

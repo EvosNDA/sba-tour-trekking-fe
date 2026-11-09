@@ -12,6 +12,7 @@ import { useSearchParams } from '../../../lib/navigation';
 import { EquipmentCatalogTab } from './EquipmentCatalogTab';
 import { EquipmentPackagesTab } from './EquipmentPackagesTab';
 import { EquipmentCategoriesTab } from './EquipmentCategoriesTab';
+import { AdminPageHeader } from '../../../components/ui/AdminPageHeader';
 
 type EquipmentTabKey = 'catalog' | 'packages' | 'categories';
 
@@ -26,28 +27,7 @@ export const AdminEquipmentPage: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-      {/* Header & Breadcrumb */}
-      <div className="space-y-2">
-        <nav className="flex items-center gap-1.5 text-xs text-stone-500 font-medium">
-          <span>Quản trị WeTrek</span>
-          <ChevronRight className="w-3.5 h-3.5 text-stone-400" />
-          <span className="text-stone-900 font-semibold">Thiết bị & Combo</span>
-        </nav>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#1C2526] tracking-tight flex items-center gap-3">
-              <span className="w-10 h-10 rounded-2xl bg-[#1F4E43] text-white flex items-center justify-center shadow-xs">
-                <Boxes className="w-5 h-5" />
-              </span>
-              <span>Quản lý Thiết bị & Combo</span>
-            </h1>
-            <p className="text-xs sm:text-sm text-stone-600 mt-1 max-w-2xl">
-              Quản lý danh mục thiết bị lẻ, số lượng tồn kho, các gói combo thiết bị mẫu và nhóm phân loại trong hệ thống WeTrek.
-            </p>
-          </div>
-        </div>
-      </div>
+      <AdminPageHeader eyebrow="Kho thiết bị" title="Thiết bị & Combo" description="Quản lý thiết bị lẻ, số lượng tồn kho, gói thuê mẫu và nhóm phân loại." />
 
       {/* Tabs Navigation */}
       <div className="border-b border-stone-200">
@@ -56,6 +36,7 @@ export const AdminEquipmentPage: React.FC = () => {
           <button
             type="button"
             onClick={() => handleTabChange('catalog')}
+            aria-pressed={currentTab === 'catalog'}
             className={`px-4 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap cursor-pointer ${
               currentTab === 'catalog'
                 ? 'border-[#1F4E43] text-[#1F4E43]'
@@ -70,6 +51,7 @@ export const AdminEquipmentPage: React.FC = () => {
           <button
             type="button"
             onClick={() => handleTabChange('packages')}
+            aria-pressed={currentTab === 'packages'}
             className={`px-4 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap cursor-pointer ${
               currentTab === 'packages'
                 ? 'border-[#1F4E43] text-[#1F4E43]'
@@ -84,6 +66,7 @@ export const AdminEquipmentPage: React.FC = () => {
           <button
             type="button"
             onClick={() => handleTabChange('categories')}
+            aria-pressed={currentTab === 'categories'}
             className={`px-4 py-3 text-sm font-semibold border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap cursor-pointer ${
               currentTab === 'categories'
                 ? 'border-[#1F4E43] text-[#1F4E43]'

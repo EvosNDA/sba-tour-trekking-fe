@@ -1,3 +1,8 @@
+import { AdminPageHeader } from '../../../components/ui/AdminPageHeader';
+import { FilterToolbar } from '../../../components/ui/FilterToolbar';
+import { Pagination } from '../../../components/ui/Pagination';
+import { DataTable } from '../../../components/ui/DataTable';
+import { DataState } from '../../../components/ui/DataState';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus,
@@ -154,21 +159,7 @@ export const AdminTourListPage: React.FC = () => {
       <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Top Dashboard Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-[#1F4E43] font-bold">
-                <ShieldCheck className="w-4 h-4 text-[#C2410C]" />
-                <span>Hệ thống Quản trị Tour Trekking (ADMIN)</span>
-              </div>
-              <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-[#1C2526]">
-                Danh sách Tour Trekking
-              </h1>
-              <p className="text-xs sm:text-sm text-stone-600">
-                Quản lý danh mục cung đường, trạng thái xuất bản, độ khó và thời lượng hành trình.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <AdminPageHeader title="Danh sách Tour Trekking" description="Quản lý danh mục cung đường, trạng thái xuất bản, độ khó và thời lượng hành trình." actions={<div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <button
                 type="button"
                 onClick={fetchTours}
@@ -189,13 +180,13 @@ export const AdminTourListPage: React.FC = () => {
                 <Plus className="w-4 h-4" />
                 <span>Tạo tour mới</span>
               </button>
-            </div>
-          </div>
+            </div>} />
 
           {/* Search & Filter Bar */}
+          <FilterToolbar>
           <form
             onSubmit={handleSearchSubmit}
-            className="bg-white rounded-2xl border border-[#E6E1D8] p-5 shadow-2xs space-y-4"
+            className="space-y-4"
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
@@ -323,6 +314,7 @@ export const AdminTourListPage: React.FC = () => {
               </div>
             </div>
           </form>
+          </FilterToolbar>
 
           {/* Table / Loading / Empty / Error States */}
           {isLoading ? (
@@ -362,7 +354,7 @@ export const AdminTourListPage: React.FC = () => {
                 </h2>
                 <p className="text-xs sm:text-sm text-stone-600">{error.message}</p>
                 {error.code && (
-                  <p className="text-[11px] font-mono text-rose-600">Mã lỗi: {error.code}</p>
+                  <p className="text-xs font-mono text-rose-600">Mã lỗi: {error.code}</p>
                 )}
               </div>
               <button
@@ -411,11 +403,30 @@ export const AdminTourListPage: React.FC = () => {
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-[#E6E1D8] overflow-hidden shadow-2xs">
+              <div className="divide-y divide-[#E6E1D8] md:hidden">
+                {tours.map((item) => (
+                  <article key={item.id} className="space-y-4 p-5">
+                    <div className="flex items-start gap-3">
+                      {item.coverImageUrl && <img src={item.coverImageUrl} alt="" loading="lazy" className="h-20 w-20 shrink-0 rounded-xl object-cover" />}
+                      <div className="min-w-0 space-y-2">
+                        <button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_DETAIL(item.id))} className="text-left text-base font-semibold text-[#1C2526] hover:text-[#C2410C]">{item.title}</button>
+                        <p className="text-sm text-stone-600">{item.durationDays} ngày</p>
+                        <div className="flex flex-wrap gap-2"><StatusBadge difficulty={item.difficulty} /><StatusBadge tourStatus={item.status} /></div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-4">
+                      <button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_DETAIL(item.id))} className="min-h-11 rounded-lg border border-stone-200 px-3 text-sm font-medium">Chi tiết</button>
+                      <button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_EDIT(item.id))} className="min-h-11 rounded-lg border border-stone-200 px-3 text-sm font-medium">Chỉnh sửa</button>
+                      {item.status === 'DRAFT' && <button type="button" onClick={() => setPublishTourId(item.id)} className="min-h-11 rounded-lg bg-[#1F4E43] px-3 text-sm font-medium text-white">Xuất bản</button>}
+                      <button type="button" onClick={() => { setDeleteError(null); setTourToDelete(item); }} className="min-h-11 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700">Xóa</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
               {/* Responsive Table for Desktop & Tablet */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse min-w-[760px]">
+              <DataTable className="hidden md:block" tableClassName="w-full text-left border-collapse min-w-[760px]">
                   <thead>
-                    <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-[11px] font-mono uppercase tracking-wider text-stone-600">
+                    <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-xs font-mono uppercase tracking-wider text-stone-600">
                       <th className="py-3.5 px-4 font-bold w-24">Ảnh bìa</th>
                       <th className="py-3.5 px-4 font-bold">Tên tour</th>
                       <th className="py-3.5 px-4 font-bold w-40">Độ khó</th>
@@ -518,17 +529,10 @@ export const AdminTourListPage: React.FC = () => {
                       </tr>
                     ))}
                   </tbody>
-                </table>
-              </div>
+                </DataTable>
 
               {/* Pagination Footer */}
-              <div className="bg-[#FAF8F5] border-t border-[#E6E1D8] px-5 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-stone-600">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span>
-                    Tổng số: <strong className="text-stone-900">{totalElements}</strong> tour
-                  </span>
-                  <span className="text-stone-300">|</span>
-                  <label className="inline-flex items-center gap-1.5">
+              <div className="border-t border-[#E6E1D8] px-5 pt-4 text-sm text-stone-600"><label className="inline-flex items-center gap-1.5">
                     <span>Số dòng/trang:</span>
                     <select
                       value={size}
@@ -542,37 +546,8 @@ export const AdminTourListPage: React.FC = () => {
                       <option value={20}>20</option>
                       <option value={50}>50</option>
                     </select>
-                  </label>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="font-mono">
-                    Trang <strong>{totalPages > 0 ? currentPage + 1 : 0}</strong> /{' '}
-                    {Math.max(totalPages, 1)} (page={currentPage})
-                  </span>
-
-                  <div className="flex items-center gap-1 ml-2">
-                    <button
-                      type="button"
-                      disabled={currentPage <= 0}
-                      onClick={() => setPage((p) => Math.max(0, p - 1))}
-                      aria-label="Trang trước"
-                      className="p-1.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      disabled={totalPages === 0 || currentPage + 1 >= totalPages}
-                      onClick={() => setPage((p) => p + 1)}
-                      aria-label="Trang tiếp theo"
-                      className="p-1.5 rounded-lg border border-stone-300 bg-white hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
+                  </label></div>
+<Pagination page={currentPage} totalPages={totalPages} totalElements={totalElements} pageSize={size} onPageChange={(next) => { if (!isLoading) setPage(next); }} />
             </div>
           )}
         </div>
