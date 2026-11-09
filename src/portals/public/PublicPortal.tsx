@@ -75,6 +75,9 @@ export const PublicPortal: React.FC = () => {
     if (pathname === ROUTES.AUTH.RESET_PASSWORD) {
       return <LoginPage initialMode="reset-password" />;
     }
+    if (pathname === ROUTES.AUTH.ACTIVATE_ACCOUNT) {
+      return <LoginPage initialMode="activate-account" />;
+    }
 
     // Fallback 404 page
     return (

@@ -28,6 +28,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
     ? 'forgot-password'
     : pathname === ROUTES.AUTH.RESET_PASSWORD
     ? 'reset-password'
+    : pathname === ROUTES.AUTH.ACTIVATE_ACCOUNT
+    ? 'activate-account'
     : pathname === ROUTES.AUTH.REGISTER
     ? 'register'
     : 'login';
@@ -93,6 +95,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ initialMode }) => {
     else if (nextMode === 'verify-email') navigateTo(`${ROUTES.AUTH.VERIFY_EMAIL}${qs}`);
     else if (nextMode === 'forgot-password') navigateTo(`${ROUTES.AUTH.FORGOT_PASSWORD}${qs}`);
     else if (nextMode === 'reset-password') navigateTo(`${ROUTES.AUTH.RESET_PASSWORD}${qs}`);
+    else if (nextMode === 'activate-account') navigateTo(`${ROUTES.AUTH.ACTIVATE_ACCOUNT}${qs}`);
     else navigateTo(`${ROUTES.AUTH.LOGIN}${qs}`);
   };
 

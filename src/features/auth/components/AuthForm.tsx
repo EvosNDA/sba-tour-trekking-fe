@@ -16,7 +16,7 @@ import { useAuth } from '../hooks/useAuth';
 import { APP_CONFIG } from '../../../constants/config';
 import { toast } from '../../../components/ui/Toast';
 
-export type AuthFormMode = 'login' | 'register' | 'verify-email' | 'forgot-password' | 'reset-password';
+export type AuthFormMode = 'login' | 'register' | 'verify-email' | 'forgot-password' | 'reset-password' | 'activate-account';
 
 export interface AuthFormProps {
   initialMode?: AuthFormMode;
@@ -43,8 +43,10 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     register,
     verifyEmail,
     resendVerification,
+    resendInvitationActivation,
     forgotPassword,
     resetPassword,
+    activateAccount,
     isLoading,
     apiError,
     clearError,
@@ -54,6 +56,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
@@ -247,6 +251,21 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         setPassword('');
         setNewPassword('');
         switchMode('login', email.trim());
+      } else if (mode === 'activate-account') {
+        if (otpString.length !== 6) {
+          toast.warning('Vui lòng nhập đủ 6 chữ số OTP.');
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          setConfirmPasswordError('Mật khẩu xác nhận chưa khớp.');
+          return;
+        }
+        const res = await activateAccount({ email: email.trim(), otp: otpString, newPassword });
+        toast.success(res.message || 'Kích hoạt tài khoản thành công. Vui lòng đăng nhập.');
+        setNewPassword('');
+        setConfirmPassword('');
+        switchMode('login', email.trim());
+        setInfoMessage('Tài khoản đã được kích hoạt. Hãy đăng nhập bằng mật khẩu bạn vừa tạo.');
       }
     } catch (err: any) {
       if (err?.code === 'EMAIL_NOT_VERIFIED') {
@@ -268,6 +287,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     try {
       if (mode === 'reset-password') {
         await forgotPassword(email.trim());
+      } else if (mode === 'activate-account') {
+        await resendInvitationActivation(email.trim());
       } else {
         await resendVerification(email.trim());
       }
@@ -291,6 +312,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             {mode === 'verify-email' && 'Xác thực Email'}
             {mode === 'forgot-password' && 'Khôi phục mật khẩu'}
             {mode === 'reset-password' && 'Thiết lập mật khẩu mới'}
+            {mode === 'activate-account' && 'Kích hoạt tài khoản được mời'}
           </h1>
           <p className="break-words text-sm leading-relaxed text-[#57534E]">
             {mode === 'login' && 'Hành trình tiếp theo bắt đầu từ đây. Đăng nhập để quản lý thông tin và đặt chỗ của bạn.'}
@@ -298,6 +320,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             {mode === 'verify-email' && `Nhập mã xác thực 6 chữ số gửi đến ${email || 'email của bạn'}.`}
             {mode === 'forgot-password' && 'Nhập email tài khoản để nhận mã OTP khôi phục mật khẩu.'}
             {mode === 'reset-password' && 'Nhập mã OTP xác thực và mật khẩu mới an toàn.'}
+            {mode === 'activate-account' && 'Nhập email, mã kích hoạt đã nhận và tạo mật khẩu cho lần đăng nhập đầu tiên.'}
           </p>
         </div>
       </div>
@@ -424,7 +447,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           )}
         </div>
 
-        {(mode === 'verify-email' || mode === 'reset-password') && (
+        {(mode === 'verify-email' || mode === 'reset-password' || mode === 'activate-account') && (
           <div className="bg-[#FAF8F5] border border-[#E6E1D8] rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <label
@@ -442,7 +465,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 className="text-xs font-semibold text-[#C2410C] hover:underline disabled:opacity-50 inline-flex items-center gap-1 cursor-pointer"
               >
                 <RefreshCw className="w-3 h-3" />
-                <span>{cooldown > 0 ? `Gửi lại (${cooldown}s)` : 'Gửi lại OTP'}</span>
+                <span>{cooldown > 0 ? `Gửi lại (${cooldown}s)` : mode === 'activate-account' ? 'Gửi lại mã kích hoạt' : 'Gửi lại OTP'}</span>
               </button>
             </div>
 
@@ -520,7 +543,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           </div>
         )}
 
-        {mode === 'reset-password' && (
+        {(mode === 'reset-password' || mode === 'activate-account') && (
           <div>
             <label
               htmlFor="auth-new-password"
@@ -536,6 +559,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                   aria-describedby={fieldErrors.newPassword ? 'auth-new-password-error' : undefined}
                 type={showPassword ? 'text' : 'password'}
                 required
+                minLength={8}
                 autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -561,6 +585,28 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           </div>
         )}
 
+        {mode === 'activate-account' && (
+          <div>
+            <label htmlFor="auth-confirm-password" className="mb-2 block text-sm font-medium text-[#1C2526]">
+              Xác nhận mật khẩu mới <span className="text-red-600">*</span>
+            </label>
+            <input
+              id="auth-confirm-password"
+              type={showPassword ? 'text' : 'password'}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => { setConfirmPassword(event.target.value); setConfirmPasswordError(''); }}
+              placeholder="Nhập lại mật khẩu mới"
+              aria-invalid={Boolean(confirmPasswordError)}
+              aria-describedby={confirmPasswordError ? 'auth-confirm-password-error' : undefined}
+              className={`w-full min-h-12 rounded-lg border bg-white px-4 py-3 text-base text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 sm:text-sm ${confirmPasswordError ? 'border-red-500' : 'border-[#E6E1D8] focus:border-[#C2410C]'}`}
+            />
+            {confirmPasswordError && <span id="auth-confirm-password-error" role="alert" className="mt-1.5 block text-xs text-red-700">{confirmPasswordError}</span>}
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={isLoading}
@@ -577,6 +623,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
               ? 'Xác nhận mã OTP'
               : mode === 'forgot-password'
               ? 'Gửi mã OTP khôi phục'
+              : mode === 'activate-account'
+              ? 'Kích hoạt và tạo mật khẩu'
               : 'Đặt lại mật khẩu mới'}
           </span>
           <ArrowRight className="w-4 h-4" />
@@ -621,12 +669,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 Đăng ký ngay
               </button>
             </span>
-            <button
-              type="button"
-              onClick={() => switchMode('verify-email', email)}
-              className="text-[#1F4E43] font-medium hover:underline cursor-pointer"
-            >
-              Nhập mã OTP xác thực email
+            <button type="button" onClick={() => switchMode('activate-account', email)} className="text-[#1F4E43] font-medium hover:underline cursor-pointer">
+              Được mời tham gia? Kích hoạt tài khoản
             </button>
           </>
         )}
@@ -644,7 +688,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           </span>
         )}
 
-        {(mode === 'verify-email' || mode === 'forgot-password' || mode === 'reset-password') && (
+        {(mode === 'verify-email' || mode === 'forgot-password' || mode === 'reset-password' || mode === 'activate-account') && (
           <button
             type="button"
             onClick={() => switchMode('login', email)}

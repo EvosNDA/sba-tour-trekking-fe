@@ -15,6 +15,7 @@ import {
   AlertCircle,
   ShieldCheck,
   RefreshCw,
+  UserPlus,
 } from 'lucide-react';
 import {
   AdminAccountItem,
@@ -25,6 +26,7 @@ import { usersApi } from '../../../features/users/api/users.api';
 import { UserAvatar } from '../../../features/users/components/UserAvatar';
 import { AccountActionModal } from '../../../features/users/components/AccountActionModal';
 import { AccountDetailModal } from '../../../features/users/components/AccountDetailModal';
+import { AccountInvitationModal } from '../../../features/users/components/AccountInvitationModal';
 import { useAuthStore } from '../../../stores/auth.store';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { toast } from '../../../components/ui/Toast';
@@ -66,6 +68,7 @@ export const AdminAccountListPage: React.FC = () => {
   // Detail Modal States
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [detailAccountId, setDetailAccountId] = useState<number | null>(null);
+  const [invitationModalOpen, setInvitationModalOpen] = useState(false);
 
   // Fetch accounts list
   const fetchAccounts = useCallback(async () => {
@@ -224,6 +227,7 @@ export const AdminAccountListPage: React.FC = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Top Header Card theo spec chuẩn */}
         <AdminPageHeader title="Quản trị người dùng & Tài khoản" description="Tra cứu thông tin, giám sát vai trò và kiểm soát quyền truy cập của các tài khoản hệ thống" actions={<div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button type="button" onClick={() => setInvitationModalOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#1F4E43] px-4 py-2.5 text-xs font-semibold text-white shadow-2xs transition-colors hover:bg-[#173d34]"><UserPlus className="h-4 w-4" />Mời tài khoản</button>
             <button
               type="button"
               onClick={fetchAccounts}
@@ -542,6 +546,18 @@ export const AdminAccountListPage: React.FC = () => {
           onClose={() => {
             setDetailModalOpen(false);
             setDetailAccountId(null);
+          }}
+        />
+        <AccountInvitationModal
+          isOpen={invitationModalOpen}
+          onClose={() => setInvitationModalOpen(false)}
+          onInvited={(response) => {
+            toast.success(response.deliveryStatus === 'sent' ? `Đã gửi lời mời đến ${response.email}.` : `Đã tạo lời mời cho ${response.email}, nhưng email chưa gửi được.`);
+            fetchAccounts();
+          }}
+          onRolesUpdated={(updated) => {
+            setItems((current) => current.map((item) => item.id === updated.id ? { ...item, roles: updated.roles, fullName: updated.fullName, phone: updated.phone, status: updated.status } : item));
+            toast.success(`Đã cập nhật vai trò cho "${updated.fullName}".`);
           }}
         />
       </div>
