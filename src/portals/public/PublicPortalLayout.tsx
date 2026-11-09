@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navbar } from '../../components/layout/Navbar';
 import { Footer } from '../../components/layout/Footer';
 import { useAuthStore } from '../../stores/auth.store';
+import { useLocation } from '../../lib/navigation';
 
 export interface PublicPortalLayoutProps {
   children: React.ReactNode;
@@ -9,6 +10,15 @@ export interface PublicPortalLayoutProps {
 
 export const PublicPortalLayout: React.FC<PublicPortalLayoutProps> = ({ children }) => {
   const { xRole } = useAuthStore();
+  const { pathname, hash } = useLocation();
+
+  useEffect(() => {
+    if (hash === '#how-it-works') {
+      document.getElementById('how-it-works')?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    }
+  }, [pathname, hash]);
 
   return (
     <div

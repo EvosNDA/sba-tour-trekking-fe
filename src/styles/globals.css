@@ -2,6 +2,12 @@
 
 @layer base {
   :root {
+    --color-canvas: #FDFBF7;
+    --color-surface: #FFFFFF;
+    --color-ink: #1C2526;
+    --color-forest: #1F4E43;
+    --color-accent: #C2410C;
+    --color-line: #E6E1D8;
     --font-serif: 'Roboto', Arial, sans-serif;
     --font-sans: 'Roboto', Arial, sans-serif;
     --font-mono: 'Roboto', Arial, sans-serif;
@@ -15,6 +21,15 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 4px;
+  }
+
+  section[id] {
+    scroll-margin-top: 6rem;
+  }
+
   h1, h2, h3, .font-editorial {
     font-family: var(--font-serif);
   }
@@ -22,6 +37,15 @@
   .font-mono-numbers {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

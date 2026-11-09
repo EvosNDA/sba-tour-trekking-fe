@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Mountain,
   Compass,
@@ -27,6 +27,19 @@ export const CustomerPortalLayout: React.FC<CustomerPortalLayoutProps> = ({ chil
   const { account, user, xRole, hasRole } = useAuthStore();
   const { pathname } = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileTriggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileMenuOpen(false);
+        mobileTriggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [mobileMenuOpen]);
 
   const isAdmin = xRole === 'ADMIN' || hasRole('ADMIN');
   const isGuide = xRole === 'GUIDE' || hasRole('GUIDE');
@@ -108,7 +121,7 @@ export const CustomerPortalLayout: React.FC<CustomerPortalLayoutProps> = ({ chil
           </div>
 
           {/* Desktop Navigation */}
-          <nav aria-label="Điều hướng Customer Portal" className="hidden md:flex items-center gap-6 text-sm">
+          <nav aria-label="Điều hướng Customer Portal" className="hidden lg:flex items-center gap-6 text-sm">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -157,7 +170,7 @@ export const CustomerPortalLayout: React.FC<CustomerPortalLayoutProps> = ({ chil
           </nav>
 
           {/* User profile & actions */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             <button
               type="button"
               onClick={() => navigateTo(ROUTES.CUSTOMER.PROFILE)}
@@ -185,8 +198,10 @@ export const CustomerPortalLayout: React.FC<CustomerPortalLayoutProps> = ({ chil
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl border border-[#E6E1D8] text-[#1C2526] hover:bg-[#F7F4EE] cursor-pointer"
-            aria-label="Mở menu"
+            className="lg:hidden p-2 rounded-xl border border-[#E6E1D8] text-[#1C2526] hover:bg-[#F7F4EE] cursor-pointer"
+            aria-label={mobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
+            aria-expanded={mobileMenuOpen}
+            ref={mobileTriggerRef}
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -194,7 +209,7 @@ export const CustomerPortalLayout: React.FC<CustomerPortalLayoutProps> = ({ chil
 
         {/* Mobile Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden mt-3 pt-3 border-t border-[#E6E1D8] space-y-2">
+          <div className="lg:hidden mt-3 pt-3 border-t border-[#E6E1D8] space-y-2">
             <div className="px-3 py-2 bg-stone-100 rounded-xl flex items-center justify-between text-xs">
               <span className="font-semibold text-stone-700">{displayName}</span>
             </div>

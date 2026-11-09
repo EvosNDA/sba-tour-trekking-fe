@@ -19,6 +19,7 @@ export const ROUTES = {
   },
   ACCOUNT: {
     BOOKINGS: '/account/bookings',
+    PROFILE: '/customer/profile',
   },
   CUSTOMER: {
     PROFILE: '/customer/profile',
