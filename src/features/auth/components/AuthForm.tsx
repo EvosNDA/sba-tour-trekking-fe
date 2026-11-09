@@ -85,9 +85,9 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     if (!APP_CONFIG.GOOGLE_CLIENT_ID) return;
     if (mode !== 'login' && mode !== 'register') return;
 
-    const existingScript = document.getElementById('google-gsi-script');
+    let disposed = false;
     const initGoogleButton = () => {
-      if (window.google?.accounts?.id) {
+      if (!disposed && window.google?.accounts?.id) {
         window.google.accounts.id.initialize({
           client_id: APP_CONFIG.GOOGLE_CLIENT_ID,
           callback: async (response: { credential?: string }) => {
@@ -114,17 +114,28 @@ export const AuthForm: React.FC<AuthFormProps> = ({
       }
     };
 
-    if (!existingScript) {
-      const script = document.createElement('script');
+    let script = document.getElementById('google-gsi-script') as HTMLScriptElement | null;
+    const isNewScript = !script;
+    if (!script) {
+      script = document.createElement('script');
       script.id = 'google-gsi-script';
       script.src = 'https://accounts.google.com/gsi/client';
       script.async = true;
       script.defer = true;
-      script.onload = initGoogleButton;
-      document.body.appendChild(script);
-    } else {
-      initGoogleButton();
     }
+
+    // Remounted forms must also wait for an existing, still-loading SDK script.
+    script.addEventListener('load', initGoogleButton);
+    if (window.google?.accounts?.id) {
+      initGoogleButton();
+    } else if (isNewScript) {
+      document.body.appendChild(script);
+    }
+
+    return () => {
+      disposed = true;
+      script.removeEventListener('load', initGoogleButton);
+    };
   }, [mode, loginGoogle, onAuthSuccess]);
 
   const switchMode = (nextMode: AuthFormMode, targetEmail?: string) => {
