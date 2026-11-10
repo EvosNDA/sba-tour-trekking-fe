@@ -1,3 +1,5 @@
+import { Modal } from '../../../components/ui/Modal';
+import { AdminSectionNav } from '../components/AdminSectionNav';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ArrowLeft,
@@ -576,7 +578,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                 : ROUTES.ADMIN.SCHEDULES
             )
           }
-          className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-stone-600 hover:text-stone-900 cursor-pointer"
+          className="inline-flex items-center gap-2 text-sm sm:text-sm font-semibold text-stone-600 hover:text-stone-900 cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>
@@ -590,7 +592,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
           <button
             type="button"
             onClick={() => navigateTo(ROUTES.ADMIN.SCHEDULE_OVERVIEW_TOUR(tour.id))}
-            className="text-xs text-[#1F4E43] font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
+            className="text-sm text-[#1F4E43] font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
           >
             <span>Xem tất cả lịch của tour này</span>
             <ExternalLink className="w-3.5 h-3.5" />
@@ -602,7 +604,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
       {isLoading ? (
         <div className="py-16 text-center space-y-3">
           <div className="w-10 h-10 border-3 border-[#1F4E43]/30 border-t-[#1F4E43] rounded-full animate-spin mx-auto" />
-          <p className="text-xs sm:text-sm text-stone-500">
+          <p className="text-sm sm:text-sm text-stone-500">
             Đang nạp chi tiết lịch khởi hành...
           </p>
         </div>
@@ -613,19 +615,20 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
           <button
             type="button"
             onClick={fetchScheduleData}
-            className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold text-xs cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold text-sm cursor-pointer"
           >
             Thử lại
           </button>
         </div>
       ) : (
         <div className="space-y-6">
+          <AdminSectionNav items={[{ id: 'schedule-overview', label: 'Tổng quan' }, { id: 'schedule-guides', label: 'Hướng dẫn viên' }, { id: 'schedule-equipment', label: 'Thiết bị' }, { id: 'schedule-operations', label: 'Điểm danh & bàn giao' }, { id: 'schedule-bookings', label: 'Đặt chỗ' }]} />
           {/* Overview Info Card */}
-          <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-5">
+          <div id="schedule-overview" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-5">
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-stone-100 pb-4">
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="font-mono text-xs font-bold text-stone-500 uppercase">
+                  <span className="font-mono text-sm font-bold text-stone-500 uppercase">
                     Chuyến #{schedule?.id} • Tour #{schedule?.tourId}
                   </span>
                   {schedule?.status && (
@@ -645,7 +648,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                     fetchBookings();
                     fetchConfirmedOperationsReport();
                   }}
-                  className="px-3.5 py-2 rounded-xl border border-stone-300 hover:bg-stone-50 text-xs font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl border border-stone-300 hover:bg-stone-50 text-sm font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Làm mới</span>
@@ -654,51 +657,51 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
             </div>
 
             {/* Logistics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs sm:text-sm text-stone-700">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm sm:text-sm text-stone-700">
               <div className="p-3 bg-stone-50 rounded-xl space-y-1">
-                <span className="text-[11px] text-stone-500 block">
+                <span className="text-xs text-stone-500 block">
                   Thời gian diễn ra (VN):
                 </span>
                 <div className="font-semibold text-stone-900">
                   {schedule ? formatVietnamDateTime(schedule.startsAt) : '—'}
                 </div>
-                <div className="text-[11px] text-stone-500">
+                <div className="text-xs text-stone-500">
                   Đến: {schedule ? formatVietnamDateTime(schedule.endsAt) : '—'}
                 </div>
               </div>
 
               <div className="p-3 bg-stone-50 rounded-xl space-y-1">
-                <span className="text-[11px] text-stone-500 block">
+                <span className="text-xs text-stone-500 block">
                   Sức chứa & Đặt chỗ:
                 </span>
                 <div className="font-semibold text-stone-900">
                   {schedule?.confirmedSeats ?? 0} đã đặt / {schedule?.capacity ?? 0} chỗ
                 </div>
-                <div className="text-[11px] text-stone-500">
+                <div className="text-xs text-stone-500">
                   Đang giữ chỗ: {schedule?.heldSeats ?? 0} ghế
                 </div>
               </div>
 
               <div className="p-3 bg-stone-50 rounded-xl space-y-1">
-                <span className="text-[11px] text-stone-500 block">
+                <span className="text-xs text-stone-500 block">
                   Giá cơ bản / Khách:
                 </span>
                 <div className="font-semibold font-mono text-[#1F4E43]">
                   {formatVND(schedule?.basePriceVnd || 0)}
                 </div>
-                <div className="text-[11px] text-stone-500">
+                <div className="text-xs text-stone-500">
                   Cọc: {schedule?.depositPercent ?? 0}%
                 </div>
               </div>
 
               <div className="p-3 bg-stone-50 rounded-xl space-y-1">
-                <span className="text-[11px] text-stone-500 block">
+                <span className="text-xs text-stone-500 block">
                   Điểm tập trung & Liên hệ:
                 </span>
                 <div className="font-semibold text-stone-900 truncate">
                   {schedule?.meetingPoint || 'Chưa cập nhật'}
                 </div>
-                <div className="text-[11px] font-mono text-stone-600">
+                <div className="text-xs font-mono text-stone-600">
                   Hotline: {schedule?.contactPhone || '1900 8888'}
                 </div>
               </div>
@@ -708,14 +711,14 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
           {/* ============================================================== */}
           {/* SECTION 1: PHÂN CÔNG HƯỚNG DẪN VIÊN (GUIDE ASSIGNMENT)         */}
           {/* ============================================================== */}
-          <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-4">
+          <div id="schedule-guides" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
               <div>
                 <h2 className="font-editorial text-lg sm:text-xl font-bold text-[#1C2526] flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-[#1F4E43]" />
                   <span>Phân công Hướng dẫn viên phụ trách chuyến</span>
                 </h2>
-                <p className="text-xs text-stone-500 mt-0.5">
+                <p className="text-sm text-stone-500 mt-0.5">
                   Chỉ định một hoặc nhiều Guide cho lịch khởi hành này. Guide được phân công mới có thẩm quyền điểm danh khách.
                 </p>
               </div>
@@ -728,7 +731,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                   setAssignModalOpen(true);
                 }}
                 disabled={allGuides.length > 0 && availableGuidesForSelect.length === 0}
-                className="px-4 py-2 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-sm font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-4 h-4" />
                 <span>Phân công Guide cho lịch</span>
@@ -736,7 +739,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
             </div>
 
             {draftGuides.length === 0 ? (
-              <div className="py-8 text-center text-xs text-stone-500 bg-stone-50 rounded-xl border border-dashed border-stone-200 space-y-2">
+              <div className="py-8 text-center text-sm text-stone-500 bg-stone-50 rounded-xl border border-dashed border-stone-200 space-y-2">
                 <Users className="w-8 h-8 text-stone-400 mx-auto" />
                 <p>Lịch khởi hành này chưa được phân công Hướng dẫn viên.</p>
                 <button
@@ -760,7 +763,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                   return (
                     <div
                       key={guide.guideId ?? guide.accountId ?? idx}
-                      className={`p-4 rounded-xl border transition-colors flex items-start justify-between gap-3 text-xs ${
+                      className={`p-4 rounded-xl border transition-colors flex items-start justify-between gap-3 text-sm ${
                         isNewlyAdded
                           ? 'border-amber-300 bg-amber-50/40'
                           : 'border-stone-200 bg-stone-50/70 hover:bg-stone-50'
@@ -772,12 +775,12 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                             {guide.fullName}
                           </strong>
                           {guide.isLead && (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
                               Guide Chính
                             </span>
                           )}
                           {isNewlyAdded && (
-                            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold">
+                            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold">
                               Chưa xác nhận
                             </span>
                           )}
@@ -790,7 +793,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                         <button
                           type="button"
                           onClick={() => handleToggleLeadGuide(guide.guideId)}
-                          className="text-[11px] font-semibold text-[#1F4E43] hover:underline cursor-pointer"
+                          className="text-xs font-semibold text-[#1F4E43] hover:underline cursor-pointer"
                         >
                           {guide.isLead
                             ? 'Bỏ đánh dấu Guide Chính'
@@ -814,7 +817,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
 
             {hasUnsavedGuideChanges && (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-amber-200 bg-amber-50/60 p-3.5 rounded-xl">
-                <div className="flex items-center gap-2 text-xs text-amber-900">
+                <div className="flex items-center gap-2 text-sm text-amber-900">
                   <Info className="w-4 h-4 text-amber-700 shrink-0" />
                   <span>
                     Danh sách phân công có thay đổi chưa lưu. Bạn có thể kiểm tra, đổi Guide chính hoặc xóa bớt trước khi xác nhận hoàn tất.
@@ -825,7 +828,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                     type="button"
                     onClick={handleDiscardGuideChanges}
                     disabled={isSavingGuide}
-                    className="px-3.5 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold cursor-pointer disabled:opacity-50"
+                    className="px-3.5 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-sm font-semibold cursor-pointer disabled:opacity-50"
                   >
                     Hủy thay đổi
                   </button>
@@ -833,7 +836,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                     type="button"
                     onClick={handleConfirmSaveGuides}
                     disabled={isSavingGuide}
-                    className="px-4 py-2 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                    className="px-4 py-2 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-sm font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>{isSavingGuide ? 'Đang lưu...' : 'Xác nhận hoàn tất'}</span>
@@ -846,19 +849,19 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
           {/* ============================================================== */}
           {/* SECTION 2: TỔNG HỢP THIẾT BỊ KHÁCH ĐẶT CỦA LỊCH KHỞI HÀNH       */}
           {/* ============================================================== */}
-          <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-4">
+          <div id="schedule-equipment" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
               <div>
                 <h2 className="font-editorial text-lg sm:text-xl font-bold text-[#1C2526] flex items-center gap-2">
                   <Boxes className="w-5 h-5 text-[#1F4E43]" />
                   <span>Tổng hợp thiết bị khách đặt</span>
                 </h2>
-                <p className="text-xs text-stone-500 mt-0.5">
+                <p className="text-sm text-stone-500 mt-0.5">
                   Cộng gộp số lượng từng thiết bị từ các đơn đặt chỗ đã xác nhận thuộc lịch khởi hành #{scheduleId} (không bao gồm đơn đã hủy, giữ chỗ hết hạn hoặc thiết bị đã giải phóng).
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-stone-600 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 text-sm font-mono text-stone-600 shrink-0">
                 <span className="px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E6E1D8]">
                   Đơn thuê thiết bị:{' '}
                   <strong className="text-stone-900">
@@ -875,11 +878,11 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
             </div>
 
             {isLoadingBookings || isLoadingEquipment ? (
-              <div className="py-8 text-center text-xs text-stone-500">
+              <div className="py-8 text-center text-sm text-stone-500">
                 Đang tổng hợp thiết bị khách đặt cho lịch khởi hành này...
               </div>
             ) : scheduleEquipmentSummary.items.length === 0 ? (
-              <div className="py-8 text-center text-xs text-stone-500 bg-stone-50 rounded-xl border border-dashed border-stone-200 space-y-1.5">
+              <div className="py-8 text-center text-sm text-stone-500 bg-stone-50 rounded-xl border border-dashed border-stone-200 space-y-1.5">
                 <Boxes className="w-7 h-7 text-stone-400 mx-auto" />
                 <p className="font-semibold text-stone-700">
                   Chưa có thiết bị nào được đặt cho lịch này
@@ -890,9 +893,9 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-sm">
                   <thead>
-                    <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-[11px] font-mono uppercase tracking-wider text-stone-600">
+                    <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-xs font-mono uppercase tracking-wider text-stone-600">
                       <th className="py-3 px-3.5 font-bold">Tên thiết bị</th>
                       <th className="py-3 px-3.5 font-bold text-center">Số đơn đặt</th>
                       <th className="py-3 px-3.5 font-bold text-center">
@@ -910,7 +913,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                       >
                         <td className="py-3 px-3.5 font-semibold text-stone-900">
                           {item.equipmentName}
-                          <span className="ml-2 font-mono text-[11px] font-normal text-stone-400">
+                          <span className="ml-2 font-mono text-xs font-normal text-stone-400">
                             #{item.equipmentId}
                           </span>
                         </td>
@@ -932,7 +935,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-[#FAF8F5] border-t border-[#E6E1D8] font-mono text-xs font-bold text-stone-800">
+                    <tr className="bg-[#FAF8F5] border-t border-[#E6E1D8] font-mono text-sm font-bold text-stone-800">
                       <td className="py-3 px-3.5 font-sans">
                         Tổng cộng ({scheduleEquipmentSummary.items.length} loại thiết bị)
                       </td>
@@ -959,7 +962,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
           {/* SECTION 3 (GIAI ĐOẠN 2): GIÁM SÁT BÁO CÁO CHECK-IN / CHECK-OUT */}
           {/* & BÀN GIAO THIẾT BỊ CỦA GUIDE (CHỈ XEM - READ ONLY)            */}
           {/* ============================================================== */}
-          <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-5">
+          <div id="schedule-operations" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -970,7 +973,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                     </span>
                   </h2>
                 </div>
-                <p className="text-xs text-stone-500 mt-0.5">
+                <p className="text-sm text-stone-500 mt-0.5">
                   Chỉ hiển thị kết quả sau khi Guide đã bấm xác nhận hoàn tất từng lượt (không hiển thị bản nháp đang nhập dở). Phân biệt rõ thời điểm đánh dấu từng khách/thiết bị và thời điểm xác nhận gửi cả lượt.
                 </p>
               </div>
@@ -979,7 +982,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                 type="button"
                 onClick={fetchConfirmedOperationsReport}
                 disabled={isLoadingOpsReport}
-                className="px-3.5 py-2 rounded-xl border border-stone-300 hover:bg-stone-50 text-xs font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer self-start"
+                className="px-3.5 py-2 rounded-xl border border-stone-300 hover:bg-stone-50 text-sm font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer self-start"
               >
                 <RefreshCw
                   className={`w-3.5 h-3.5 ${isLoadingOpsReport ? 'animate-spin' : ''}`}
@@ -992,7 +995,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Round 1: Check-in Summary */}
               <div
-                className={`p-4 rounded-xl border space-y-2 text-xs ${
+                className={`p-4 rounded-xl border space-y-2 text-sm ${
                   confirmedCheckIn
                     ? 'border-emerald-200 bg-emerald-50/40'
                     : 'border-stone-200 bg-stone-50'
@@ -1003,11 +1006,11 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                     1. Lượt Check-in & Bàn giao Thiết bị
                   </span>
                   {confirmedCheckIn ? (
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">
                       Đã xác nhận hoàn tất
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full bg-stone-200 text-stone-700 font-semibold text-[11px]">
+                    <span className="px-2.5 py-0.5 rounded-full bg-stone-200 text-stone-700 font-semibold text-xs">
                       Chưa có báo cáo xác nhận
                     </span>
                   )}
@@ -1067,7 +1070,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
 
               {/* Round 2: Check-out Summary */}
               <div
-                className={`p-4 rounded-xl border space-y-2 text-xs ${
+                className={`p-4 rounded-xl border space-y-2 text-sm ${
                   confirmedCheckOut
                     ? 'border-teal-200 bg-teal-50/40'
                     : 'border-stone-200 bg-stone-50'
@@ -1078,11 +1081,11 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                     2. Lượt Check-out & Nhận lại Thiết bị
                   </span>
                   {confirmedCheckOut ? (
-                    <span className="px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 font-bold text-[11px]">
+                    <span className="px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 font-bold text-xs">
                       Đã xác nhận hoàn tất
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full bg-stone-200 text-stone-700 font-semibold text-[11px]">
+                    <span className="px-2.5 py-0.5 rounded-full bg-stone-200 text-stone-700 font-semibold text-xs">
                       Chưa có báo cáo xác nhận
                     </span>
                   )}
@@ -1143,7 +1146,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
 
             {/* Detailed Per-Participant Supervision Table */}
             {!confirmedCheckIn && !confirmedCheckOut ? (
-              <div className="py-10 text-center text-xs text-stone-500 bg-stone-50 rounded-xl border border-dashed border-stone-200 space-y-1.5">
+              <div className="py-10 text-center text-sm text-stone-500 bg-stone-50 rounded-xl border border-dashed border-stone-200 space-y-1.5">
                 <ClipboardCheck className="w-8 h-8 text-stone-400 mx-auto" />
                 <p className="font-bold text-stone-700">
                   Chưa có báo cáo điểm danh & bàn giao thiết bị nào được Guide xác nhận hoàn tất
@@ -1154,9 +1157,9 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-sm">
                   <thead>
-                    <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-[11px] font-mono uppercase tracking-wider text-stone-600">
+                    <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-xs font-mono uppercase tracking-wider text-stone-600">
                       <th className="py-3 px-3 font-bold">Hành khách & Đơn</th>
                       <th className="py-3 px-3 font-bold">
                         Check-in & Thời điểm đánh dấu
@@ -1188,11 +1191,11 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                             <div className="font-bold text-stone-900">
                               {ciGuest.fullName}
                             </div>
-                            <div className="font-mono text-[11px] text-stone-500">
+                            <div className="font-mono text-xs text-stone-500">
                               Đơn #{ciGuest.bookingCode}
                             </div>
                             {ciGuest.phone && (
-                              <div className="font-mono text-[11px] text-stone-500">
+                              <div className="font-mono text-xs text-stone-500">
                                 SĐT: {ciGuest.phone}
                               </div>
                             )}
@@ -1202,18 +1205,18 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                           <td className="py-3.5 px-3 space-y-1.5 min-w-[190px]">
                             <div>
                               {ciGuest.status === 'PRESENT' ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs">
                                   <CheckCircle2 className="w-3 h-3" />
                                   Có mặt
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold text-[11px]">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 font-bold text-xs">
                                   <XCircle className="w-3 h-3" />
                                   Vắng mặt
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-stone-600">
+                            <div className="text-xs text-stone-600">
                               <div>
                                 Đánh dấu khách:{' '}
                                 <strong className="font-mono text-stone-900">
@@ -1231,7 +1234,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                               </div>
                             </div>
                             {ciGuest.note && (
-                              <div className="p-1.5 rounded bg-stone-100 text-stone-700 text-[11px]">
+                              <div className="p-1.5 rounded bg-stone-100 text-stone-700 text-xs">
                                 Ghi chú: {ciGuest.note}
                               </div>
                             )}
@@ -1259,7 +1262,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                         Giao: {eq.allocatedQuantity}
                                       </span>
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
                                       <span
                                         className={`px-2 py-0.5 rounded border font-semibold ${
                                           ADMIN_CONDITION_BADGES[eq.condition]
@@ -1275,7 +1278,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                       </span>
                                     </div>
                                     {eq.note && (
-                                      <div className="text-[11px] text-amber-900 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                                      <div className="text-xs text-amber-900 bg-amber-50 px-2 py-1 rounded border border-amber-200">
                                         Ghi chú giao: {eq.note}
                                       </div>
                                     )}
@@ -1318,22 +1321,22 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                               <>
                                 <div>
                                   {coGuest.status === 'COMPLETED' ? (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 font-bold text-[11px]">
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 font-bold text-xs">
                                       <CheckCircle2 className="w-3 h-3" />
                                       Hoàn thành chuyến
                                     </span>
                                   ) : coGuest.status === 'EARLY_DEPARTURE' ? (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px]">
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-xs">
                                       <AlertTriangle className="w-3 h-3" />
                                       Kết thúc sớm
                                     </span>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-stone-200 text-stone-700 font-bold text-[11px]">
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-stone-200 text-stone-700 font-bold text-xs">
                                       Vắng mặt từ Check-in
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-[11px] text-stone-600">
+                                <div className="text-xs text-stone-600">
                                   <div>
                                     Đánh dấu khách:{' '}
                                     <strong className="font-mono text-stone-900">
@@ -1351,7 +1354,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                   </div>
                                 </div>
                                 {coGuest.note && (
-                                  <div className="p-1.5 rounded bg-stone-100 text-stone-700 text-[11px]">
+                                  <div className="p-1.5 rounded bg-stone-100 text-stone-700 text-xs">
                                     Ghi chú: {coGuest.note}
                                   </div>
                                 )}
@@ -1402,7 +1405,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                         </span>
                                       </div>
 
-                                      <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
                                         <span
                                           className={`px-2 py-0.5 rounded border font-semibold ${
                                             ADMIN_CONDITION_BADGES[eq.condition]
@@ -1419,7 +1422,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                       </div>
 
                                       {eq.note && (
-                                        <div className="text-[11px] text-rose-900 bg-rose-50 px-2 py-1 rounded border border-rose-200 font-medium">
+                                        <div className="text-xs text-rose-900 bg-rose-50 px-2 py-1 rounded border border-rose-200 font-medium">
                                           Ghi chú thu hồi: {eq.note}
                                         </div>
                                       )}
@@ -1465,28 +1468,28 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
           {/* ============================================================== */}
           {/* SECTION 4: DANH SÁCH KHÁCH & ĐƠN ĐẶT CHỖ                       */}
           {/* ============================================================== */}
-          <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-4">
+          <div id="schedule-bookings" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
               <div>
                 <h2 className="font-editorial text-lg sm:text-xl font-bold text-[#1C2526]">
                   Danh sách hành khách theo Đơn đặt chỗ ({allPassengers.length} khách)
                 </h2>
-                <p className="text-xs text-stone-500 mt-0.5">
+                <p className="text-sm text-stone-500 mt-0.5">
                   Theo dõi danh sách khách hàng và thiết bị đặt thuê theo từng booking.
                 </p>
               </div>
 
-              <div className="text-xs font-mono text-stone-600">
+              <div className="text-sm font-mono text-stone-600">
                 Tổng đơn: <strong>{bookings.length}</strong>
               </div>
             </div>
 
             {isLoadingBookings ? (
-              <div className="py-8 text-center text-xs text-stone-500">
+              <div className="py-8 text-center text-sm text-stone-500">
                 Đang nạp danh sách đặt chỗ của lịch...
               </div>
             ) : bookings.length === 0 ? (
-              <div className="py-8 text-center text-xs text-stone-500 bg-stone-50 rounded-xl">
+              <div className="py-8 text-center text-sm text-stone-500 bg-stone-50 rounded-xl">
                 Chưa có đơn đặt chỗ nào được ghi nhận cho lịch khởi hành này.
               </div>
             ) : (
@@ -1514,7 +1517,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                           )}
                         </div>
 
-                        <div className="text-xs text-stone-600 font-mono">
+                        <div className="text-sm text-stone-600 font-mono">
                           Số lượng: <strong>{passengers.length} người</strong> • Tổng tiền:{' '}
                           <strong className="text-[#1F4E43]">
                             {formatVND(booking.price?.totalPriceVnd || 0)}
@@ -1524,9 +1527,9 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
 
                       {/* Passengers Table */}
                       <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs">
+                        <table className="w-full text-left text-sm">
                           <thead>
-                            <tr className="text-[11px] font-mono text-stone-500 uppercase border-b border-stone-200">
+                            <tr className="text-xs font-mono text-stone-500 uppercase border-b border-stone-200">
                               <th className="py-2 px-2">Họ tên khách</th>
                               <th className="py-2 px-2">Số điện thoại</th>
                               <th className="py-2 px-2">Email</th>
@@ -1547,7 +1550,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                 </td>
                                 <td className="py-2 px-2 text-center">
                                   {p.bookingCustomer ? (
-                                    <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 font-bold text-[10px]">
+                                    <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 font-bold text-xs">
                                       Trưởng đoàn
                                     </span>
                                   ) : (
@@ -1564,7 +1567,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                       {reservation &&
                         reservation.items &&
                         reservation.items.length > 0 && (
-                          <div className="p-3 bg-white rounded-lg border border-stone-200 text-xs space-y-1.5">
+                          <div className="p-3 bg-white rounded-lg border border-stone-200 text-sm space-y-1.5">
                             <span className="font-semibold text-stone-800 flex items-center gap-1.5">
                               <Boxes className="w-3.5 h-3.5 text-stone-600" />
                               <span>Thiết bị thuê theo đơn:</span>
@@ -1573,7 +1576,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                               {reservation.items.map((it) => (
                                 <span
                                   key={it.equipmentId}
-                                  className="px-2.5 py-1 rounded-md bg-stone-100 text-stone-800 font-mono text-[11px] border border-stone-200"
+                                  className="px-2.5 py-1 rounded-md bg-stone-100 text-stone-800 font-mono text-xs border border-stone-200"
                                 >
                                   {it.equipmentName}: <strong>{it.quantity}</strong> đặt (Đã giao:{' '}
                                   <strong className="text-emerald-700">
@@ -1602,31 +1605,14 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
       {/* MODAL: PHÂN CÔNG GUIDE CHO LỊCH KHỞI HÀNH                     */}
       {/* ============================================================== */}
       {assignModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg bg-white rounded-2xl p-6 shadow-xl space-y-4 font-sans">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="font-bold text-lg text-stone-900">
-                  Phân công Hướng dẫn viên cho lịch
-                </h3>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Chọn Guide đảm nhiệm dẫn đoàn cho lịch khởi hành #{scheduleId}.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAssignModalOpen(false)}
-                className="text-stone-400 hover:text-stone-600 text-xl font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
+        <Modal isOpen={assignModalOpen} onClose={() => setAssignModalOpen(false)} title="Phân công Hướng dẫn viên" subtitle={`Chọn người dẫn đoàn cho chuyến #${scheduleId}.`} maxWidth="lg"><div className="space-y-4">
+
 
             <form onSubmit={handleAddGuideToDraft} className="space-y-4">
               <div className="space-y-1.5">
                 <label
                   htmlFor="select-guide"
-                  className="text-xs font-semibold text-stone-700"
+                  className="text-sm font-semibold text-stone-700"
                 >
                   Chọn Hướng dẫn viên:
                 </label>
@@ -1634,7 +1620,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                   id="select-guide"
                   value={selectedGuideId}
                   onChange={(e) => setSelectedGuideId(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-stone-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/30"
+                  className="w-full p-2.5 rounded-xl border border-stone-300 text-sm sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/30"
                   required
                   disabled={availableGuidesForSelect.length === 0}
                 >
@@ -1659,26 +1645,26 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                   ))}
                 </select>
                 {isLoadingGuideConflicts && (
-                  <p className="text-xs text-stone-500">
+                  <p className="text-sm text-stone-500">
                     Đang kiểm tra lịch đã phân công của các Guide…
                   </p>
                 )}
                 {guideConflictCheckFailed && !isLoadingGuideConflicts && (
-                  <p className="text-xs text-amber-800">
+                  <p className="text-sm text-amber-800">
                     Chưa kiểm tra được một số lịch trùng. Tải lại trang trước khi phân công.
                   </p>
                 )}
                 {!isLoadingGuideConflicts &&
                   !guideConflictCheckFailed &&
                   Object.keys(guideConflicts).length > 0 && (
-                    <p className="text-xs text-stone-500">
+                    <p className="text-sm text-stone-500">
                       Guide đang bận được hiển thị theo chuyến trùng lịch và không thể chọn.
                     </p>
                   )}
               </div>
 
               {selectedGuideConflict && (
-                <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-950 space-y-1 shadow-2xs">
+                <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-sm text-amber-950 space-y-1 shadow-2xs">
                   <div className="flex items-center gap-1.5 font-bold text-amber-900">
                     <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0" />
                     <span>Cảnh báo trùng lịch làm việc!</span>
@@ -1691,7 +1677,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                 </div>
               )}
 
-              <label className="flex items-center gap-2.5 text-xs text-stone-800 cursor-pointer pt-1">
+              <label className="flex items-center gap-2.5 text-sm text-stone-800 cursor-pointer pt-1">
                 <input
                   type="checkbox"
                   checked={selectedIsLead}
@@ -1707,7 +1693,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                 <button
                   type="button"
                   onClick={() => setAssignModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 text-xs font-semibold cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 text-sm font-semibold cursor-pointer"
                 >
                   Hủy
                 </button>
@@ -1719,47 +1705,21 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                     isLoadingGuideConflicts ||
                     guideConflictCheckFailed
                   }
-                  className="px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Thêm vào danh sách
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+          </div></Modal>
       )}
 
       {/* ============================================================== */}
       {/* MODAL: XEM ẢNH HIỆN TRẠNG THIẾT BỊ BÀN GIAO / NHẬN LẠI         */}
       {/* ============================================================== */}
       {selectedPhotoModal && (
-        <div
-          onClick={() => setSelectedPhotoModal(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="max-w-3xl w-full bg-white rounded-2xl p-4 space-y-3 shadow-2xl"
-          >
-            <div className="flex items-center justify-between gap-3 border-b border-stone-100 pb-2">
-              <div>
-                <h4 className="font-bold text-sm text-stone-900">
-                  {selectedPhotoModal.title}
-                </h4>
-                <p className="text-[11px] font-mono text-stone-500">
-                  Thời điểm chụp:{' '}
-                  {formatVietnamDateTime(selectedPhotoModal.photo.capturedAt, true)} • Khóa lưu trữ:{' '}
-                  {selectedPhotoModal.photo.storageKey}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedPhotoModal(null)}
-                className="px-3 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-xs font-bold text-stone-700 cursor-pointer"
-              >
-                Đóng
-              </button>
-            </div>
+        <Modal isOpen={Boolean(selectedPhotoModal)} onClose={() => setSelectedPhotoModal(null)} title={selectedPhotoModal.title} subtitle={formatVietnamDateTime(selectedPhotoModal.photo.capturedAt, true)} maxWidth="3xl">
+          <div className="space-y-4">
             <div className="flex justify-center bg-stone-950 rounded-xl overflow-hidden max-h-[75vh]">
               <img
                 src={selectedPhotoModal.photo.url}
@@ -1767,8 +1727,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                 className="max-h-[75vh] w-auto object-contain"
               />
             </div>
-          </div>
-        </div>
+          </div></Modal>
       )}
     </div>
   );

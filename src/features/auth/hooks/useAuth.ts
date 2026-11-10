@@ -95,6 +95,20 @@ export function useAuth() {
     }
   };
 
+  const resendInvitationActivation = async (email: string) => {
+    setIsLoading(true);
+    clearError();
+    try {
+      return await authApi.resendInvitationActivation({ email });
+    } catch (err: any) {
+      setError(err?.message || 'Không thể gửi lại mã kích hoạt');
+      setApiError(err as ApiError);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const forgotPassword = async (email: string) => {
     setIsLoading(true);
     clearError();
@@ -123,6 +137,20 @@ export function useAuth() {
     }
   };
 
+  const activateAccount = async (payload: ResetPasswordRequest) => {
+    setIsLoading(true);
+    clearError();
+    try {
+      return await authApi.activateAccount(payload);
+    } catch (err: any) {
+      setError(err?.message || 'Kích hoạt tài khoản thất bại');
+      setApiError(err as ApiError);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const logout = async () => {
     setIsLoading(true);
     try {
@@ -143,8 +171,10 @@ export function useAuth() {
     register,
     verifyEmail,
     resendVerification,
+    resendInvitationActivation,
     forgotPassword,
     resetPassword,
+    activateAccount,
     logout,
   };
 }

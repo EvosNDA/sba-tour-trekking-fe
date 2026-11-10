@@ -1,3 +1,4 @@
+import { Modal } from '../../../components/ui/Modal';
 import React, { useEffect, useState } from 'react';
 import { toursApi } from '../api/tours.api';
 import { apiClient } from '../../../lib/axios';
@@ -36,9 +37,7 @@ export function TourPublishModal({ tourId, onClose, onPublished }: { tourId: num
     } catch (e) { setError((e as ApiError).message || 'Không thể xuất bản tour.'); }
     finally { setSaving(false); }
   };
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-    <section role="dialog" aria-modal="true" aria-labelledby="publish-tour-title" className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-      <h2 id="publish-tour-title" className="text-xl font-bold">Xuất bản tour</h2>
+  return <Modal isOpen onClose={onClose} preventClose={saving} title={<>Xuất bản tour</>} maxWidth="lg">
       <p className="mt-2 text-sm text-stone-600">{tour ? `Chọn chính sách hủy để xuất bản ${tour.title}.` : 'Đang tải thông tin tour...'}</p>
       {error && <p role="alert" className="mt-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
       <label htmlFor="publish-policy" className="mt-4 block text-sm font-semibold">Chính sách hủy</label>
@@ -48,6 +47,5 @@ export function TourPublishModal({ tourId, onClose, onPublished }: { tourId: num
       </select>
       {!loading && !error && options.length === 0 && <p className="mt-3 text-sm text-stone-600">Chưa có chính sách hủy đang có hiệu lực. <button type="button" onClick={() => navigateTo(ROUTES.ADMIN.POLICIES)} className="text-emerald-800 underline">Tạo chính sách</button></p>}
       <div className="mt-6 flex justify-end gap-3"><button type="button" disabled={saving} onClick={onClose} className="rounded-xl border border-stone-300 px-4 py-2 text-sm">Hủy</button><button type="button" disabled={loading || saving || !options.some(p => String(p.id) === choice)} onClick={publish} className="rounded-xl bg-[#1F4E43] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Đang xuất bản...' : 'Xác nhận xuất bản'}</button></div>
-    </section>
-  </div>;
+  </Modal>;
 }

@@ -6,6 +6,9 @@ import {
   AdminAccountListResponse,
   AdminAccountsParams,
   AccountActionRequest,
+  AdminInvitationRequest,
+  AdminInvitationResponse,
+  AccountRolesRequest,
 } from '../types/user.types';
 
 export const usersApi = {
@@ -82,5 +85,13 @@ export const usersApi = {
       payload,
       { signal }
     );
+  },
+
+  inviteAccount: async (payload: AdminInvitationRequest): Promise<AdminInvitationResponse> => {
+    return apiClient.post<AdminInvitationResponse>('/api/v1/admin/invitations', payload);
+  },
+
+  replaceAccountRoles: async (id: number, payload: AccountRolesRequest): Promise<AdminAccountDetail> => {
+    return apiClient.put<AdminAccountDetail>(`/api/v1/admin/accounts/${id}/roles`, payload);
   },
 };

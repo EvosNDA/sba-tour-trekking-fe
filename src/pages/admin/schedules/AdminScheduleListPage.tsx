@@ -1,3 +1,5 @@
+import { Modal } from '../../../components/ui/Modal';
+import { AdminPageHeader } from '../../../components/ui/AdminPageHeader';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Calendar,
@@ -319,6 +321,17 @@ export const AdminScheduleListPage: React.FC = () => {
     return max;
   }, [schedulesByDay]);
 
+  const visibleMobileSchedules = useMemo(() => {
+    if (viewMode !== 'tkb') return schedules;
+    const uniqueSchedules = new Map<number, TourScheduleRangeResponse>();
+    Object.values(schedulesByDay).forEach((daySchedules) => {
+      daySchedules.forEach((schedule) => uniqueSchedules.set(schedule.id, schedule));
+    });
+    return [...uniqueSchedules.values()].sort(
+      (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()
+    );
+  }, [schedules, schedulesByDay, viewMode]);
+
   // Human-readable date range summary
   const rangeSummaryText = useMemo(() => {
     if (!startDate || !endDate) return '';
@@ -339,36 +352,18 @@ export const AdminScheduleListPage: React.FC = () => {
 
   return (
     <AdminAccessGuard forbiddenError={error?.status === 403}>
-      {createOpen && !chosenTour && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeCreate}>
-        <section role="dialog" aria-modal="true" aria-labelledby="choose-tour-title" onClick={e => e.stopPropagation()} className="flex max-h-[85vh] w-full max-w-3xl flex-col rounded-2xl bg-white p-6 shadow-xl sm:p-8">
-          <div className="flex items-start justify-between gap-4"><div><h2 id="choose-tour-title" className="text-2xl font-bold text-stone-900">Thêm lịch khởi hành</h2><p className="mt-2 text-base text-stone-600">Chọn tour để tạo đợt khởi hành mới.</p></div><button type="button" aria-label="Đóng" onClick={closeCreate} className="rounded-lg px-3 py-1 text-2xl text-stone-600 hover:bg-stone-100">×</button></div>
-          <label htmlFor="schedule-tour-search" className="mt-5 text-base font-semibold">Tìm tour</label>
+      {createOpen && !chosenTour && <Modal isOpen onClose={closeCreate} title="Add departure" subtitle="Choose a tour for this departure." maxWidth="3xl"><label htmlFor="schedule-tour-search" className="mt-5 text-base font-semibold">Tìm tour</label>
           <input id="schedule-tour-search" autoFocus type="search" value={tourQuery} onChange={e => { setTourQuery(e.target.value); setTourPage(0); }} placeholder="Nhập tên tour..." className="mt-2 w-full rounded-xl border border-stone-300 px-4 py-3 text-base focus:border-[#1F4E43] focus:outline-none" />
           <div className="mt-4 min-h-32 flex-1 space-y-2 overflow-y-auto">
             {tourLoading ? <p className="p-4 text-base text-stone-600">Đang tải danh sách tour...</p> : tourError ? <p role="alert" className="rounded-xl bg-red-50 p-4 text-base text-red-700">{tourError} <button type="button" onClick={() => setTourReload(v => v + 1)} className="underline">Thử lại</button></p> : tourChoices.length === 0 ? <p className="p-4 text-base text-stone-600">Không tìm thấy tour phù hợp.</p> : tourChoices.map(tour => <button key={tour.id} type="button" onClick={() => setChosenTour(tour)} className="flex w-full items-center justify-between gap-4 rounded-xl border border-stone-200 px-4 py-4 text-left hover:border-[#1F4E43] hover:bg-emerald-50"><span><span className="block text-base font-bold text-stone-900">{tour.title}</span><span className="mt-1 block text-sm text-stone-600">{tour.durationDays} ngày · {tour.status === 'PUBLISHED' ? 'Đã xuất bản' : tour.status === 'DRAFT' ? 'Bản nháp' : tour.status}</span></span><ArrowRight className="h-5 w-5 shrink-0 text-[#1F4E43]" /></button>)}
           </div>
           {tourPages > 1 && <div className="mt-4 flex items-center justify-end gap-4 text-base"><button type="button" disabled={tourPage === 0 || tourLoading} onClick={() => setTourPage(p => p - 1)} className="rounded-lg border px-4 py-2 disabled:opacity-40">Trước</button><span>{tourPage + 1} / {tourPages}</span><button type="button" disabled={tourPage + 1 >= tourPages || tourLoading} onClick={() => setTourPage(p => p + 1)} className="rounded-lg border px-4 py-2 disabled:opacity-40">Sau</button></div>}
-        </section>
-      </div>}
+        </Modal>}
       {createOpen && chosenTour && <CreateScheduleModal tourId={chosenTour.id} title={chosenTour.title} durationDays={chosenTour.durationDays} onClose={closeCreate} onCreated={(startsAt) => { const date = new Date(startsAt); const monday = toDateInputString(getMondayOfWeek(date)); const sunday = toDateInputString(getSundayOfWeek(date)); closeCreate(); toast.success('Đã thêm lịch khởi hành.'); if (startDate === monday && endDate === sunday) fetchSchedules(); else { setStartDate(monday); setEndDate(sunday); } }} />}
       <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header Card */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs">
-            <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-[#1F4E43] font-bold">
-                <ShieldCheck className="w-4 h-4 text-[#C2410C]" />
-                <span>Quản trị viên • Điều phối tour</span>
-              </div>
-              <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-[#1C2526]">
-                Lịch Khởi Hành Tour Trekking
-              </h1>
-              <p className="text-xs sm:text-sm text-stone-600">
-                Theo dõi các đợt xuất phát theo khung thời khóa biểu (TKB) tuần trực quan.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <AdminPageHeader title="Lịch Khởi Hành Tour Trekking" description="Theo dõi các đợt xuất phát theo khung thời khóa biểu (TKB) tuần trực quan." actions={<div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <button
                 type="button"
                 onClick={fetchSchedules}
@@ -389,8 +384,7 @@ export const AdminScheduleListPage: React.FC = () => {
                 <Plus className="w-4 h-4" />
                 <span>Thêm lịch khởi hành</span>
               </button>
-            </div>
-          </div>
+            </div>} />
 
           {/* Time Navigation & Filter Bar */}
           <div className="bg-white rounded-2xl border border-[#E6E1D8] p-5 shadow-2xs space-y-4">
@@ -454,7 +448,7 @@ export const AdminScheduleListPage: React.FC = () => {
                     className="px-3 py-1.5 rounded-xl border border-stone-300 bg-[#FDFBF7] text-xs font-mono text-[#1C2526] focus:bg-white focus:outline-none focus:border-[#1F4E43]"
                   />
                 </div>
-                <span className="text-[11px] text-stone-400">(tối đa {MAX_RANGE_DAYS} ngày)</span>
+                <span className="text-xs text-stone-400">(tối đa {MAX_RANGE_DAYS} ngày)</span>
               </div>
 
               {/* View Switchers */}
@@ -492,7 +486,7 @@ export const AdminScheduleListPage: React.FC = () => {
 
             {/* Info summary & Filter toggle */}
             {rangeNotice && (
-              <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+              <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
                 {rangeNotice}
               </div>
             )}
@@ -513,7 +507,7 @@ export const AdminScheduleListPage: React.FC = () => {
               {viewMode === 'tkb' && (
                 <div className="flex items-center gap-2 text-xs">
                   <span className="text-stone-500 font-medium">Chế độ xếp lịch:</span>
-                  <div className="inline-flex rounded-lg border border-stone-200 bg-[#FDFBF7] p-0.5 text-[11px]">
+                  <div className="inline-flex rounded-lg border border-stone-200 bg-[#FDFBF7] p-0.5 text-xs">
                     <button
                       type="button"
                       onClick={() => setDisplayMode('departure_only')}
@@ -544,7 +538,7 @@ export const AdminScheduleListPage: React.FC = () => {
             {/* Chú thích trạng thái nút tròn và màu sắc hành trình */}
             {viewMode === 'tkb' && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-stone-600 border-t border-stone-200/80 pt-3">
-                <span className="font-semibold text-stone-700 text-[11px] uppercase tracking-wide">
+                <span className="font-semibold text-stone-700 text-xs uppercase tracking-wide">
                   Chú thích:
                 </span>
                 <span className="inline-flex items-center gap-1.5" title="Bản nháp: Nút tròn không màu">
@@ -597,9 +591,18 @@ export const AdminScheduleListPage: React.FC = () => {
             </div>
           )}
 
+          <div className="space-y-3 md:hidden" aria-busy={isLoading}>
+            <h2 className="text-lg font-semibold">Lịch khởi hành</h2>
+            {isLoading ? <p role="status" className="rounded-xl border border-[#E6E1D8] bg-white p-5 text-sm text-stone-600">Đang tải lịch khởi hành…</p> : visibleMobileSchedules.length === 0 ? <p className="rounded-xl border border-[#E6E1D8] bg-white p-5 text-sm text-stone-600">Không có lịch khởi hành trong khoảng ngày đã chọn.</p> : visibleMobileSchedules.map((item) => <article key={item.id} className="space-y-4 rounded-xl border border-[#E6E1D8] bg-white p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-medium text-stone-500">Chuyến #{item.id}</span><StatusBadge scheduleStatus={item.status} /></div>
+              <h3 className="break-words text-base font-semibold">{item.title}</h3>
+              <dl className="space-y-2 text-sm"><div><dt className="text-stone-500">Khởi hành</dt><dd className="mt-0.5 font-medium">{formatDateTime(item.startsAt)}</dd></div><div><dt className="text-stone-500">Kết thúc</dt><dd className="mt-0.5">{formatDateTime(item.endsAt)}</dd></div></dl>
+              <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-4"><button type="button" onClick={() => navigateTo(ROUTES.ADMIN.SCHEDULE_DETAIL(item.id))} className="min-h-11 rounded-lg bg-[#1F4E43] px-3 text-sm font-medium text-white">Quản lý chuyến</button><button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_DETAIL(item.tourId))} className="min-h-11 rounded-lg border border-stone-200 px-3 text-sm font-medium">Xem tour</button></div>
+            </article>)}
+          </div>
           {/* MAIN VIEW: KHUNG THỜI KHÓA BIỂU (TKB) */}
           {viewMode === 'tkb' && (
-            <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs">
+            <div className="hidden md:block bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs">
               <div className="overflow-x-auto">
                 <table
                   className="w-full border-collapse table-fixed"
@@ -626,7 +629,7 @@ export const AdminScheduleListPage: React.FC = () => {
                               {day.dayOfWeekLabel}
                             </span>
                             <span
-                              className={`text-[11px] font-mono ${
+                              className={`text-xs font-mono ${
                                 day.isToday ? 'text-[#0D9488]' : 'text-stone-500'
                               }`}
                             >
@@ -749,7 +752,7 @@ export const AdminScheduleListPage: React.FC = () => {
                                       {/* Header: Time Badge + Round Status Dot */}
                                       <div className="flex items-center justify-between gap-1">
                                         <span
-                                          className={`font-mono text-[11px] font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 leading-none ${timePillClass}`}
+                                          className={`font-mono text-xs font-bold px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 leading-none ${timePillClass}`}
                                         >
                                           {timeIcon}
                                           <span>{timeText}</span>
@@ -805,7 +808,7 @@ export const AdminScheduleListPage: React.FC = () => {
 
           {/* ALTERNATIVE VIEW: DANH SÁCH CHI TIẾT (LIST/TABLE VIEW) */}
           {viewMode === 'list' && (
-            <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs">
+            <div className="hidden md:block bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs">
               {isLoading ? (
                 <div className="p-8 text-center text-xs text-stone-500">
                   Đang tải danh sách lịch khởi hành...
@@ -819,7 +822,7 @@ export const AdminScheduleListPage: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
-                      <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-[11px] font-mono uppercase tracking-wider text-stone-600">
+                      <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-xs font-mono uppercase tracking-wider text-stone-600">
                         <th className="py-3.5 px-4 font-bold w-16">Mã</th>
                         <th className="py-3.5 px-4 font-bold">Tên tour trekking</th>
                         <th className="py-3.5 px-4 font-bold w-52">Thời gian bắt đầu</th>
@@ -856,7 +859,7 @@ export const AdminScheduleListPage: React.FC = () => {
                                 {item.title}
                               </span>
                             </div>
-                            <span className="text-[11px] font-mono text-stone-400 block ml-4.5">
+                            <span className="text-xs font-mono text-stone-400 block ml-4.5">
                               Mã tour: #{item.tourId}
                             </span>
                           </td>

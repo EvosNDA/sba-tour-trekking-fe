@@ -11,6 +11,7 @@ export interface PriceSummaryProps {
   equipmentFeeVnd?: number;
   serverPrice?: BookingPriceResponse | null;
   className?: string;
+  compact?: boolean;
 }
 
 export const PriceSummary: React.FC<PriceSummaryProps> = ({
@@ -20,6 +21,7 @@ export const PriceSummary: React.FC<PriceSummaryProps> = ({
   equipmentFeeVnd = 0,
   serverPrice,
   className = '',
+  compact = false,
 }) => {
   // Always prefer server-calculated BookingPriceResponse when available
   const count = serverPrice ? serverPrice.participantCount : participantCount;
@@ -34,6 +36,18 @@ export const PriceSummary: React.FC<PriceSummaryProps> = ({
   const paidVnd = serverPrice ? serverPrice.paidAmountVnd : 0;
   const refundedVnd = serverPrice ? serverPrice.refundedAmountVnd : 0;
   const remainingVnd = serverPrice ? serverPrice.remainingAmountVnd : Math.max(totalVnd - paidVnd, 0);
+
+  if (compact) {
+    return (
+      <section aria-label="Chi phí dự kiến" aria-live="polite" className="rounded-2xl border border-[#D6CEBE] bg-white p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div><p className="text-sm text-[#5C645E]">Tổng dự kiến · {count} hành khách</p><p className="mt-1 text-2xl font-bold tabular-nums text-[#1F4E43]">{formatVND(totalVnd)}</p></div>
+          <div className="text-sm text-[#5C645E]"><p>Đặt cọc {depPercent}%</p><p className="mt-1 font-semibold tabular-nums text-[#C2410C]">{formatVND(depositVnd)}</p></div>
+        </div>
+        <p className="mt-3 border-t border-[#E6E1D8] pt-3 text-sm leading-6 text-[#5C645E]">Giá gồm tour và {formatVND(equipmentFee)} phí thuê thiết bị đã chọn. Kiểm tra toàn bộ chi phí ở bước xác nhận.</p>
+      </section>
+    );
+  }
 
   return (
     <div
@@ -95,7 +109,7 @@ export const PriceSummary: React.FC<PriceSummaryProps> = ({
           {serverPrice && (
             <>
               <div className="flex items-center justify-between text-xs pt-1 border-t border-[#E6E1D8]/70">
-                <span className="text-[#64748B]">Đã thanh toán (Server xác nhận)</span>
+                  <span className="text-[#64748B]">Đã thanh toán</span>
                 <strong className="font-mono-numbers text-[#1F4E43]">
                   {formatVND(paidVnd)}
                 </strong>

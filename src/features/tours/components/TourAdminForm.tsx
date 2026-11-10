@@ -1,3 +1,4 @@
+import { AdminSectionNav } from '../../../pages/admin/components/AdminSectionNav';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Save,
@@ -530,7 +531,20 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-6">
+    <form onSubmit={handleSubmit} noValidate className="space-y-6 pb-4" aria-busy={isSubmitting}>
+      <AdminSectionNav label="Điều hướng biểu mẫu tour" items={[
+        { id: 'tour-basic', label: 'Thông tin tour' },
+        ...(mode === 'create' ? [{ id: 'tour-itinerary', label: 'Lịch trình' }] : []),
+        { id: 'tour-terms', label: 'Điều khoản' },
+        ...(mode === 'edit' && initialData?.id ? [{ id: 'tour-equipment', label: 'Thiết bị' }] : []),
+        { id: 'tour-preparation', label: 'Chuẩn bị' },
+        { id: 'tour-media', label: 'Hình ảnh' },
+        ...(mode === 'create' ? [{ id: 'tour-departure', label: 'Khởi hành' }] : []),
+      ]} />
+      {Object.keys(clientErrors).length > 0 && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-900">
+        <p className="font-semibold">Vui lòng kiểm tra các mục sau trước khi lưu</p>
+        <ul className="mt-3 space-y-2">{Object.entries(clientErrors).map(([field, message]) => <li key={field}><a className="underline underline-offset-4" href={`#${field === 'itinerary' ? 'tour-itinerary' : field === 'terms' || field === 'policyId' ? 'tour-terms' : field === 'routeFileUrl' ? 'tour-routeFileUrl' : ['title', 'durationDays', 'difficulty', 'description'].includes(field) ? `tour-${field}` : 'tour-departure'}`}>{message}</a></li>)}</ul>
+      </div>}
       {/* Step / Lifecycle Error Alert */}
       {stepError && (
         <div
@@ -596,7 +610,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
       )}
 
       {/* CARD 1: THÔNG TIN CƠ BẢN CỦA TOUR */}
-      <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-xs space-y-6">
+      <div id="tour-basic" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-xs space-y-6">
         <div className="border-b border-stone-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h2 className="font-editorial text-xl font-bold text-[#1C2526]">
@@ -765,14 +779,14 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
         </div>
       </div>
 
-      {mode === 'create' && <TourItineraryDraftEditor days={itineraryDays} onChange={setItineraryDays} duration={Number(durationDays)} disabled={isSubmitting} />}
+      {mode === 'create' && <div id="tour-itinerary" className="scroll-mt-48"><TourItineraryDraftEditor days={itineraryDays} onChange={setItineraryDays} duration={Number(durationDays)} disabled={isSubmitting} /></div>}
       {clientErrors.itinerary && <p role="alert" className="text-sm text-rose-700">{clientErrors.itinerary}</p>}
 
-      {<section className="space-y-3 rounded-2xl border border-[#E6E1D8] bg-white p-6"><h2 className="text-xl font-bold">Điều khoản & lưu ý</h2><p className="text-sm text-stone-600">Chọn các điều khoản áp dụng cho tour.</p>{termsError && <p role="alert" className="text-rose-700">{termsError}</p>}{clientErrors.terms && <p role="alert" className="text-rose-700">{clientErrors.terms}</p>}{existingTermsLoading && <p className="text-sm text-stone-500">Đang tải điều khoản của tour...</p>}{existingTermsError && <p role="alert" className="text-rose-700">Không tải được điều khoản của tour. Vui lòng tải lại trang.</p>}{existingTerms.filter(t => !termsOptions.some(o => o.id === t.versionId)).map(t => <label key={t.versionId} className="flex items-start gap-3 rounded-lg border border-amber-300 p-3"><input type="checkbox" disabled={isSubmitting} checked={t.primaryCancellation ? policyId === String(t.versionId) : selectedTerms.includes(t.versionId)} onChange={e => { if (t.primaryCancellation) setPolicyId(e.target.checked ? String(t.versionId) : ''); else setSelectedTerms(prev => e.target.checked ? [...prev,t.versionId] : prev.filter(id => id !== t.versionId)); }}/><span>{t.title} <span className="text-sm text-amber-800">(không còn hiệu lực)</span></span></label>)}{clientErrors.policyId && <p role="alert" className="text-rose-700">{clientErrors.policyId}</p>}{termsOptions.length === 0 && !termsError && <p className="text-sm text-stone-500">Chưa có điều khoản đang có hiệu lực.</p>}{termsOptions.map(t => <label key={t.id} className="flex items-start gap-3 rounded-lg border border-stone-200 p-3"><input type="checkbox" disabled={isSubmitting} checked={t.kind === 'cancellation' ? policyId === String(t.id) : selectedTerms.includes(t.id)} onChange={e => { if (t.kind === 'cancellation') setPolicyId(e.target.checked ? String(t.id) : ''); else setSelectedTerms(prev => e.target.checked ? [...prev,t.id] : prev.filter(id => id !== t.id)); }}/><span>{t.title} <span className="text-sm text-stone-500">(phiên bản {t.versionNumber}){t.kind === 'cancellation' ? ' · đổi/hủy' : ''}</span></span></label>)}<p className="text-sm text-stone-500">Chọn một chính sách đổi/hủy có hiệu lực để xuất bản tour. Chọn chính sách đổi/hủy khác sẽ thay thế lựa chọn cũ.</p><div className="flex flex-wrap gap-4"><a href={ROUTES.ADMIN.POLICIES} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-800 underline">Quản lý điều khoản & lưu ý (mở tab mới)</a><button type="button" onClick={loadTerms} className="text-sm text-emerald-800 underline">Tải lại danh sách</button></div></section>}
+      {<section id="tour-terms" className="scroll-mt-48 space-y-3 rounded-2xl border border-[#E6E1D8] bg-white p-6"><h2 className="text-xl font-bold">Điều khoản & lưu ý</h2><p className="text-sm text-stone-600">Chọn các điều khoản áp dụng cho tour.</p>{termsError && <p role="alert" className="text-rose-700">{termsError}</p>}{clientErrors.terms && <p role="alert" className="text-rose-700">{clientErrors.terms}</p>}{existingTermsLoading && <p className="text-sm text-stone-500">Đang tải điều khoản của tour...</p>}{existingTermsError && <p role="alert" className="text-rose-700">Không tải được điều khoản của tour. Vui lòng tải lại trang.</p>}{existingTerms.filter(t => !termsOptions.some(o => o.id === t.versionId)).map(t => <label key={t.versionId} className="flex items-start gap-3 rounded-lg border border-amber-300 p-3"><input type="checkbox" disabled={isSubmitting} checked={t.primaryCancellation ? policyId === String(t.versionId) : selectedTerms.includes(t.versionId)} onChange={e => { if (t.primaryCancellation) setPolicyId(e.target.checked ? String(t.versionId) : ''); else setSelectedTerms(prev => e.target.checked ? [...prev,t.versionId] : prev.filter(id => id !== t.versionId)); }}/><span>{t.title} <span className="text-sm text-amber-800">(không còn hiệu lực)</span></span></label>)}{clientErrors.policyId && <p role="alert" className="text-rose-700">{clientErrors.policyId}</p>}{termsOptions.length === 0 && !termsError && <p className="text-sm text-stone-500">Chưa có điều khoản đang có hiệu lực.</p>}{termsOptions.map(t => <label key={t.id} className="flex items-start gap-3 rounded-lg border border-stone-200 p-3"><input type="checkbox" disabled={isSubmitting} checked={t.kind === 'cancellation' ? policyId === String(t.id) : selectedTerms.includes(t.id)} onChange={e => { if (t.kind === 'cancellation') setPolicyId(e.target.checked ? String(t.id) : ''); else setSelectedTerms(prev => e.target.checked ? [...prev,t.id] : prev.filter(id => id !== t.id)); }}/><span>{t.title} <span className="text-sm text-stone-500">(phiên bản {t.versionNumber}){t.kind === 'cancellation' ? ' · đổi/hủy' : ''}</span></span></label>)}<p className="text-sm text-stone-500">Chọn một chính sách đổi/hủy có hiệu lực để xuất bản tour. Chọn chính sách đổi/hủy khác sẽ thay thế lựa chọn cũ.</p><div className="flex flex-wrap gap-4"><a href={ROUTES.ADMIN.POLICIES} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-800 underline">Quản lý điều khoản & lưu ý (mở tab mới)</a><button type="button" onClick={loadTerms} className="text-sm text-emerald-800 underline">Tải lại danh sách</button></div></section>}
 
-      {mode === 'edit' && initialData?.id && <TourEquipmentEditor tourId={initialData.id} />}
+      {mode === 'edit' && initialData?.id && <div id="tour-equipment" className="scroll-mt-48"><TourEquipmentEditor tourId={initialData.id} /><p className="mt-3 text-sm text-stone-600">Thiết bị được lưu riêng bằng thao tác trong mục này.</p></div>}
       {/* CARD 2: DỊCH VỤ, YÊU CẦU & FILE CUNG ĐƯỜNG */}
-      <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-xs space-y-6">
+      <div id="tour-preparation" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-xs space-y-6">
         <div className="border-b border-stone-200 pb-4">
           <h2 className="font-editorial text-xl font-bold text-[#1C2526]">
             2. Thể lực, dịch vụ & Tệp bản đồ cung đường
@@ -880,7 +894,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
       </div>
 
       {/* CARD 3: ẢNH TOUR (TOUR MEDIA) */}
-      <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-xs space-y-4">
+      <div id="tour-media" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-xs space-y-4">
         <div className="border-b border-stone-200 pb-4">
           <h2 className="font-editorial text-xl font-bold text-[#1C2526]">
             3. Hình ảnh tour & Ảnh bìa
@@ -899,7 +913,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
 
       {/* CARD 4: LỊCH KHỞI HÀNH ĐẦU TIÊN (FIRST DEPARTURE SCHEDULE) */}
       {mode === 'create' && (
-        <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-xs space-y-6">
+        <div id="tour-departure" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-xs space-y-6">
           <div className="border-b border-stone-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h2 className="font-editorial text-xl font-bold text-[#1C2526]">
@@ -1196,7 +1210,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
       )}
 
       {/* Form Action Footer */}
-      <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 border-t border-stone-200">
+      <div className="sticky bottom-0 z-30 flex flex-col-reverse items-stretch justify-between gap-3 rounded-xl border border-[#E6E1D8] bg-white/95 p-4 shadow-lg backdrop-blur-sm sm:flex-row sm:items-center">
         <button
           type="button"
           onClick={onCancel}

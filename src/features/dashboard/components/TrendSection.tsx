@@ -99,11 +99,11 @@ export const TrendSection: React.FC<TrendSectionProps> = ({
         {/* Các nút chọn granularity & Metric */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Chọn xem theo Khách hay Đơn */}
-          <div className="inline-flex rounded-xl bg-stone-100 p-1 border border-stone-200/60 text-xs">
+          <div className="inline-flex max-w-full flex-wrap rounded-xl bg-stone-100 p-1 border border-stone-200/60 text-xs">
             <button
               type="button"
               onClick={() => setViewMetric('passengers')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+              className={`px-3 min-h-10 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                 viewMetric === 'passengers'
                   ? 'bg-white text-emerald-950 font-semibold shadow-xs'
                   : 'text-stone-600 hover:text-stone-900'
@@ -114,7 +114,7 @@ export const TrendSection: React.FC<TrendSectionProps> = ({
             <button
               type="button"
               onClick={() => setViewMetric('bookings')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+              className={`px-3 min-h-10 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                 viewMetric === 'bookings'
                   ? 'bg-white text-emerald-950 font-semibold shadow-xs'
                   : 'text-stone-600 hover:text-stone-900'
@@ -125,7 +125,7 @@ export const TrendSection: React.FC<TrendSectionProps> = ({
           </div>
 
           {/* Chọn granularity */}
-          <div className="inline-flex rounded-xl bg-stone-100 p-1 border border-stone-200/60 text-xs">
+          <div className="inline-flex max-w-full flex-wrap rounded-xl bg-stone-100 p-1 border border-stone-200/60 text-xs">
             {(
               [
                 ['WEEK', 'Tuần'],
@@ -138,7 +138,7 @@ export const TrendSection: React.FC<TrendSectionProps> = ({
                 key={gKey}
                 type="button"
                 onClick={() => setGranularity(gKey)}
-                className={`px-2.5 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                className={`px-2.5 min-h-10 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                   granularity === gKey
                     ? 'bg-white text-emerald-950 font-semibold shadow-xs'
                     : 'text-stone-600 hover:text-stone-900'
@@ -155,11 +155,11 @@ export const TrendSection: React.FC<TrendSectionProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs bg-stone-50 p-3 rounded-xl border border-stone-200">
         <div className="flex items-center gap-2 text-stone-600 font-medium">
           <Calendar className="w-3.5 h-3.5 text-stone-400" />
-          <span>Khoảng ngày tùy chọn (bỏ trống để lấy theo mặc định backend):</span>
+          <span>Khoảng ngày tùy chọn · để trống để xem kỳ mặc định</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 bg-white border border-stone-300 rounded-lg px-2.5 py-1">
-            <span className="text-[11px] text-stone-500 font-medium">Từ ngày:</span>
+            <span className="text-xs text-stone-500 font-medium">Từ ngày:</span>
             <input
               type="date"
               lang="vi"
@@ -171,7 +171,7 @@ export const TrendSection: React.FC<TrendSectionProps> = ({
           </div>
           <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
           <div className="flex items-center gap-1.5 bg-white border border-stone-300 rounded-lg px-2.5 py-1">
-            <span className="text-[11px] text-stone-500 font-medium">Đến ngày:</span>
+            <span className="text-xs text-stone-500 font-medium">Đến ngày:</span>
             <input
               type="date"
               lang="vi"

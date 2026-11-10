@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -8,70 +9,95 @@ export interface ModalProps {
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
   children: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'full';
   className?: string;
+  footer?: React.ReactNode;
+  preventClose?: boolean;
+  closeOnBackdrop?: boolean;
+  initialFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
+let openDialogs = 0;
+let previousOverflow = '';
+
+/** Native dialogs provide focus containment and an inert background. */
 export const Modal: React.FC<ModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  subtitle,
-  children,
-  maxWidth = 'md',
-  className,
+  isOpen, onClose, title, subtitle, children, maxWidth = 'md', className,
+  footer, preventClose = false, closeOnBackdrop = true, initialFocusRef,
 }) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (openDialogs++ === 0) {
+      previousOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
     }
+    dialog.showModal();
+    initialFocusRef?.current?.focus();
     return () => {
-      document.body.style.overflow = 'unset';
+      dialog.close();
+      openDialogs = Math.max(0, openDialogs - 1);
+      if (openDialogs === 0) document.body.style.overflow = previousOverflow;
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
     };
-  }, [isOpen]);
+  }, [isOpen, initialFocusRef]);
 
   if (!isOpen) return null;
-
-  const maxWidths = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
-    '2xl': 'max-w-2xl',
+  const widths = {
+    sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-xl',
+    '2xl': 'max-w-2xl', '3xl': 'max-w-3xl', '4xl': 'max-w-4xl',
+    '5xl': 'max-w-5xl', '6xl': 'max-w-6xl', full: 'max-w-[calc(100vw-2rem)]',
   };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-      <div
-        className="fixed inset-0"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        className={cn(
-          'relative w-full bg-white rounded-xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[90vh]',
-          maxWidths[maxWidth],
-          className
-        )}
-      >
-        {(title || subtitle) && (
-          <div className="flex items-start justify-between p-5 border-b border-stone-200 bg-[#FDFBF7]">
-            <div>
-              {title && <h3 className="text-lg font-bold text-[#1C2526]">{title}</h3>}
-              {subtitle && <p className="text-xs text-stone-500 mt-0.5">{subtitle}</p>}
-            </div>
-            <button
-              onClick={onClose}
-              className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+  return createPortal(
+    <dialog
+      ref={dialogRef}
+      aria-labelledby={title ? titleId : undefined}
+      aria-label={title ? undefined : 'Hộp thoại'}
+      aria-describedby={subtitle ? descriptionId : undefined}
+      aria-modal="true"
+      className={cn('wetrek-dialog m-auto w-[calc(100%-2rem)] max-h-[90dvh] overflow-hidden rounded-2xl border border-[#E6E1D8] bg-white p-0 text-[#1C2526] shadow-2xl', widths[maxWidth], className)}
+      onCancel={(event) => { event.preventDefault(); if (!preventClose) onCloseRef.current(); }}
+      onKeyDown={(event) => {
+        if (event.key !== 'Tab') return;
+        const dialog = event.currentTarget;
+        const controls = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), a[href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+          .filter(element => element.tabIndex >= 0 && element.getClientRects().length > 0);
+        const first = controls[0];
+        const last = controls[controls.length - 1];
+        if (!first) { event.preventDefault(); dialog.focus(); return; }
+        if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+          event.preventDefault(); last.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+          event.preventDefault(); first.focus();
+        }
+      }}
+      onClick={(event) => {
+        if (event.target !== event.currentTarget || preventClose || !closeOnBackdrop) return;
+        const bounds = event.currentTarget.getBoundingClientRect();
+        if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onCloseRef.current();
+      }}
+    >
+      <div className="flex max-h-[90dvh] flex-col">
+        <header className="flex shrink-0 items-start justify-between gap-4 border-b border-[#E6E1D8] bg-[#FDFBF7] p-5 sm:px-6">
+          <div className="min-w-0">
+            {title && <h2 id={titleId} className="break-words text-xl font-semibold tracking-tight">{title}</h2>}
+            {subtitle && <div id={descriptionId} className="mt-2 text-sm leading-relaxed text-[#6B7068]">{subtitle}</div>}
           </div>
-        )}
-        <div className="p-5 overflow-y-auto flex-1">{children}</div>
+          <button type="button" onClick={onClose} disabled={preventClose} aria-label="Đóng hộp thoại" className="-mr-2 -mt-2 inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg text-[#6B7068] transition-colors hover:bg-[#E6E1D8]/60 disabled:cursor-not-allowed disabled:opacity-40">
+            <X className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </header>
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">{children}</div>
+        {footer && <footer className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-[#E6E1D8] bg-[#FDFBF7] p-4 sm:px-6">{footer}</footer>}
       </div>
-    </div>
+    </dialog>, document.body,
   );
 };

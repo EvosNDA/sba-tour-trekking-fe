@@ -10,6 +10,7 @@ export const ROUTES = {
     VERIFY_EMAIL: '/verify-email',
     FORGOT_PASSWORD: '/forgot-password',
     RESET_PASSWORD: '/reset-password',
+    ACTIVATE_ACCOUNT: '/activate-account',
   },
   BOOKING: {
     NEW: '/booking/new',
@@ -19,6 +20,7 @@ export const ROUTES = {
   },
   ACCOUNT: {
     BOOKINGS: '/account/bookings',
+    PROFILE: '/customer/profile',
   },
   CUSTOMER: {
     PROFILE: '/customer/profile',

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useId } from 'react';
+import { TravelerFields } from './TravelerFields';
 import { BookingPassengerRequest } from '../types/booking.types';
-import { User, Phone, Mail, Plus, Trash2, UserCheck, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, UserCheck } from 'lucide-react';
 
 export interface PassengerFormProps {
   passengers: BookingPassengerRequest[];
@@ -49,6 +50,7 @@ export const PassengerForm: React.FC<PassengerFormProps> = ({
   fieldErrors = {},
   disabled = false,
 }) => {
+  const formId = useId();
   const effectiveMax = Math.min(Math.max(maxSeats, 1), 100);
 
   const handleFieldChange = (
@@ -106,8 +108,8 @@ export const PassengerForm: React.FC<PassengerFormProps> = ({
           <h3 className="font-editorial text-xl font-bold text-[#1C2526]">
             Danh sách thành viên đoàn ({passengers.length} người)
           </h3>
-          <p className="text-xs text-[#64748B]">
-            Nhập thông tin từng người tham gia để đăng ký bảo hiểm và giấy phép kiểm lâm. Tối đa 1 người được đánh dấu là Người đặt chỗ đại diện.
+          <p className="mt-2 text-sm leading-6 text-[#5C645E]">
+            Điền thông tin các thành viên. Các trường có dấu * là bắt buộc. Bạn có thể chọn một người làm đại diện đặt chỗ.
           </p>
         </div>
 
@@ -122,6 +124,7 @@ export const PassengerForm: React.FC<PassengerFormProps> = ({
         </button>
       </div>
 
+      {(fieldErrors.passengers || fieldErrors.bookingCustomer) && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{fieldErrors.passengers || fieldErrors.bookingCustomer}</p>}
       <div className="space-y-4">
         {passengers.map((passenger, idx) => {
           const nameErr =
@@ -141,7 +144,7 @@ export const PassengerForm: React.FC<PassengerFormProps> = ({
               }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-[#1C2526] text-white font-mono text-xs font-bold flex items-center justify-center">
                     {idx + 1}
                   </span>
@@ -155,8 +158,8 @@ export const PassengerForm: React.FC<PassengerFormProps> = ({
                   )}
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <label className="inline-flex items-center gap-2 text-xs text-[#2D3748] cursor-pointer select-none">
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="inline-flex min-h-11 items-center gap-2 text-sm text-[#2D3748] cursor-pointer select-none">
                     <input
                       type="checkbox"
                       disabled={disabled}
@@ -182,95 +185,13 @@ export const PassengerForm: React.FC<PassengerFormProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                <div>
-                  <label
-                    htmlFor={`passenger-name-${idx}`}
-                    className="block text-xs font-semibold text-[#1C2526] mb-1"
-                  >
-                    Họ và tên đầy đủ <span className="text-red-600">*</span>
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-[#78716C] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <input
-                      id={`passenger-name-${idx}`}
-                      type="text"
-                      required
-                      maxLength={200}
-                      disabled={disabled}
-                      value={passenger.fullName}
-                      onChange={(e) => handleFieldChange(idx, 'fullName', e.target.value)}
-                      placeholder="VD: Nguyễn Văn A"
-                      className={`w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-white border rounded-xl text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
-                        nameErr ? 'border-red-500' : 'border-[#D6CEBE] focus:border-[#C2410C]'
-                      }`}
-                    />
-                  </div>
-                  {nameErr && (
-                    <p className="text-[11px] text-red-600 mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3 shrink-0" /> {nameErr}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor={`passenger-phone-${idx}`}
-                    className="block text-xs font-semibold text-[#1C2526] mb-1"
-                  >
-                    Số điện thoại liên hệ
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-[#78716C] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <input
-                      id={`passenger-phone-${idx}`}
-                      type="tel"
-                      maxLength={30}
-                      disabled={disabled}
-                      value={passenger.phone || ''}
-                      onChange={(e) => handleFieldChange(idx, 'phone', e.target.value)}
-                      placeholder="VD: 0901 234 567"
-                      className={`w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-white border rounded-xl text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
-                        phoneErr ? 'border-red-500' : 'border-[#D6CEBE] focus:border-[#C2410C]'
-                      }`}
-                    />
-                  </div>
-                  {phoneErr && (
-                    <p className="text-[11px] text-red-600 mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3 shrink-0" /> {phoneErr}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor={`passenger-email-${idx}`}
-                    className="block text-xs font-semibold text-[#1C2526] mb-1"
-                  >
-                    Địa chỉ Email
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 text-[#78716C] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <input
-                      id={`passenger-email-${idx}`}
-                      type="email"
-                      maxLength={254}
-                      disabled={disabled}
-                      value={passenger.email || ''}
-                      onChange={(e) => handleFieldChange(idx, 'email', e.target.value)}
-                      placeholder="name@example.com"
-                      className={`w-full pl-9 pr-3 py-2 text-xs sm:text-sm bg-white border rounded-xl text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
-                        emailErr ? 'border-red-500' : 'border-[#D6CEBE] focus:border-[#C2410C]'
-                      }`}
-                    />
-                  </div>
-                  {emailErr && (
-                    <p className="text-[11px] text-red-600 mt-1 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3 shrink-0" /> {emailErr}
-                    </p>
-                  )}
-                </div>
-              </div>
+              <TravelerFields
+                idPrefix={`${formId}-passenger-${idx}`}
+                value={passenger}
+                onChange={(field, value) => handleFieldChange(idx, field, value)}
+                errors={{ fullName: nameErr, phone: phoneErr, email: emailErr }}
+                disabled={disabled}
+              />
             </div>
           );
         })}

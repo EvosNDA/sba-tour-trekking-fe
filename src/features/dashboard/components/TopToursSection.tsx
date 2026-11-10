@@ -66,7 +66,7 @@ export const TopToursSection: React.FC<TopToursSectionProps> = ({
         <div>
           <h3 className="font-editorial text-xl sm:text-2xl font-bold text-[#1C2526] flex items-center gap-2">
             <Award className="w-5 h-5 text-amber-600" />
-            Top tour dẫn đầu về thị phần
+            Tour dẫn đầu toàn hệ thống
           </h3>
           <p className="text-xs sm:text-sm text-stone-600 mt-1">
             Xếp hạng các tuyến trekking có lượng khách và lượt đặt cao nhất
@@ -74,11 +74,11 @@ export const TopToursSection: React.FC<TopToursSectionProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-xl bg-stone-100 p-1 border border-stone-200/60 text-xs">
+          <div className="inline-flex max-w-full flex-wrap rounded-xl bg-stone-100 p-1 border border-stone-200/60 text-xs">
             <button
               type="button"
               onClick={() => setViewMetric('passengers')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+              className={`px-3 min-h-10 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                 viewMetric === 'passengers'
                   ? 'bg-white text-emerald-950 font-semibold shadow-xs'
                   : 'text-stone-600 hover:text-stone-900'
@@ -89,7 +89,7 @@ export const TopToursSection: React.FC<TopToursSectionProps> = ({
             <button
               type="button"
               onClick={() => setViewMetric('bookings')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+              className={`px-3 min-h-10 py-2 rounded-lg font-medium transition-all cursor-pointer ${
                 viewMetric === 'bookings'
                   ? 'bg-white text-emerald-950 font-semibold shadow-xs'
                   : 'text-stone-600 hover:text-stone-900'
@@ -117,9 +117,10 @@ export const TopToursSection: React.FC<TopToursSectionProps> = ({
           <Calendar className="w-3.5 h-3.5 text-stone-400" />
           <span>Khoảng ngày (mặc định 30 ngày gần nhất):</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <input
             type="date"
+            aria-label="Start date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
             className="px-2 py-1 bg-white border border-stone-300 rounded-lg text-stone-800 text-xs"
@@ -127,6 +128,7 @@ export const TopToursSection: React.FC<TopToursSectionProps> = ({
           <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
           <input
             type="date"
+            aria-label="End date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
             className="px-2 py-1 bg-white border border-stone-300 rounded-lg text-stone-800 text-xs"

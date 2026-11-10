@@ -32,6 +32,8 @@ export interface ResetPasswordRequest {
   newPassword: string;
 }
 
+export interface ActivateAccountRequest extends ResetPasswordRequest {}
+
 export interface MessageResponse {
   message: string;
 }

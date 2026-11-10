@@ -64,3 +64,24 @@ export interface AdminAccountsParams {
 export interface AccountActionRequest {
   reason: string;
 }
+
+export interface AdminInvitationRequest {
+  email: string;
+  fullName: string;
+  role: 'ADMIN' | 'GUIDE';
+  phone?: string;
+  bio?: string;
+}
+
+export interface AdminInvitationResponse {
+  accountId: number;
+  email: string;
+  role: string;
+  activationRequired: boolean;
+  deliveryStatus: string;
+}
+
+export interface AccountRolesRequest {
+  roles: string[];
+  reason: string;
+}

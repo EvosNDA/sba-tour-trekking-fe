@@ -16,7 +16,7 @@ import { useAuth } from '../hooks/useAuth';
 import { APP_CONFIG } from '../../../constants/config';
 import { toast } from '../../../components/ui/Toast';
 
-export type AuthFormMode = 'login' | 'register' | 'verify-email' | 'forgot-password' | 'reset-password';
+export type AuthFormMode = 'login' | 'register' | 'verify-email' | 'forgot-password' | 'reset-password' | 'activate-account';
 
 export interface AuthFormProps {
   initialMode?: AuthFormMode;
@@ -43,8 +43,10 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     register,
     verifyEmail,
     resendVerification,
+    resendInvitationActivation,
     forgotPassword,
     resetPassword,
+    activateAccount,
     isLoading,
     apiError,
     clearError,
@@ -54,6 +56,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
@@ -107,7 +111,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           window.google.accounts.id.renderButton(btnContainer, {
             theme: 'outline',
             size: 'large',
-            width: 360,
+            width: Math.min(360, btnContainer.parentElement?.clientWidth || 280),
             text: 'continue_with',
           });
         }
@@ -231,8 +235,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         const res = await forgotPassword(email.trim());
         setCooldown(60);
         setOtpDigits(['', '', '', '', '', '']);
-        setInfoMessage(res.message || 'Nếu tài khoản hợp lệ, mã OTP khôi phục đã được gửi qua email.');
         switchMode('reset-password', email.trim());
+        setInfoMessage(res.message || 'Nếu tài khoản hợp lệ, mã OTP khôi phục đã được gửi qua email.');
       } else if (mode === 'reset-password') {
         if (otpString.length !== 6) {
           toast.warning('Vui lòng nhập đủ 6 chữ số OTP.');
@@ -247,6 +251,21 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         setPassword('');
         setNewPassword('');
         switchMode('login', email.trim());
+      } else if (mode === 'activate-account') {
+        if (otpString.length !== 6) {
+          toast.warning('Vui lòng nhập đủ 6 chữ số OTP.');
+          return;
+        }
+        if (newPassword !== confirmPassword) {
+          setConfirmPasswordError('Mật khẩu xác nhận chưa khớp.');
+          return;
+        }
+        const res = await activateAccount({ email: email.trim(), otp: otpString, newPassword });
+        toast.success(res.message || 'Kích hoạt tài khoản thành công. Vui lòng đăng nhập.');
+        setNewPassword('');
+        setConfirmPassword('');
+        switchMode('login', email.trim());
+        setInfoMessage('Tài khoản đã được kích hoạt. Hãy đăng nhập bằng mật khẩu bạn vừa tạo.');
       }
     } catch (err: any) {
       if (err?.code === 'EMAIL_NOT_VERIFIED') {
@@ -256,7 +275,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         setCooldown(60);
         switchMode('verify-email', email.trim());
         setInfoMessage(
-          'Tài khoản đã được lưu nhưng máy chủ SMTP tạm thời chưa gửi được email. Bạn có thể bấm Gửi lại OTP sau 60 giây.'
+          'Tài khoản đã được lưu nhưng email xác thực chưa gửi được. Bạn có thể yêu cầu gửi lại OTP sau 60 giây.'
         );
       }
     }
@@ -268,6 +287,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
     try {
       if (mode === 'reset-password') {
         await forgotPassword(email.trim());
+      } else if (mode === 'activate-account') {
+        await resendInvitationActivation(email.trim());
       } else {
         await resendVerification(email.trim());
       }
@@ -281,9 +302,31 @@ export const AuthForm: React.FC<AuthFormProps> = ({
   const fieldErrors = apiError?.fieldErrors || {};
 
   return (
-    <div className="w-full space-y-5">
+    <div className="w-full space-y-7">
+      {/* Mode-specific heading */}
+      <div>
+        <div className="space-y-3 mb-2">
+          <h1 className="font-editorial text-3xl sm:text-4xl font-semibold leading-tight text-[#1C2526] tracking-tight">
+            {mode === 'login' && 'Chào mừng trở lại'}
+            {mode === 'register' && 'Tạo tài khoản WeTrek'}
+            {mode === 'verify-email' && 'Xác thực Email'}
+            {mode === 'forgot-password' && 'Khôi phục mật khẩu'}
+            {mode === 'reset-password' && 'Thiết lập mật khẩu mới'}
+            {mode === 'activate-account' && 'Kích hoạt tài khoản được mời'}
+          </h1>
+          <p className="break-words text-sm leading-relaxed text-[#57534E]">
+            {mode === 'login' && 'Hành trình tiếp theo bắt đầu từ đây. Đăng nhập để quản lý thông tin và đặt chỗ của bạn.'}
+            {mode === 'register' && 'Tạo tài khoản để đặt chỗ và lưu thông tin cho những chuyến đi sắp tới.'}
+            {mode === 'verify-email' && `Nhập mã xác thực 6 chữ số gửi đến ${email || 'email của bạn'}.`}
+            {mode === 'forgot-password' && 'Nhập email tài khoản để nhận mã OTP khôi phục mật khẩu.'}
+            {mode === 'reset-password' && 'Nhập mã OTP xác thực và mật khẩu mới an toàn.'}
+            {mode === 'activate-account' && 'Nhập email, mã kích hoạt đã nhận và tạo mật khẩu cho lần đăng nhập đầu tiên.'}
+          </p>
+        </div>
+      </div>
+
       {infoMessage && (
-        <div className="p-3.5 rounded-xl bg-[#B9EADB]/40 border border-[#88D4BC] text-[#1F4E43] text-xs flex items-start gap-2.5">
+        <div role="status" className="p-3.5 rounded-xl bg-[#B9EADB]/40 border border-[#88D4BC] text-[#1F4E43] text-xs flex items-start gap-2.5">
           <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
           <div className="leading-relaxed">{infoMessage}</div>
         </div>
@@ -297,9 +340,6 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           <div className="flex items-start gap-2 font-semibold">
             <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
             <div>
-              <span className="font-mono text-[10px] uppercase bg-red-100 text-red-900 px-1.5 py-0.5 rounded mr-1.5">
-                {apiError.code}
-              </span>
               <span>{apiError.message}</span>
             </div>
           </div>
@@ -308,7 +348,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             <ul className="list-disc list-inside pl-5 text-[11px] text-red-700 space-y-0.5">
               {Object.entries(fieldErrors).map(([field, msg]) => (
                 <li key={field}>
-                  <strong>{field}:</strong> {msg}
+                  {msg}
                 </li>
               ))}
             </ul>
@@ -316,13 +356,13 @@ export const AuthForm: React.FC<AuthFormProps> = ({
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5" aria-busy={isLoading}>
         {mode === 'register' && (
           <>
             <div>
               <label
                 htmlFor="auth-fullname"
-                className="block text-xs font-semibold text-[#1C2526] mb-1"
+                className="block text-sm font-medium text-[#1C2526] mb-2"
               >
                 Họ và tên đầy đủ <span className="text-red-600">*</span>
               </label>
@@ -330,26 +370,29 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 <User className="w-4 h-4 text-[#78716C] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   id="auth-fullname"
+                  autoComplete="name"
+                  aria-invalid={Boolean(fieldErrors.fullName)}
+                  aria-describedby={fieldErrors.fullName ? 'auth-fullname-error' : undefined}
                   type="text"
                   required
                   maxLength={200}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="VD: Nguyễn Minh Khoa"
-                  className={`w-full pl-10 pr-4 py-2.5 text-sm bg-[#F7F4EE] focus:bg-white border rounded-xl text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
+                  className={`w-full pl-10 pr-4 min-h-12 py-3 text-base sm:text-sm bg-white border rounded-lg text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
                     fieldErrors.fullName ? 'border-red-500' : 'border-[#E6E1D8] focus:border-[#C2410C]'
                   }`}
                 />
               </div>
               {fieldErrors.fullName && (
-                <span className="text-[11px] text-red-600 mt-1 block">{fieldErrors.fullName}</span>
+                <span id="auth-fullname-error" className="text-xs text-red-700 mt-1.5 block">{fieldErrors.fullName}</span>
               )}
             </div>
 
             <div>
               <label
                 htmlFor="auth-phone"
-                className="block text-xs font-semibold text-[#1C2526] mb-1"
+                className="block text-sm font-medium text-[#1C2526] mb-2"
               >
                 Số điện thoại liên hệ
               </label>
@@ -357,31 +400,36 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 <Phone className="w-4 h-4 text-[#78716C] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   id="auth-phone"
+                  autoComplete="tel"
+                  aria-invalid={Boolean(fieldErrors.phone)}
+                  aria-describedby={fieldErrors.phone ? 'auth-phone-error' : undefined}
                   type="tel"
                   maxLength={30}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="VD: 0901234567"
-                  className={`w-full pl-10 pr-4 py-2.5 text-sm bg-[#F7F4EE] focus:bg-white border rounded-xl text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
+                  className={`w-full pl-10 pr-4 min-h-12 py-3 text-base sm:text-sm bg-white border rounded-lg text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
                     fieldErrors.phone ? 'border-red-500' : 'border-[#E6E1D8] focus:border-[#C2410C]'
                   }`}
                 />
               </div>
               {fieldErrors.phone && (
-                <span className="text-[11px] text-red-600 mt-1 block">{fieldErrors.phone}</span>
+                <span id="auth-phone-error" className="text-xs text-red-700 mt-1.5 block">{fieldErrors.phone}</span>
               )}
             </div>
           </>
         )}
 
         <div>
-          <label htmlFor="auth-email" className="block text-xs font-semibold text-[#1C2526] mb-1">
+          <label htmlFor="auth-email" className="block text-sm font-medium text-[#1C2526] mb-2">
             Địa chỉ Email <span className="text-red-600">*</span>
           </label>
           <div className="relative">
             <Mail className="w-4 h-4 text-[#78716C] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               id="auth-email"
+              aria-invalid={Boolean(fieldErrors.email)}
+                  aria-describedby={fieldErrors.email ? 'auth-email-error' : undefined}
               type="email"
               required
               autoComplete="email"
@@ -389,17 +437,17 @@ export const AuthForm: React.FC<AuthFormProps> = ({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="ban@example.com"
-              className={`w-full pl-10 pr-4 py-2.5 text-sm bg-[#F7F4EE] focus:bg-white border rounded-xl text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
+              className={`w-full pl-10 pr-4 min-h-12 py-3 text-base sm:text-sm bg-white border rounded-lg text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
                 fieldErrors.email ? 'border-red-500' : 'border-[#E6E1D8] focus:border-[#C2410C]'
               }`}
             />
           </div>
           {fieldErrors.email && (
-            <span className="text-[11px] text-red-600 mt-1 block">{fieldErrors.email}</span>
+            <span id="auth-email-error" className="text-xs text-red-700 mt-1.5 block">{fieldErrors.email}</span>
           )}
         </div>
 
-        {(mode === 'verify-email' || mode === 'reset-password') && (
+        {(mode === 'verify-email' || mode === 'reset-password' || mode === 'activate-account') && (
           <div className="bg-[#FAF8F5] border border-[#E6E1D8] rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <label
@@ -417,22 +465,23 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 className="text-xs font-semibold text-[#C2410C] hover:underline disabled:opacity-50 inline-flex items-center gap-1 cursor-pointer"
               >
                 <RefreshCw className="w-3 h-3" />
-                <span>{cooldown > 0 ? `Gửi lại (${cooldown}s)` : 'Gửi lại OTP'}</span>
+                <span>{cooldown > 0 ? `Gửi lại (${cooldown}s)` : mode === 'activate-account' ? 'Gửi lại mã kích hoạt' : 'Gửi lại OTP'}</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-6 gap-2 max-w-xs mx-auto">
+            <div className="grid grid-cols-6 gap-1.5 sm:gap-2 max-w-xs mx-auto">
               {otpDigits.map((digit, idx) => (
                 <input
                   key={idx}
                   id={`auth-otp-${idx}`}
                   type="text"
                   inputMode="numeric"
+                  autoComplete={idx === 0 ? 'one-time-code' : 'off'}
                   aria-label={`Chữ số OTP thứ ${idx + 1}`}
                   value={digit}
                   onChange={(e) => handleOtpDigitChange(idx, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                  className="h-12 text-center font-mono text-lg font-bold bg-white border border-[#D6CEBE] rounded-xl text-[#1C2526] focus:outline-none focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/25"
+                  className="min-w-0 w-full h-12 text-center font-mono text-lg font-bold bg-white border border-[#D6CEBE] rounded-xl text-[#1C2526] focus:outline-none focus:border-[#C2410C] focus:ring-2 focus:ring-[#C2410C]/25"
                 />
               ))}
             </div>
@@ -444,8 +493,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
 
         {(mode === 'login' || mode === 'register') && (
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label htmlFor="auth-password" className="text-xs font-semibold text-[#1C2526]">
+            <div className="flex items-center justify-between mb-2 gap-3">
+              <label htmlFor="auth-password" className="text-sm font-medium text-[#1C2526]">
                 Mật khẩu <span className="text-red-600">*</span>
               </label>
               {mode === 'login' && (
@@ -463,6 +512,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
               <Lock className="w-4 h-4 text-[#78716C] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 id="auth-password"
+                aria-invalid={Boolean(fieldErrors.password)}
+                  aria-describedby={fieldErrors.password ? 'auth-password-error' : undefined}
                 type={showPassword ? 'text' : 'password'}
                 required
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
@@ -473,7 +524,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                     ? 'Tối thiểu 8 ký tự (chữ hoa, chữ thường, số...)'
                     : 'Nhập mật khẩu của bạn'
                 }
-                className={`w-full pl-10 pr-10 py-2.5 text-sm bg-[#F7F4EE] focus:bg-white border rounded-xl text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
+                className={`w-full pl-10 pr-10 min-h-12 py-3 text-base sm:text-sm bg-white border rounded-lg text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
                   fieldErrors.password ? 'border-red-500' : 'border-[#E6E1D8] focus:border-[#C2410C]'
                 }`}
               />
@@ -481,22 +532,22 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#78716C] hover:text-[#1C2526] cursor-pointer"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2.5 rounded-md text-[#78716C] hover:text-[#1C2526] cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {fieldErrors.password && (
-              <span className="text-[11px] text-red-600 mt-1 block">{fieldErrors.password}</span>
+              <span id="auth-password-error" className="text-xs text-red-700 mt-1.5 block">{fieldErrors.password}</span>
             )}
           </div>
         )}
 
-        {mode === 'reset-password' && (
+        {(mode === 'reset-password' || mode === 'activate-account') && (
           <div>
             <label
               htmlFor="auth-new-password"
-              className="block text-xs font-semibold text-[#1C2526] mb-1"
+              className="block text-sm font-medium text-[#1C2526] mb-2"
             >
               Mật khẩu mới <span className="text-red-600">*</span>
             </label>
@@ -504,13 +555,16 @@ export const AuthForm: React.FC<AuthFormProps> = ({
               <Lock className="w-4 h-4 text-[#78716C] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 id="auth-new-password"
+                aria-invalid={Boolean(fieldErrors.newPassword)}
+                  aria-describedby={fieldErrors.newPassword ? 'auth-new-password-error' : undefined}
                 type={showPassword ? 'text' : 'password'}
                 required
+                minLength={8}
                 autoComplete="new-password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Nhập mật khẩu mới an toàn"
-                className={`w-full pl-10 pr-10 py-2.5 text-sm bg-[#F7F4EE] focus:bg-white border rounded-xl text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
+                className={`w-full pl-10 pr-10 min-h-12 py-3 text-base sm:text-sm bg-white border rounded-lg text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 ${
                   fieldErrors.newPassword
                     ? 'border-red-500'
                     : 'border-[#E6E1D8] focus:border-[#C2410C]'
@@ -520,21 +574,43 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#78716C] hover:text-[#1C2526] cursor-pointer"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2.5 rounded-md text-[#78716C] hover:text-[#1C2526] cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {fieldErrors.newPassword && (
-              <span className="text-[11px] text-red-600 mt-1 block">{fieldErrors.newPassword}</span>
+              <span id="auth-new-password-error" className="text-xs text-red-700 mt-1.5 block">{fieldErrors.newPassword}</span>
             )}
+          </div>
+        )}
+
+        {mode === 'activate-account' && (
+          <div>
+            <label htmlFor="auth-confirm-password" className="mb-2 block text-sm font-medium text-[#1C2526]">
+              Xác nhận mật khẩu mới <span className="text-red-600">*</span>
+            </label>
+            <input
+              id="auth-confirm-password"
+              type={showPassword ? 'text' : 'password'}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => { setConfirmPassword(event.target.value); setConfirmPasswordError(''); }}
+              placeholder="Nhập lại mật khẩu mới"
+              aria-invalid={Boolean(confirmPasswordError)}
+              aria-describedby={confirmPasswordError ? 'auth-confirm-password-error' : undefined}
+              className={`w-full min-h-12 rounded-lg border bg-white px-4 py-3 text-base text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#C2410C]/30 sm:text-sm ${confirmPasswordError ? 'border-red-500' : 'border-[#E6E1D8] focus:border-[#C2410C]'}`}
+            />
+            {confirmPasswordError && <span id="auth-confirm-password-error" role="alert" className="mt-1.5 block text-xs text-red-700">{confirmPasswordError}</span>}
           </div>
         )}
 
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-3 px-6 rounded-xl bg-[#C2410C] hover:bg-[#9B2F00] text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-60"
+          className="w-full min-h-12 py-3 px-6 rounded-lg bg-[#C2410C] hover:bg-[#9B2F00] text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-wait"
         >
           <span>
             {isLoading
@@ -547,6 +623,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
               ? 'Xác nhận mã OTP'
               : mode === 'forgot-password'
               ? 'Gửi mã OTP khôi phục'
+              : mode === 'activate-account'
+              ? 'Kích hoạt và tạo mật khẩu'
               : 'Đặt lại mật khẩu mới'}
           </span>
           <ArrowRight className="w-4 h-4" />
@@ -560,26 +638,25 @@ export const AuthForm: React.FC<AuthFormProps> = ({
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-[#E6E1D8]" />
             </div>
-            <span className="relative px-3 bg-white text-[11px] font-mono uppercase tracking-wider text-[#78716C]">
+            <span className="relative px-3 bg-white text-xs text-[#78716C]">
               Hoặc tiếp tục với
             </span>
           </div>
 
           {APP_CONFIG.GOOGLE_CLIENT_ID ? (
-            <div className="flex justify-center">
+            <div className="flex w-full min-w-0 justify-center overflow-hidden">
               <div id="google-signin-button-container" />
             </div>
           ) : (
             <div className="p-3 rounded-xl bg-[#F7F4EE] border border-[#E6E1D8] text-center text-xs text-[#64748B]">
-              Đăng nhập Google hiện chưa được kích hoạt (chưa cấu hình{' '}
-              <code className="font-mono text-[11px] text-[#1C2526]">VITE_GOOGLE_CLIENT_ID</code>). Vui lòng sử dụng Email & Mật khẩu.
+              Đăng nhập Google hiện chưa khả dụng. Bạn có thể tiếp tục bằng email và mật khẩu.
             </div>
           )}
         </div>
       )}
 
       {/* Mode Switch Links */}
-      <div className="pt-3 border-t border-[#E6E1D8] flex flex-wrap items-center justify-between gap-2 text-xs text-[#64748B]">
+      <div className="pt-5 border-t border-[#E6E1D8] flex flex-col items-start gap-4 text-sm text-[#64748B]">
         {mode === 'login' && (
           <>
             <span>
@@ -592,12 +669,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({
                 Đăng ký ngay
               </button>
             </span>
-            <button
-              type="button"
-              onClick={() => switchMode('verify-email', email)}
-              className="text-[#1F4E43] font-medium hover:underline cursor-pointer"
-            >
-              Nhập mã OTP xác thực email
+            <button type="button" onClick={() => switchMode('activate-account', email)} className="text-[#1F4E43] font-medium hover:underline cursor-pointer">
+              Được mời tham gia? Kích hoạt tài khoản
             </button>
           </>
         )}
@@ -615,7 +688,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({
           </span>
         )}
 
-        {(mode === 'verify-email' || mode === 'forgot-password' || mode === 'reset-password') && (
+        {(mode === 'verify-email' || mode === 'forgot-password' || mode === 'reset-password' || mode === 'activate-account') && (
           <button
             type="button"
             onClick={() => switchMode('login', email)}

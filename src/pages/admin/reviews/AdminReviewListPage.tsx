@@ -1,3 +1,8 @@
+import { AdminPageHeader } from '../../../components/ui/AdminPageHeader';
+import { FilterToolbar } from '../../../components/ui/FilterToolbar';
+import { Pagination } from '../../../components/ui/Pagination';
+import { DataTable } from '../../../components/ui/DataTable';
+import { DataState } from '../../../components/ui/DataState';
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search,
@@ -210,21 +215,7 @@ export const AdminReviewListPage: React.FC = () => {
     <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Top Header Card theo spec chuẩn */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-[#1F4E43] font-bold">
-              <ShieldCheck className="w-4 h-4 text-[#C2410C]" />
-              <span>KIỂM DUYỆT ĐÁNH GIÁ</span>
-            </div>
-            <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-[#1C2526]">
-              Kiểm duyệt đánh giá & Phản hồi
-            </h1>
-            <p className="text-xs sm:text-sm text-stone-600">
-              Theo dõi ý kiến khách hàng, kiểm soát chất lượng dịch vụ và xử lý vi phạm nội dung
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+        <AdminPageHeader title="Kiểm duyệt đánh giá & Phản hồi" description="Theo dõi ý kiến khách hàng, kiểm soát chất lượng dịch vụ và xử lý vi phạm nội dung" actions={<div className="flex flex-wrap items-center gap-2.5 shrink-0">
             <button
               type="button"
               onClick={fetchReviews}
@@ -236,8 +227,7 @@ export const AdminReviewListPage: React.FC = () => {
               />
               <span>Làm mới</span>
             </button>
-          </div>
-        </div>
+          </div>} />
 
         {/* Ghi chú nghiệp vụ Admin */}
         <div className="p-4 bg-stone-100/70 border border-[#E6E1D8] rounded-2xl text-xs text-stone-700 flex items-start gap-2.5 shadow-2xs">
@@ -248,7 +238,7 @@ export const AdminReviewListPage: React.FC = () => {
         </div>
 
         {/* Filter Toolbar Card theo spec chuẩn */}
-        <div className="bg-white rounded-2xl border border-[#E6E1D8] p-5 shadow-2xs space-y-4">
+        <FilterToolbar>
           {/* Row 1: Search & Dropdowns */}
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* Search Input */}
@@ -341,7 +331,7 @@ export const AdminReviewListPage: React.FC = () => {
               </button>
             )}
           </div>
-        </div>
+        </FilterToolbar>
 
         {/* Error Banner */}
         {error && (
@@ -362,8 +352,15 @@ export const AdminReviewListPage: React.FC = () => {
 
         {/* Main Table Card theo spec chuẩn */}
         <div className="bg-white rounded-2xl border border-[#E6E1D8] overflow-hidden shadow-2xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="divide-y divide-[#E6E1D8] md:hidden" aria-busy={isLoading}>
+            {isLoading ? <p role="status" className="p-6 text-sm text-stone-600">Đang tải đánh giá…</p> : items.length === 0 ? <DataState title="Không tìm thấy đánh giá" description="Thử thay đổi hoặc xóa bộ lọc để xem kết quả khác." /> : items.map((rev) => <article key={rev.id} className="space-y-4 p-5">
+              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words text-base font-semibold">{rev.customerName}</h2><p className="mt-1 break-words text-sm text-stone-600">{rev.tourName}</p></div><div className="shrink-0">{renderStars(rev.rating)}</div></div>
+              <p className="break-words text-sm leading-relaxed text-stone-700">{rev.comment || 'Không có nhận xét bằng chữ.'}</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">{renderStatusBadge(rev.status)}<time className="text-sm text-stone-500">{formatDate(rev.createdAt)}</time></div>
+              <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-4"><button type="button" onClick={() => { setDetailReviewId(rev.id); setDetailModalOpen(true); }} className="min-h-11 rounded-lg border border-stone-200 px-3 text-sm font-medium">Xem chi tiết</button><button type="button" onClick={() => handleOpenAction(rev, rev.status === 'visible' ? 'hide' : 'restore')} className="min-h-11 rounded-lg border border-stone-200 px-3 text-sm font-medium text-[#1F4E43]">{rev.status === 'visible' ? 'Ẩn đánh giá' : 'Khôi phục'}</button></div>
+            </article>)}
+          </div>
+          <DataTable className="hidden md:block" tableClassName="w-full text-left text-sm border-collapse">
               <thead className="bg-stone-50/80 text-stone-500 border-b border-[#E6E1D8]">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Khách hàng</th>
@@ -417,7 +414,7 @@ export const AdminReviewListPage: React.FC = () => {
                         <div className="font-semibold text-stone-900 truncate max-w-[140px]" title={rev.customerName}>
                           {rev.customerName}
                         </div>
-                        <div className="text-[10px] text-stone-400 font-mono">
+                        <div className="text-xs text-stone-400 font-mono">
                           #{rev.customerId}
                         </div>
                       </td>
@@ -427,7 +424,7 @@ export const AdminReviewListPage: React.FC = () => {
                         <div className="font-medium text-stone-800 truncate max-w-[180px]" title={rev.tourName}>
                           {rev.tourName}
                         </div>
-                        <div className="text-[10px] text-stone-400 font-mono">
+                        <div className="text-xs text-stone-400 font-mono">
                           Tour #{rev.tourId}
                         </div>
                       </td>
@@ -487,7 +484,7 @@ export const AdminReviewListPage: React.FC = () => {
                               type="button"
                               onClick={() => handleOpenAction(rev, 'hide')}
                               title="Ẩn đánh giá này khỏi trang tour"
-                              className="px-2.5 py-1 rounded-lg font-semibold text-[11px] whitespace-nowrap bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors cursor-pointer"
+                              className="px-2.5 py-1 rounded-lg font-semibold text-xs whitespace-nowrap bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors cursor-pointer"
                             >
                               Ẩn
                             </button>
@@ -496,7 +493,7 @@ export const AdminReviewListPage: React.FC = () => {
                               type="button"
                               onClick={() => handleOpenAction(rev, 'restore')}
                               title="Khôi phục hiển thị đánh giá này"
-                              className="px-2.5 py-1 rounded-lg font-semibold text-[11px] whitespace-nowrap bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors cursor-pointer"
+                              className="px-2.5 py-1 rounded-lg font-semibold text-xs whitespace-nowrap bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors cursor-pointer"
                             >
                               Khôi phục
                             </button>
@@ -507,46 +504,10 @@ export const AdminReviewListPage: React.FC = () => {
                   ))
                 )}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
 
           {/* Pagination Footer */}
-          <div className="p-4 border-t border-[#E6E1D8] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
-            <div>
-              Hiển thị{' '}
-              <strong className="text-stone-800 font-mono">
-                {totalElements === 0 ? 0 : page * size + 1}
-              </strong>{' '}
-              đến{' '}
-              <strong className="text-stone-800 font-mono">
-                {Math.min((page + 1) * size, totalElements)}
-              </strong>{' '}
-              trong tổng số{' '}
-              <strong className="text-stone-800 font-mono">{totalElements}</strong> đánh giá
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page === 0 || isLoading}
-                className="p-1.5 rounded-lg border border-stone-200 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="font-mono text-stone-700 px-2 font-medium">
-                Trang {totalPages === 0 ? 0 : page + 1} / {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={page >= totalPages - 1 || isLoading}
-                className="p-1.5 rounded-lg border border-stone-200 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          <Pagination page={page} totalPages={totalPages} totalElements={totalElements} pageSize={size} onPageChange={(next) => { if (!isLoading) setPage(next); }} />
         </div>
 
         {/* Modal xác nhận Ẩn / Khôi phục */}

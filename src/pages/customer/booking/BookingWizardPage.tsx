@@ -1,3 +1,4 @@
+import { QuantityStepper } from '../../../features/bookings/components/QuantityStepper';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   ArrowLeft,
@@ -12,8 +13,6 @@ import {
   Loader2,
   CheckCircle2,
   RefreshCw,
-  Plus,
-  Minus,
   Package,
   Wrench,
   X,
@@ -323,19 +322,6 @@ export const BookingWizardPage: React.FC = () => {
     Object.values(selectedPackageQuantities).some((q) => q > 0) ||
     Object.values(selectedItemQuantities).some((q) => q > 0);
 
-  const handleUpdatePackageQty = (pkgId: number, delta: number) => {
-    setSelectedPackageQuantities((prev) => {
-      const current = prev[pkgId] || 0;
-      const nextQty = Math.max(0, current + delta);
-      if (nextQty === 0) {
-        const copy = { ...prev };
-        delete copy[pkgId];
-        return copy;
-      }
-      return { ...prev, [pkgId]: nextQty };
-    });
-  };
-
   const handleSetPackageQty = (pkgId: number, val: string) => {
     const parsed = parseInt(val, 10);
     const safeQty = isNaN(parsed) || parsed < 0 ? 0 : parsed;
@@ -346,19 +332,6 @@ export const BookingWizardPage: React.FC = () => {
         return copy;
       }
       return { ...prev, [pkgId]: safeQty };
-    });
-  };
-
-  const handleUpdateItemQty = (itemId: number, delta: number) => {
-    setSelectedItemQuantities((prev) => {
-      const current = prev[itemId] || 0;
-      const nextQty = Math.max(0, current + delta);
-      if (nextQty === 0) {
-        const copy = { ...prev };
-        delete copy[itemId];
-        return copy;
-      }
-      return { ...prev, [itemId]: nextQty };
     });
   };
 
@@ -407,13 +380,15 @@ export const BookingWizardPage: React.FC = () => {
     const validationErrors = validatePassengers(passengers);
     if (Object.keys(validationErrors).length > 0) {
       setFieldErrors(validationErrors);
+      const form = e.currentTarget;
+      requestAnimationFrame(() => form.querySelector<HTMLInputElement>('[aria-invalid="true"]')?.focus());
       toast.warning('Vui lòng kiểm tra lại thông tin hành khách.');
       return;
     }
 
     setFieldErrors({});
     setStep(2);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   };
 
   const handleCreateBooking = async () => {
@@ -735,6 +710,9 @@ export const BookingWizardPage: React.FC = () => {
           </div>
         )}
 
+        <div className="mb-6 lg:hidden">
+          <PriceSummary compact participantCount={passengers.length} basePriceVnd={basePricePerPerson} depositPercent={depositPercent} equipmentFeeVnd={totalEquipmentFee} />
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Main Left Column */}
           <div className="lg:col-span-8 space-y-6">
@@ -799,21 +777,39 @@ export const BookingWizardPage: React.FC = () => {
 
             {step === 1 ? (
               <form onSubmit={handleProceedToConfirm} noValidate className="space-y-6">
+                {/* Passenger Form */}
+                <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-xs">
+                  <PassengerForm
+                    passengers={passengers}
+                    onChange={(updated) => {
+                      setPassengers(updated);
+                      if (Object.keys(fieldErrors).length > 0) {
+                        setFieldErrors({});
+                      }
+                    }}
+                    maxSeats={maxAllowedPassengers}
+                    fieldErrors={fieldErrors}
+                    disabled={!isScheduleBookable}
+                  />
+                </div>
+
+
                 {/* Equipment Choice Section */}
-                <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-xs space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-stone-200">
+                <details className="group bg-white rounded-2xl border border-[#E6E1D8] p-5 sm:p-6 space-y-5">
+                  <summary className="flex min-h-12 cursor-pointer list-none flex-wrap items-center justify-between gap-3 text-[#1F4E43]">
                     <div className="flex items-center gap-2.5">
                       <Backpack className="w-5 h-5 text-[#1F4E43]" />
                       <h2 className="text-base font-bold text-[#1C2526]">
-                        Trang thiết bị &amp; Dịch vụ thuê kèm
+                        Trang bị thuê thêm · Không bắt buộc
                       </h2>
                     </div>
+                    <span className="text-sm font-medium group-open:hidden">Xem lựa chọn +</span>
                     {totalEquipmentFee > 0 && (
                       <span className="text-xs font-mono font-bold text-[#1F4E43] bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full self-start sm:self-auto">
                         Tổng phí thuê: {formatVND(totalEquipmentFee)}
                       </span>
                     )}
-                  </div>
+                  </summary>
 
                   {isLoadingEquipment ? (
                     <div className="py-8 text-center text-stone-500 space-y-2">
@@ -895,7 +891,7 @@ export const BookingWizardPage: React.FC = () => {
                       </div>
 
                       {/* Option 2: Rental packages and items */}
-                      <div className="space-y-4 pt-1">
+                      <div className="space-y-6 border-t border-[#E6E1D8] pt-5">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                           <div>
                             <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900 flex items-center gap-1.5">
@@ -924,7 +920,7 @@ export const BookingWizardPage: React.FC = () => {
                               <Package className="w-3.5 h-3.5" />
                               <span>Gói combo thiết bị ({availablePackages.length} gói có sẵn)</span>
                             </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                               {availablePackages.map((pkg) => {
                                 const qty = selectedPackageQuantities[pkg.id] || 0;
                                 const unitPrice = pkg.rentalPriceVnd ?? 0;
@@ -954,43 +950,17 @@ export const BookingWizardPage: React.FC = () => {
                                       </div>
 
                                       {pkg.includedItems && (
-                                        <p className="text-xs text-stone-600 leading-relaxed">
+                                        <p className="text-sm text-stone-600 leading-7">
                                           <span className="font-medium text-stone-800">Bao gồm: </span>
                                           <span>{pkg.includedItems}</span>
                                         </p>
                                       )}
                                     </div>
 
-                                    <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2">
+                                    <div className="pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3">
                                       <div className="flex items-center gap-1.5">
                                         <span className="text-xs text-stone-600 font-medium">Số lượng:</span>
-                                        <div className="flex items-center border border-stone-300 rounded-lg overflow-hidden bg-white">
-                                          <button
-                                            type="button"
-                                            onClick={() => handleUpdatePackageQty(pkg.id, -1)}
-                                            disabled={qty <= 0}
-                                            className="p-1 px-2 text-stone-600 hover:bg-stone-100 disabled:opacity-40 cursor-pointer"
-                                            aria-label={`Giảm số lượng ${pkg.title}`}
-                                          >
-                                            <Minus className="w-3 h-3" />
-                                          </button>
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            value={qty}
-                                            onChange={(e) => handleSetPackageQty(pkg.id, e.target.value)}
-                                            aria-label={`Số lượng combo ${pkg.title}`}
-                                            className="w-12 text-center text-xs font-mono font-semibold py-1 focus:outline-none"
-                                          />
-                                          <button
-                                            type="button"
-                                            onClick={() => handleUpdatePackageQty(pkg.id, 1)}
-                                            className="p-1 px-2 text-stone-600 hover:bg-stone-100 cursor-pointer"
-                                            aria-label={`Tăng số lượng ${pkg.title}`}
-                                          >
-                                            <Plus className="w-3 h-3" />
-                                          </button>
-                                        </div>
+                                        <QuantityStepper label={pkg.title} value={qty} onChange={(value) => handleSetPackageQty(pkg.id, value)} disabled={!isScheduleBookable} />
                                       </div>
 
                                       <div className="text-right font-mono text-xs">
@@ -1018,7 +988,7 @@ export const BookingWizardPage: React.FC = () => {
                               <Wrench className="w-3.5 h-3.5" />
                               <span>Thiết bị thuê lẻ ({availableItems.length} món có sẵn)</span>
                             </h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                               {availableItems.map((item) => {
                                 const qty = selectedItemQuantities[item.id] || 0;
                                 const unitPrice = item.individualRentalPriceVnd ?? 0;
@@ -1036,7 +1006,7 @@ export const BookingWizardPage: React.FC = () => {
                                   >
                                     <div className="space-y-1">
                                       <div className="flex items-start justify-between gap-2">
-                                        <h5 className="font-bold text-xs sm:text-sm text-stone-900 truncate">
+                                        <h5 className="font-semibold text-base text-stone-900 leading-snug">
                                           {item.name}
                                         </h5>
                                         <span className="font-mono text-xs font-bold text-[#1F4E43] shrink-0">
@@ -1044,40 +1014,14 @@ export const BookingWizardPage: React.FC = () => {
                                         </span>
                                       </div>
                                       {item.description && (
-                                        <p className="text-[11px] text-stone-500 line-clamp-1">
+                                        <p className="text-sm leading-6 text-stone-600">
                                           {item.description}
                                         </p>
                                       )}
                                     </div>
 
-                                    <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2">
-                                      <div className="flex items-center border border-stone-300 rounded-lg overflow-hidden bg-white">
-                                        <button
-                                          type="button"
-                                          onClick={() => handleUpdateItemQty(item.id, -1)}
-                                          disabled={qty <= 0}
-                                          className="p-1 px-2 text-stone-600 hover:bg-stone-100 disabled:opacity-40 cursor-pointer"
-                                          aria-label={`Giảm số lượng ${item.name}`}
-                                        >
-                                          <Minus className="w-3 h-3" />
-                                        </button>
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          value={qty}
-                                          onChange={(e) => handleSetItemQty(item.id, e.target.value)}
-                                          aria-label={`Số lượng món ${item.name}`}
-                                          className="w-10 text-center text-xs font-mono font-semibold py-1 focus:outline-none"
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={() => handleUpdateItemQty(item.id, 1)}
-                                          className="p-1 px-2 text-stone-600 hover:bg-stone-100 cursor-pointer"
-                                          aria-label={`Tăng số lượng ${item.name}`}
-                                        >
-                                          <Plus className="w-3 h-3" />
-                                        </button>
-                                      </div>
+                                    <div className="pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3">
+                                      <QuantityStepper label={item.name} value={qty} onChange={(value) => handleSetItemQty(item.id, value)} disabled={!isScheduleBookable} />
 
                                       <div className="text-right font-mono text-xs">
                                         {isSelected ? (
@@ -1104,23 +1048,7 @@ export const BookingWizardPage: React.FC = () => {
                       </div>
                     </div>
                   )}
-                </div>
-
-                {/* Passenger Form */}
-                <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-xs">
-                  <PassengerForm
-                    passengers={passengers}
-                    onChange={(updated) => {
-                      setPassengers(updated);
-                      if (Object.keys(fieldErrors).length > 0) {
-                        setFieldErrors({});
-                      }
-                    }}
-                    maxSeats={maxAllowedPassengers}
-                    fieldErrors={fieldErrors}
-                    disabled={!isScheduleBookable}
-                  />
-                </div>
+                </details>
 
                 {/* Step 1 Actions */}
                 <div className="flex items-center justify-end gap-4 pt-2">
@@ -1283,7 +1211,7 @@ export const BookingWizardPage: React.FC = () => {
                       <ShieldCheck className="w-4 h-4" />
                       <span>Quy định giữ chỗ & hủy đặt chỗ</span>
                     </p>
-                    <p className="text-xs text-stone-600 leading-relaxed">
+                    <p className="text-sm text-stone-600 leading-7">
                       Sau khi xác nhận, hệ thống giữ chỗ cho đoàn trong <strong>15 phút</strong> ở trạng thái chờ thanh toán để thanh toán tiền cọc ({depositPercent}%) hoặc toàn bộ trực tuyến.
                     </p>
                   </div>

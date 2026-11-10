@@ -45,6 +45,7 @@ export const TourNavTabs: React.FC<TourNavTabsProps> = ({
                 <button
                   type="button"
                   onClick={() => onSelectTab(tab.id)}
+                  aria-current={isActive ? 'location' : undefined}
                   className={`px-3 sm:px-4 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
                     isActive
                       ? 'bg-[#1F4E43] text-white shadow-xs'

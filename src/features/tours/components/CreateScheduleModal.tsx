@@ -1,3 +1,4 @@
+import { Modal } from '../../../components/ui/Modal';
 import React, { useEffect, useState } from 'react';
 import { toursApi } from '../api/tours.api';
 import { calculateEndsAt, defaultBalanceDueAt, formatOffsetDateTime } from '../../../lib/utils';
@@ -53,9 +54,7 @@ export function CreateScheduleModal({ tourId, title, durationDays, onClose, onCr
     finally { setSaving(false); }
   };
 
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => { if (!saving) onClose(); }}>
-    <section role="dialog" aria-modal="true" aria-labelledby="create-schedule-title" className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 sm:p-8 shadow-xl" onClick={e => e.stopPropagation()}>
-      <h2 id="create-schedule-title" className="text-xl font-bold text-stone-900">Thêm lịch khởi hành</h2>
+  return <Modal isOpen onClose={onClose} preventClose={saving} title={<>Thêm lịch khởi hành</>} maxWidth="3xl">
       <p className="mt-1 text-sm text-stone-600">{title} · {durationDays} ngày</p>
       <form onSubmit={submit} className="mt-5 space-y-4">
         {prefillState === 'loading' && <p role="status" className="text-sm text-stone-600">Đang tải thông tin lịch gần nhất...</p>}
@@ -76,6 +75,5 @@ export function CreateScheduleModal({ tourId, title, durationDays, onClose, onCr
         <p className="text-sm text-stone-500">Lịch mới có số chỗ và lượt đặt riêng. Lịch cũ không thay đổi.</p>
         <div className="flex justify-end gap-3 border-t border-stone-200 pt-4"><button type="button" disabled={saving} onClick={onClose} className="rounded-xl border border-stone-300 px-4 py-2 text-sm">Hủy</button><button type="submit" disabled={saving || prefillState === 'loading'} className="rounded-xl bg-[#1F4E43] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{saving ? 'Đang tạo...' : 'Tạo lịch khởi hành'}</button></div>
       </form>
-    </section>
-  </div>;
+  </Modal>;
 }

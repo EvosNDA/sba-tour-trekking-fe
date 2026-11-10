@@ -7,6 +7,7 @@ import {
   LoginRequest,
   GoogleLoginRequest,
   ResetPasswordRequest,
+  ActivateAccountRequest,
   MessageResponse,
   CsrfResponse,
   AuthResponse,
@@ -33,6 +34,13 @@ export const authApi = {
 
   resendVerification: async (payload: EmailRequest): Promise<MessageResponse> => {
     return apiClient.post<MessageResponse>('/api/v1/auth/resend-verification', payload, {
+      skipAuth: true,
+      csrfRequired: true,
+    });
+  },
+
+  resendInvitationActivation: async (payload: EmailRequest): Promise<MessageResponse> => {
+    return apiClient.post<MessageResponse>('/api/v1/auth/resend-account-activation', payload, {
       skipAuth: true,
       csrfRequired: true,
     });
@@ -92,6 +100,13 @@ export const authApi = {
 
   resetPassword: async (payload: ResetPasswordRequest): Promise<MessageResponse> => {
     return apiClient.post<MessageResponse>('/api/v1/auth/reset-password', payload, {
+      skipAuth: true,
+      csrfRequired: true,
+    });
+  },
+
+  activateAccount: async (payload: ActivateAccountRequest): Promise<MessageResponse> => {
+    return apiClient.post<MessageResponse>('/api/v1/auth/activate-account', payload, {
       skipAuth: true,
       csrfRequired: true,
     });
