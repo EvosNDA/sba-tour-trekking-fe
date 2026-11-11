@@ -57,12 +57,12 @@ export const AdminTourDetailPage: React.FC<AdminTourDetailPageProps> = ({ tourId
   const upload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []); if (!tour || !files.length) return;
     setUploading(true);
-    try { for (const file of files) await toursApi.uploadTourMedia(tour.id, file, file.name); toast.success('Đã tải ảnh lên.'); await loadTour(); }
+    try { for (const file of files) await toursApi.uploadTourMedia(tour.id, file, file.name); toast.success('Đã tải ảnh lên.'); await loadTour(false); }
     catch (e) { toast.error((e as Error).message || 'Không thể tải ảnh lên.'); }
     finally { setUploading(false); event.target.value = ''; }
   };
-  const setCover = async (id: number) => { if (!tour) return; setMediaActionId(id); try { await toursApi.setCoverMedia(tour.id, id); toast.success('Đã đặt ảnh bìa.'); await loadTour(); } catch (e) { toast.error((e as Error).message || 'Không thể đặt ảnh bìa.'); } finally { setMediaActionId(null); } };
-  const deleteMedia = async (id: number) => { if (!tour || !window.confirm('Xóa ảnh này khỏi tour?')) return; setMediaActionId(id); try { await toursApi.deleteTourMedia(tour.id, id); toast.success('Đã xóa ảnh.'); await loadTour(); } catch (e) { toast.error((e as Error).message || 'Không thể xóa ảnh.'); } finally { setMediaActionId(null); } };
+  const setCover = async (id: number) => { if (!tour) return; setMediaActionId(id); try { await toursApi.setCoverMedia(tour.id, id); toast.success('Đã đặt ảnh bìa.'); await loadTour(false); } catch (e) { toast.error((e as Error).message || 'Không thể đặt ảnh bìa.'); } finally { setMediaActionId(null); } };
+  const deleteMedia = async (id: number) => { if (!tour || !window.confirm('Xóa ảnh này khỏi tour?')) return; setMediaActionId(id); try { await toursApi.deleteTourMedia(tour.id, id); toast.success('Đã xóa ảnh.'); await loadTour(false); } catch (e) { toast.error((e as Error).message || 'Không thể xóa ảnh.'); } finally { setMediaActionId(null); } };
   const deleteTour = async () => { if (!tour) return; setDeleting(true); setDeleteError(null); try { await toursApi.deleteTour(tour.id); toast.success('Đã xóa tour.'); navigateTo(ROUTES.ADMIN.TOURS, { replace: true }); } catch (e) { setDeleteError(e as ApiError); } finally { setDeleting(false); } };
 
   if (loading) return <div className="mx-auto max-w-5xl animate-pulse p-8"><div className="h-10 w-1/3 rounded bg-slate-200"/><div className="mt-5 h-80 rounded-xl bg-white"/></div>;
