@@ -15,7 +15,7 @@ export const AdminDashboardPage: React.FC = () => {
   return (
     <div className="min-h-full px-4 py-5 text-[#172033] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[1500px] space-y-5">
-        <AdminPageHeader className="admin-dashboard-page-header" title="Tổng quan vận hành" description="Theo dõi booking, hành khách và tình trạng khởi hành." actions={<div className="flex flex-wrap items-center gap-3"><DashboardFilters basis={basis} onBasisChange={setBasis} period={period} onPeriodChange={setPeriod}/><span className="whitespace-nowrap border-l border-slate-300 pl-4 text-sm italic text-slate-500">Dữ liệu minh họa</span></div>} />
+        <AdminPageHeader className="admin-dashboard-page-header" title="Tổng quan vận hành" description="Theo dõi booking, hành khách và tình trạng khởi hành." actions={<DashboardFilters basis={basis} onBasisChange={setBasis} period={period} onPeriodChange={setPeriod}/>} />
         <SummarySection basis={basis} period={period} refreshTrigger={0} />
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_.85fr]">
           <TrendSection basis={basis} tourId={undefined} refreshTrigger={0} />

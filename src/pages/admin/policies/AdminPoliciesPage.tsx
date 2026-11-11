@@ -102,7 +102,7 @@ export default function AdminPoliciesPage() {
   const latestEffective = versions.find(v => new Date(v.effectiveFrom).getTime() <= Date.now() && !(v.revokedAt && new Date(v.revokedAt).getTime() < new Date(v.effectiveFrom).getTime()));
   const current = latestEffective?.revokedAt ? undefined : latestEffective;
   return <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-5 sm:px-7 lg:px-8">
-    <div className="flex flex-wrap items-start justify-between gap-3"><AdminPageHeader title="Điều khoản & lưu ý" description="Quản lý nội dung chính sách, phiên bản và thời gian áp dụng." /><span className="rounded-full bg-[#DCEFEB] px-4 py-2 text-sm font-semibold text-[#17453D]">Dữ liệu minh họa</span></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><AdminPageHeader title="Điều khoản & lưu ý" description="Quản lý nội dung chính sách, phiên bản và thời gian áp dụng." /></div>
     <div><button className={button + ' bg-[#0B7058] text-white hover:bg-[#075743]'} onClick={() => openEditor('create')}><Plus className="mr-2 inline h-4 w-4"/>Tạo điều khoản</button></div>
     {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-red-800">{error}</p>}{message && <p role="status" className="rounded-xl bg-emerald-50 p-4 text-emerald-800">{message}</p>}
     <div className="grid min-w-0 items-stretch gap-4 lg:grid-cols-[1.25fr_1fr]">

@@ -49,6 +49,13 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
     </svg>
     <div className="min-w-0"><p className="whitespace-nowrap text-[22px] font-bold tracking-tight text-[#173B35]">WeTrek <span className="font-medium text-[#52645B]">Ops</span></p><p className="mt-0.5 whitespace-nowrap text-[13px] tracking-tight text-[#65756A]">Vận hành tour trekking Việt Nam</p></div>
   </div>;
+  const renderAccountFooter = () => <div className="relative z-20 border-t border-[#DCE3D9] bg-[#FBF8F1] p-3.5">
+    <div className="flex min-w-0 items-center gap-3 px-1 pb-3">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#D8EFE8] text-[#126A55]"><UserRound aria-hidden="true" className="h-6 w-6" /></span>
+      <span className="min-w-0"><span className="block truncate text-sm font-semibold text-[#233733]">{adminName}</span><span className="block text-xs text-[#65756A]">Quản trị viên</span></span>
+    </div>
+    <button type="button" onClick={handleLogout} disabled={loggingOut} className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg border border-[#C9D5CD] bg-white px-3 text-sm font-semibold text-[#263A37] transition-colors hover:border-rose-300 hover:bg-rose-50 hover:text-rose-800 disabled:cursor-wait disabled:opacity-60"><LogOut className="h-4 w-4" />{loggingOut ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>
+  </div>;
   const renderNavigation = () => <>
     <nav aria-label="Menu quản trị" className="flex-1 space-y-1.5 overflow-y-auto p-2.5 pt-2.5">
       {navItems.map(item => <React.Fragment key={item.path}>
@@ -60,10 +67,10 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
   </>;
   return <div data-x-role={xRole} data-admin-portal data-admin-page={adminPage} className="flex h-dvh w-full overflow-hidden bg-[#F8F6F1] font-sans text-[#172033]">
     <aside data-admin-sidebar aria-label="Thanh điều hướng quản trị" className="relative hidden w-[286px] shrink-0 flex-col overflow-hidden border-r border-[#DCE3D9] bg-[#FBF8F1] text-[#263A37] lg:flex">
-      <img data-admin-sidebar-art src={sidebarTrekker} alt="" aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[48%] w-full object-cover object-bottom [mask-image:linear-gradient(to_bottom,transparent_0%,black_44%)]" />
+      <img data-admin-sidebar-art src={sidebarTrekker} alt="" aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-[108px] z-0 h-[42%] w-full object-cover object-bottom [mask-image:linear-gradient(to_bottom,transparent_0%,black_44%)]" />
       {renderBrand()}
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">{renderNavigation()}</div>
-      {dashboard && <div className="relative z-10 border-t border-[#DCE3D9] p-4"><button type="button" onClick={() => setProfileOpen(open => !open)} aria-expanded={profileOpen} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left hover:bg-[#EEF3EA]"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#D8EFE8] text-[#126A55]"><UserRound aria-hidden="true" className="h-6 w-6"/></span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-[#233733]">{adminName}</span><span className="block text-xs text-[#65756A]">Quản trị viên</span></span><ChevronDown className="h-4 w-4 text-[#65756A]"/></button>{profileOpen && <button type="button" onClick={handleLogout} disabled={loggingOut} className="absolute bottom-full left-4 right-4 mb-2 flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-left text-sm font-medium text-slate-700 shadow-lg hover:bg-slate-50 disabled:opacity-50"><LogOut className="h-4 w-4"/>{loggingOut ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>}</div>}
+      {renderAccountFooter()}
     </aside>
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
       <header className={`flex min-h-[58px] shrink-0 items-center justify-between gap-3 border-b border-[#E1E7EF] bg-white px-4 sm:px-7 ${dashboard ? 'lg:min-h-[72px]' : 'lg:hidden'}`}>
@@ -85,13 +92,10 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
       <main ref={mainRef} id="admin-content" data-admin-content data-admin-page={adminPage} className="min-w-0 flex-1 overflow-y-auto">{children}</main>
     </div>
     <Modal isOpen={mobileOpen} onClose={() => setMobileOpen(false)} title="Menu quản trị" maxWidth="sm">
-        <div className="relative flex max-h-[82dvh] flex-col overflow-hidden rounded-xl border border-[#DCE3D9] bg-[#FBF8F1]">
+        <div className="relative flex max-h-[calc(90dvh-8rem)] flex-col overflow-hidden rounded-xl border border-[#DCE3D9] bg-[#FBF8F1]">
         {renderBrand()}
         <div className="relative z-10 flex min-h-0 flex-1 flex-col">{renderNavigation()}</div>
-        <div className="relative z-10 border-t border-[#DCE3D9] p-3">
-          <button type="button" onClick={() => setProfileOpen(open => !open)} aria-expanded={profileOpen} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-[#EEF3EA]"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#D8EFE8] text-sm font-bold text-[#126A55]">{initials}</span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-[#233733]">{adminName}</span><span className="block text-xs text-[#65756A]">Quản trị viên</span></span><ChevronDown className="h-4 w-4 text-[#65756A]"/></button>
-          {profileOpen && <button type="button" onClick={handleLogout} disabled={loggingOut} className="mt-1 flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left text-sm text-rose-700 hover:bg-rose-50 disabled:opacity-50"><LogOut className="h-4 w-4"/>{loggingOut ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>}
-        </div>
+        {renderAccountFooter()}
       </div>
     </Modal>
   </div>;

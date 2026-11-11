@@ -312,7 +312,6 @@ export const AdminTourListPage: React.FC = () => {
             </div>
           )}
         </div>
-        <p className="mt-2 text-right text-sm italic text-slate-500">Dữ liệu minh họa</p>
       </div>
 
       {publishTourId !== null && <TourPublishModal tourId={publishTourId} onClose={() => setPublishTourId(null)} onPublished={() => { setPublishTourId(null); toast.success('Đã xuất bản tour.'); void fetchTours(); }} />}
