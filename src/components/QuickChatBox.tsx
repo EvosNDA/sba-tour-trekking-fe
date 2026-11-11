@@ -139,10 +139,10 @@ export const QuickChatBox: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">
       {/* Chat Window */}
       {isOpen && (
-        <div className="mb-3 w-[360px] sm:w-[400px] h-[520px] bg-white rounded-xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="mb-3 w-[min(400px,calc(100vw-2rem))] h-[min(520px,calc(100dvh-6rem))] bg-white rounded-xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
           {/* Header */}
           <div className="bg-emerald-800 text-white px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -333,7 +333,7 @@ export const QuickChatBox: React.FC = () => {
       {/* Floating Toggle Button */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="h-14 w-14 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 focus:outline-hidden focus:ring-4 focus:ring-emerald-700/30"
+        className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 focus:outline-hidden focus:ring-4 focus:ring-emerald-700/30"
         title={isOpen ? 'Đóng RAG Chat' : 'Mở RAG Chat Test'}
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
