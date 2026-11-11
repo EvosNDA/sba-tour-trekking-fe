@@ -1,122 +1,720 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ExternalLink, FileText, Globe, Plus, RefreshCw, Search } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { AdminPageHeader } from '../../../components/ui/AdminPageHeader';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, FileText, Paperclip, MoreHorizontal, Info } from 'lucide-react';
-import { apiClient } from '../../../lib/axios';
+import { toast } from '../../../components/ui/Toast';
+import { navigateTo } from '../../../lib/navigation';
+import { adminPoliciesApi } from '../../../features/policies/api/admin-policies.api';
+import { POLICY_DOCUMENTS, policyDocumentPath } from '../../../features/policies/policy-documents';
+import {
+  POLICY_KIND_LABELS,
+  currentVersionOf,
+  versionStatusOf,
+  type AdminPolicy,
+  type AdminPolicyVersion,
+  type PolicyKind,
+  type PolicyPublishRequest,
+} from '../../../features/policies/types/admin-policy.types';
+import { PolicyVersionForm } from './components/PolicyVersionForm';
+import {
+  ActiveBadge,
+  FieldLabel,
+  RefundTierTable,
+  VersionStatusBadge,
+  buttonClass,
+  fieldClass,
+  formatDateTime,
+  policyErrorMessage,
+  publicDocumentOf,
+} from './components/policy-ui';
 
-type Policy = { id: number; code: string; title: string; kind: string; active: boolean; versionNumber?: number | null; updatedAt?: string | null };
-type Version = { id: number; versionNumber: number; content: string; effectiveFrom: string; revokedAt: string | null; revocationReason: string | null };
-type Action = { type: 'status' | 'revoke' | 'delete'; policy: Policy; version?: Version };
-const field = 'w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-emerald-700/20';
-const button = 'rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold disabled:opacity-50';
-const messageOf = (error: unknown) => {
-  const e = error as {code?: string; message?: string};
-  const messages: Record<string, string> = {
-    POLICY_CODE_EXISTS: 'Mã điều khoản đã tồn tại. Chọn mã khác hoặc để hệ thống tự tạo.',
-    POLICY_EFFECTIVE_FROM_OUT_OF_ORDER: 'Đã có phiên bản với thời điểm áp dụng muộn hơn. Hãy hủy bản đã lên lịch trước khi tạo bản thay thế áp dụng sớm hơn.',
-    POLICY_NOT_PUBLISHABLE: 'Điều khoản đã ngừng áp dụng. Hãy kích hoạt lại trước khi thêm phiên bản.',
-  };
-  return messages[e.code || ''] || e.message || 'Không thể thực hiện thao tác. Vui lòng thử lại.';
+type PolicyAction =
+  | { type: 'status'; policy: AdminPolicy }
+  | { type: 'delete'; policy: AdminPolicy }
+  | { type: 'revoke'; policy: AdminPolicy; version: AdminPolicyVersion };
+
+type StatusFilter = 'all' | 'active' | 'inactive';
+
+/** Suggested kind for each public website document when admins create it from a preset. */
+const PUBLIC_DOCUMENT_KINDS: Record<string, PolicyKind> = {
+  REFUND_POLICY: 'cancellation',
+  BOOKING_GUIDE: 'general',
+  WEBSITE_TERMS: 'general',
+  PRIVACY_POLICY: 'general',
+  LIABILITY_WAIVER: 'general',
 };
-const formatDate = (value?: string | null) => {
-  if (!value) return '—';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short', hourCycle: 'h23' }).format(date);
-};
-function PolicyEditorFields({content,setContent,immediate,setImmediate,effective,setEffective,fileName,extracting,extractFile,busy,selected,button,field,setAction,setReason}: any) {
-  return <><label className="block text-sm font-medium">Nội dung *<textarea className={field + ' mt-1 min-h-48'} required rows={8} maxLength={100000} value={content} onChange={e => setContent(e.target.value)}/></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={immediate} onChange={e => setImmediate(e.target.checked)}/>Áp dụng ngay</label>{!immediate && <label className="block text-sm font-medium">Có hiệu lực từ<input className={field + ' mt-1'} required type="datetime-local" value={effective} onChange={e => setEffective(e.target.value)}/></label>}<label className="block text-sm font-medium">Tệp đính kèm (tùy chọn)<span className="mt-1 flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-3"><Paperclip size={17}/><input className="min-h-0 border-0 p-0" type="file" accept=".pdf,.doc,.docx" disabled={busy || extracting} onChange={extractFile}/></span></label><p className="text-xs text-slate-500">{extracting ? 'Đang đọc nội dung…' : fileName ? `Đã đọc ${fileName}. Kiểm tra nội dung trước khi lưu.` : 'Word/PDF tối đa 5 MB. Nội dung file sẽ được đưa vào vùng soạn thảo.'}</p><div className="flex flex-wrap gap-3 pt-2"><button type="submit" disabled={busy || extracting || (selected && !selected.active)} className={button + ' bg-[#0B7058] text-white'}>{busy ? 'Đang lưu…' : selected ? 'Lưu phiên bản' : 'Tạo điều khoản'}</button>{selected && <button type="button" disabled={busy} className={button + ' border-[#0B7058] text-[#0B7058]'} onClick={() => {setAction({type:'status',policy:selected});setReason('');}}>{selected.active ? 'Ngừng áp dụng' : 'Kích hoạt lại'}</button>}</div></>;
-}
+
 export default function AdminPoliciesPage() {
-  const [policies, setPolicies] = useState<Policy[]>([]);
-  const [selected, setSelected] = useState<Policy | null>(null);
-  const [versions, setVersions] = useState<Version[]>([]);
+  const [policies, setPolicies] = useState<AdminPolicy[]>([]);
   const [loading, setLoading] = useState(true);
-  const [versionLoading, setVersionLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [editor, setEditor] = useState<'create' | 'version' | null>(null);
-  const [title, setTitle] = useState('');
-  const [kind, setKind] = useState('general');
-  const [code, setCode] = useState('');
-  const [content, setContent] = useState('');
-  const [extracting, setExtracting] = useState(false);
-  const [fileName, setFileName] = useState('');
-  const [effective, setEffective] = useState('');
-  const [immediate, setImmediate] = useState(false);
-  const [action, setAction] = useState<Action | null>(null);
+  const [listError, setListError] = useState('');
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [versions, setVersions] = useState<AdminPolicyVersion[]>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [versionsError, setVersionsError] = useState('');
+  const [viewedVersionId, setViewedVersionId] = useState<number | null>(null);
+
+  const [query, setQuery] = useState('');
+  const [kindFilter, setKindFilter] = useState<PolicyKind | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  const [editor, setEditor] = useState<'create' | 'publish' | null>(null);
+  const [action, setAction] = useState<PolicyAction | null>(null);
   const [reason, setReason] = useState('');
-  const load = async () => { const data = await apiClient.get<Policy[]>('/api/v1/admin/policies'); setPolicies(data); setSelected(s => s ?? data[0] ?? null); };
-  useEffect(() => { load().catch(e => setError(messageOf(e))).finally(() => setLoading(false)); }, []);
+  const [busy, setBusy] = useState(false);
+  const [modalError, setModalError] = useState('');
+
+  const [newTitle, setNewTitle] = useState('');
+  const [newKind, setNewKind] = useState<PolicyKind>('general');
+  const [newCode, setNewCode] = useState('');
+
+  const loadPolicies = useCallback(async () => {
+    setListError('');
+    try {
+      const data = await adminPoliciesApi.list();
+      setPolicies(data);
+      setSelectedId((current) => (current && data.some((p) => p.id === current) ? current : data[0]?.id ?? null));
+    } catch (reason) {
+      setListError(policyErrorMessage(reason));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadVersions = useCallback(async (policyId: number) => {
+    setVersionsLoading(true);
+    setVersionsError('');
+    try {
+      const data = await adminPoliciesApi.versions(policyId);
+      setVersions(data);
+      return data;
+    } catch (reason) {
+      setVersions([]);
+      setVersionsError(policyErrorMessage(reason));
+      return [];
+    } finally {
+      setVersionsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    if (!selected) { setVersions([]); return; }
-    let alive = true; setVersionLoading(true);
-    apiClient.get<Version[]>(`/api/v1/admin/policies/${selected.id}/versions`).then(data => { if (alive) { setVersions(data); if (editor !== 'create') setContent(data.find(v => !v.revokedAt)?.content ?? data[0]?.content ?? ''); } }).catch(e => { if (alive) setError(messageOf(e)); }).finally(() => { if (alive) setVersionLoading(false); });
-    return () => { alive = false; };
-  }, [selected?.id]);
-  const refreshVersions = async (id: number) => setVersions(await apiClient.get<Version[]>(`/api/v1/admin/policies/${id}/versions`));
-  const rows = useMemo(() => policies, [policies]);
-  const openEditor = (type: 'create' | 'version') => { setEditor(type); setTitle(''); setCode(''); setContent(''); setFileName(''); setEffective(''); setImmediate(false); setError(''); setMessage(''); };
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault(); setBusy(true); setError('');
-    try {
-      const version = { content: content.trim(), effectiveFrom: immediate ? new Date().toISOString() : new Date(effective).toISOString() };
-      if (!version.content) throw new Error('Vui lòng nhập nội dung điều khoản.');
-      if (editor === 'create') {
-        if (!title.trim()) throw new Error('Vui lòng nhập tên điều khoản.');
-        const policy = await apiClient.post<Policy>('/api/v1/admin/policies/with-version', { policy: { title: title.trim(), code: code.trim() || `DK-${crypto.randomUUID().slice(0, 12)}`, kind }, version });
-        await load(); setSelected(policy); await refreshVersions(policy.id);
-      } else if (selected) {
-        await apiClient.post(`/api/v1/admin/policies/${selected.id}/versions`, version); await refreshVersions(selected.id);
-      }
-      setEditor(null); setMessage('Đã lưu điều khoản và nội dung phiên bản.');
-    } catch (e) { setError(messageOf(e)); } finally { setBusy(false); }
+    void loadPolicies();
+  }, [loadPolicies]);
+
+  useEffect(() => {
+    setViewedVersionId(null);
+    if (selectedId == null) {
+      setVersions([]);
+      return;
+    }
+    void loadVersions(selectedId);
+  }, [selectedId, loadVersions]);
+
+  const selected = policies.find((policy) => policy.id === selectedId) ?? null;
+  const current = useMemo(() => currentVersionOf(versions), [versions]);
+  const viewed = versions.find((v) => v.id === viewedVersionId) ?? current ?? versions[0];
+  const latestLive = versions.find((v) => !v.revokedAt);
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return policies.filter(
+      (policy) =>
+        (kindFilter === 'all' || policy.kind === kindFilter) &&
+        (statusFilter === 'all' || (statusFilter === 'active') === policy.active) &&
+        (!needle || policy.title.toLowerCase().includes(needle) || policy.code.toLowerCase().includes(needle)),
+    );
+  }, [policies, query, kindFilter, statusFilter]);
+
+  const takenCodes = useMemo(() => new Set(policies.map((p) => p.code.toUpperCase())), [policies]);
+  const missingPublicDocuments = POLICY_DOCUMENTS.filter((document) => !takenCodes.has(document.code));
+
+  const openCreate = (preset?: (typeof POLICY_DOCUMENTS)[number]) => {
+    setNewTitle(preset?.label ?? '');
+    setNewKind(preset ? PUBLIC_DOCUMENT_KINDS[preset.code] ?? 'general' : 'general');
+    setNewCode(preset?.code ?? '');
+    setModalError('');
+    setEditor('create');
   };
-  const extractFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]; event.target.value = '';
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { setError('File không được vượt quá 5 MB.'); return; }
-    setExtracting(true); setError('');
-    try {
-      const form = new FormData(); form.append('file', file);
-      const result = await apiClient.post<{content: string}>('/api/v1/admin/policies/extract-document', form);
-      setContent(result.content); setFileName(file.name);
-    } catch (e) { setError(messageOf(e)); } finally { setExtracting(false); }
+
+  const openAction = (next: PolicyAction) => {
+    setReason('');
+    setModalError('');
+    setAction(next);
   };
-  const applyAction = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!action || (action.type !== 'delete' && !reason.trim())) return; setBusy(true); setError(''); setMessage('');
+
+  const createPolicy = async (version: PolicyPublishRequest) => {
+    setBusy(true);
+    setModalError('');
+    try {
+      const code = newCode.trim() || `DK-${crypto.randomUUID().slice(0, 12).toUpperCase()}`;
+      const policy = await adminPoliciesApi.createWithVersion(
+        { title: newTitle.trim(), kind: newKind, code },
+        { ...version, refundTiers: newKind === 'cancellation' ? version.refundTiers : null },
+      );
+      await loadPolicies();
+      setSelectedId(policy.id);
+      setEditor(null);
+      toast.success(`Đã tạo “${policy.title}”.`);
+    } catch (reason) {
+      setModalError(policyErrorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const publishVersion = async (version: PolicyPublishRequest) => {
+    if (!selected) return;
+    setBusy(true);
+    setModalError('');
+    try {
+      const published = await adminPoliciesApi.publish(selected.id, version);
+      await Promise.all([loadVersions(selected.id), loadPolicies()]);
+      setViewedVersionId(published.id);
+      setEditor(null);
+      toast.success(`Đã phát hành v${published.versionNumber}.`);
+    } catch (reason) {
+      setModalError(policyErrorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirmAction = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!action) return;
+    if (action.type !== 'delete' && !reason.trim()) {
+      setModalError('Vui lòng nhập lý do.');
+      return;
+    }
+    setBusy(true);
+    setModalError('');
     try {
       if (action.type === 'delete') {
-        await apiClient.delete(`/api/v1/admin/policies/${action.policy.id}`);
-        setSelected(null); await load();
+        await adminPoliciesApi.remove(action.policy.id);
+        if (selectedId === action.policy.id) setSelectedId(null);
+        await loadPolicies();
+        toast.success(`Đã xoá “${action.policy.title}”.`);
       } else if (action.type === 'status') {
-        const policy = await apiClient.patch<Policy>(`/api/v1/admin/policies/${action.policy.id}/status`, {active: !action.policy.active, reason: reason.trim()});
-        setSelected(p => p?.id === policy.id ? policy : p); await load();
+        await adminPoliciesApi.changeStatus(action.policy.id, !action.policy.active, reason.trim());
+        await loadPolicies();
+        toast.success(action.policy.active ? 'Đã ngừng áp dụng điều khoản.' : 'Đã kích hoạt lại điều khoản.');
       } else {
-        await apiClient.post(`/api/v1/admin/policies/${action.policy.id}/versions/${action.version!.id}/revoke`, {reason: reason.trim()});
-        await refreshVersions(action.policy.id);
+        await adminPoliciesApi.revokeVersion(action.policy.id, action.version.id, reason.trim());
+        await Promise.all([loadVersions(action.policy.id), loadPolicies()]);
+        toast.success(`Đã thu hồi v${action.version.versionNumber}.`);
       }
-      setAction(null); setMessage(action.type === 'delete' ? 'Đã xóa điều khoản.' : 'Đã cập nhật trạng thái. Booking đã tạo vẫn giữ điều khoản lúc đặt.');
-    } catch (e) { setError(messageOf(e)); } finally { setBusy(false); }
+      setAction(null);
+    } catch (reason) {
+      setModalError(policyErrorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
   };
-  const latestEffective = versions.find(v => new Date(v.effectiveFrom).getTime() <= Date.now() && !(v.revokedAt && new Date(v.revokedAt).getTime() < new Date(v.effectiveFrom).getTime()));
-  const current = latestEffective?.revokedAt ? undefined : latestEffective;
-  return <div className="mx-auto max-w-[1600px] space-y-4 px-4 py-5 sm:px-7 lg:px-8">
-    <div className="flex flex-wrap items-start justify-between gap-3"><AdminPageHeader title="Điều khoản & lưu ý" description="Quản lý nội dung chính sách, phiên bản và thời gian áp dụng." /></div>
-    <div><button className={button + ' bg-[#0B7058] text-white hover:bg-[#075743]'} onClick={() => openEditor('create')}><Plus className="mr-2 inline h-4 w-4"/>Tạo điều khoản</button></div>
-    {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-red-800">{error}</p>}{message && <p role="status" className="rounded-xl bg-emerald-50 p-4 text-emerald-800">{message}</p>}
-    <div className="grid min-w-0 items-stretch gap-4 lg:grid-cols-[1.25fr_1fr]">
-      <div className="flex min-w-0 flex-col gap-5">
-      <section className="min-w-0 rounded-xl border border-slate-200 bg-white p-2 sm:p-2.5 lg:min-h-[650px]">
-        <div className="overflow-x-auto"><table className="w-full min-w-[600px] text-left text-sm"><thead className="bg-[#EEF1F4] text-slate-700"><tr><th className="p-3">Điều khoản</th><th className="p-3">Loại</th><th className="p-3">Phiên bản</th><th className="p-3">Trạng thái</th><th className="p-3">Cập nhật lúc</th><th className="p-3"><span className="sr-only">Thao tác</span></th></tr></thead><tbody>{loading ? <tr><td colSpan={6} className="p-8 text-center text-slate-500">Đang tải điều khoản…</td></tr> : rows.map(p => <tr key={p.id} onClick={() => {setSelected(p);setEditor(null);setError('');setMessage('');}} className={`cursor-pointer border-b border-slate-100 transition-colors hover:bg-emerald-50/70 ${selected?.id === p.id ? 'bg-[#E7F4F0]' : ''}`}><td className="p-3 font-semibold">{p.title}</td><td className="p-3 text-slate-600">{p.kind === 'cancellation' ? 'Đổi / hủy' : p.kind === 'payment' ? 'Thanh toán / phụ thu' : 'Lưu ý chung'}</td><td className="p-3">{p.versionNumber ? `v${p.versionNumber}` : '—'}</td><td className="p-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${p.active ? 'bg-[#D5F0DD] text-[#176239]' : 'bg-rose-100 text-rose-800'}`}>{p.active ? 'Đang áp dụng' : 'Ngừng áp dụng'}</span></td><td className="p-3 whitespace-nowrap text-slate-500">{formatDate(p.updatedAt)}</td><td className="p-3"><button type="button" aria-label={`Tùy chọn ${p.title}`} className="rounded-md p-1.5 hover:bg-slate-200" onClick={e => {e.stopPropagation();setAction({type:'status',policy:p});setReason('');}}><MoreHorizontal size={18}/></button></td></tr>)}</tbody></table></div>
-        {!loading && rows.length === 0 && <p className="py-10 text-center text-slate-500">Chưa có điều khoản.</p>}
-      </section>
-      <div className="flex items-center gap-3 rounded-xl bg-[#E6F2EF] px-4 py-3 text-sm text-slate-900"><Info className="h-5 w-5 shrink-0 text-[#08745B]"/><span><strong>Điều khoản</strong> là bản ghi chính sách; phiên bản là nội dung có hiệu lực theo thời điểm.</span></div>
+
+  const selectedPublicDocument = selected ? publicDocumentOf(selected.code) : undefined;
+
+  return (
+    <div className="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-7 lg:px-8">
+      <AdminPageHeader
+        title="Điều khoản & chính sách"
+        description="Quản lý nội dung chính sách, phát hành phiên bản theo thời điểm và các trang chính sách hiển thị trên website."
+        actions={
+          <button type="button" className={buttonClass.primary} onClick={() => openCreate()}>
+            <Plus aria-hidden="true" className="size-4" /> Tạo điều khoản
+          </button>
+        }
+      />
+
+      {!loading && missingPublicDocuments.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+          <p className="flex items-start gap-2">
+            <Globe aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            <span>
+              Footer website còn {missingPublicDocuments.length} trang chưa có nội dung:{' '}
+              <strong className="font-semibold">{missingPublicDocuments.map((d) => d.label).join(', ')}</strong>.
+            </span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {missingPublicDocuments.map((document) => (
+              <button
+                key={document.code}
+                type="button"
+                className={`${buttonClass.outline} min-h-8 border-amber-300 px-3 text-xs`}
+                onClick={() => openCreate(document)}
+              >
+                <Plus aria-hidden="true" className="size-3.5" /> {document.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        {/* Policy list */}
+        <section aria-labelledby="policy-list-title" className="min-w-0 rounded-2xl border border-slate-200 bg-white">
+          <h2 id="policy-list-title" className="sr-only">
+            Danh sách điều khoản
+          </h2>
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 p-3">
+            <label className="relative min-w-[200px] flex-1">
+              <span className="sr-only">Tìm điều khoản</span>
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <input className={`${fieldClass} pl-9`} placeholder="Tìm theo tên hoặc mã…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            </label>
+            <label>
+              <span className="sr-only">Lọc theo loại</span>
+              <select className={`${fieldClass} w-auto`} value={kindFilter} onChange={(e) => setKindFilter(e.target.value as PolicyKind | 'all')}>
+                <option value="all">Mọi loại</option>
+                {(Object.keys(POLICY_KIND_LABELS) as PolicyKind[]).map((kind) => (
+                  <option key={kind} value={kind}>
+                    {POLICY_KIND_LABELS[kind]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className="sr-only">Lọc theo trạng thái</span>
+              <select className={`${fieldClass} w-auto`} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}>
+                <option value="all">Mọi trạng thái</option>
+                <option value="active">Đang áp dụng</option>
+                <option value="inactive">Ngừng áp dụng</option>
+              </select>
+            </label>
+          </div>
+
+          {listError ? (
+            <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
+              <p role="alert" className="text-sm text-rose-800">
+                {listError}
+              </p>
+              <button type="button" className={buttonClass.outline} onClick={() => { setLoading(true); void loadPolicies(); }}>
+                <RefreshCw aria-hidden="true" className="size-4" /> Thử lại
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[520px] text-left text-sm">
+                <thead className="bg-[#F3F6FA] text-xs font-semibold uppercase tracking-wide text-slate-600">
+                  <tr>
+                    <th className="px-4 py-3">Điều khoản</th>
+                    <th className="whitespace-nowrap px-4 py-3">Phiên bản</th>
+                    <th className="px-4 py-3">Trạng thái</th>
+                    <th className="px-4 py-3">Cập nhật</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loading &&
+                    Array.from({ length: 4 }, (_, i) => (
+                      <tr key={i} aria-hidden="true">
+                        <td className="px-4 py-4" colSpan={4}>
+                          <div className="h-4 w-2/3 animate-pulse rounded bg-slate-100" />
+                        </td>
+                      </tr>
+                    ))}
+                  {!loading &&
+                    filtered.map((policy) => {
+                      const publicDocument = publicDocumentOf(policy.code);
+                      const isSelected = policy.id === selectedId;
+                      return (
+                        <tr
+                          key={policy.id}
+                          aria-selected={isSelected}
+                          className={`cursor-pointer transition-colors hover:bg-[#F3FAF7] ${isSelected ? 'bg-[#E7F4F0] hover:bg-[#E7F4F0]' : ''}`}
+                          onClick={() => setSelectedId(policy.id)}
+                        >
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              className="block w-full cursor-pointer text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0B7058]"
+                              onClick={(e) => { e.stopPropagation(); setSelectedId(policy.id); }}
+                            >
+                              <span className="line-clamp-2 font-semibold text-slate-900">{policy.title}</span>
+                              <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-slate-500">
+                                <span>{POLICY_KIND_LABELS[policy.kind] ?? policy.kind}</span>
+                                <span aria-hidden="true">·</span>
+                                <code className="break-all font-mono">{policy.code}</code>
+                                {publicDocument && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-1.5 py-px text-[11px] font-medium text-sky-800">
+                                    <Globe aria-hidden="true" className="size-3" /> Website
+                                  </span>
+                                )}
+                              </span>
+                            </button>
+                          </td>
+                          <td className="px-4 py-3 tabular-nums text-slate-700">{policy.versionNumber ? `v${policy.versionNumber}` : '—'}</td>
+                          <td className="px-4 py-3">
+                            <ActiveBadge active={policy.active} />
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 tabular-nums text-slate-500">{formatDateTime(policy.updatedAt)}</td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+              {!loading && filtered.length === 0 && (
+                <div className="px-6 py-14 text-center">
+                  <FileText aria-hidden="true" className="mx-auto mb-3 size-8 text-slate-300" />
+                  <p className="font-semibold text-slate-800">{policies.length === 0 ? 'Chưa có điều khoản nào' : 'Không có điều khoản khớp bộ lọc'}</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {policies.length === 0 ? 'Tạo điều khoản đầu tiên để gắn vào tour và hiển thị trên website.' : 'Thử đổi từ khoá hoặc bỏ bớt bộ lọc.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* Detail panel */}
+        <section aria-labelledby="policy-detail-title" className="min-w-0 rounded-2xl border border-slate-200 bg-white xl:sticky xl:top-5">
+          {!selected ? (
+            <div className="flex min-h-80 flex-col items-center justify-center px-6 text-center">
+              <FileText aria-hidden="true" className="mb-3 size-8 text-[#0B7058]" />
+              <h2 id="policy-detail-title" className="text-lg font-semibold text-slate-900">
+                Chọn một điều khoản
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">Chọn một dòng trong danh sách để xem nội dung và lịch sử phiên bản.</p>
+            </div>
+          ) : (
+            <>
+              <header className="space-y-3 border-b border-slate-100 p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 id="policy-detail-title" className="break-words text-xl font-bold text-slate-900">
+                      {selected.title}
+                    </h2>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500">
+                      <code className="font-mono text-xs">{selected.code}</code>
+                      <span aria-hidden="true">·</span>
+                      <span>{POLICY_KIND_LABELS[selected.kind] ?? selected.kind}</span>
+                    </p>
+                  </div>
+                  <ActiveBadge active={selected.active} />
+                </div>
+
+                {selectedPublicDocument && (
+                  <a
+                    href={policyDocumentPath(selectedPublicDocument)}
+                    onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); navigateTo(policyDocumentPath(selectedPublicDocument)); }}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-800 hover:underline"
+                  >
+                    <Globe aria-hidden="true" className="size-4" />
+                    Đang hiển thị ở trang “{selectedPublicDocument.label}”
+                    <ExternalLink aria-hidden="true" className="size-3.5" />
+                  </a>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={buttonClass.primary}
+                    disabled={!selected.active || versionsLoading}
+                    title={selected.active ? undefined : 'Kích hoạt lại để phát hành phiên bản mới'}
+                    onClick={() => { setModalError(''); setEditor('publish'); }}
+                  >
+                    <Plus aria-hidden="true" className="size-4" /> Phiên bản mới
+                  </button>
+                  <button type="button" className={buttonClass.outline} onClick={() => openAction({ type: 'status', policy: selected })}>
+                    {selected.active ? 'Ngừng áp dụng' : 'Kích hoạt lại'}
+                  </button>
+                  <button type="button" className={`${buttonClass.dangerGhost} ml-auto`} onClick={() => openAction({ type: 'delete', policy: selected })}>
+                    Xoá
+                  </button>
+                </div>
+                {!selected.active && (
+                  <p className="text-xs text-slate-500">Điều khoản đang ngừng áp dụng: không gắn được vào tour mới và không phát hành được phiên bản mới.</p>
+                )}
+              </header>
+
+              {versionsLoading ? (
+                <div className="space-y-3 p-5" aria-busy="true">
+                  <div className="h-4 w-1/3 animate-pulse rounded bg-slate-100" />
+                  <div className="h-32 animate-pulse rounded-xl bg-slate-100" />
+                </div>
+              ) : versionsError ? (
+                <div className="flex flex-col items-center gap-3 p-8 text-center">
+                  <p role="alert" className="text-sm text-rose-800">
+                    {versionsError}
+                  </p>
+                  <button type="button" className={buttonClass.outline} onClick={() => void loadVersions(selected.id)}>
+                    <RefreshCw aria-hidden="true" className="size-4" /> Thử lại
+                  </button>
+                </div>
+              ) : versions.length === 0 ? (
+                <p className="p-8 text-center text-sm text-slate-500">Điều khoản chưa có phiên bản nào.</p>
+              ) : (
+                <>
+                  {!current && (
+                    <p className="mx-5 mt-5 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                      Chưa có phiên bản nào đang hiệu lực. {selectedPublicDocument ? 'Trang website sẽ báo chưa công bố.' : ''}
+                    </p>
+                  )}
+
+                  {viewed && (
+                    <article className="space-y-4 p-5" aria-label={`Phiên bản ${viewed.versionNumber}`}>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-semibold text-slate-900">Phiên bản v{viewed.versionNumber}</h3>
+                          <VersionStatusBadge status={versionStatusOf(viewed, current)} />
+                        </div>
+                        {!viewed.revokedAt && (
+                          <button
+                            type="button"
+                            className={`${buttonClass.dangerGhost} min-h-9 text-xs`}
+                            onClick={() => openAction({ type: 'revoke', policy: selected, version: viewed })}
+                          >
+                            Thu hồi phiên bản
+                          </button>
+                        )}
+                      </div>
+
+                      <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                        <div>
+                          <dt className="text-xs text-slate-500">Có hiệu lực từ</dt>
+                          <dd className="tabular-nums text-slate-900">{formatDateTime(viewed.effectiveFrom)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-slate-500">Phát hành lúc</dt>
+                          <dd className="tabular-nums text-slate-900">{formatDateTime(viewed.approvedAt)}</dd>
+                        </div>
+                        {viewed.revokedAt && (
+                          <div className="col-span-2 rounded-xl bg-rose-50 px-3 py-2 text-rose-900">
+                            <dt className="text-xs">Thu hồi lúc {formatDateTime(viewed.revokedAt)}</dt>
+                            <dd className="mt-0.5 break-words">{viewed.revocationReason || '—'}</dd>
+                          </div>
+                        )}
+                      </dl>
+
+                      {viewed.refundTiers && viewed.refundTiers.length > 0 && (
+                        <div className="rounded-xl border border-slate-200 px-4 py-3">
+                          <h4 className="mb-1 text-sm font-semibold text-slate-800">Bậc hoàn tiền</h4>
+                          <RefundTierTable tiers={viewed.refundTiers} />
+                        </div>
+                      )}
+
+                      <div className="max-h-[420px] overflow-y-auto whitespace-pre-wrap break-words rounded-xl bg-[#FAF8F5] px-4 py-3 text-sm leading-relaxed text-slate-800">
+                        {viewed.content}
+                      </div>
+                    </article>
+                  )}
+
+                  <div className="border-t border-slate-100 p-5">
+                    <h3 className="mb-2 text-sm font-semibold text-slate-800">Lịch sử phiên bản</h3>
+                    <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+                      {versions.map((version) => {
+                        const isViewed = viewed?.id === version.id;
+                        return (
+                          <li key={version.id}>
+                            <button
+                              type="button"
+                              aria-current={isViewed ? 'true' : undefined}
+                              onClick={() => setViewedVersionId(version.id)}
+                              className={`flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-slate-50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#0B7058] ${
+                                isViewed ? 'bg-[#F3FAF7]' : ''
+                              }`}
+                            >
+                              <span className="flex min-w-0 items-center gap-3">
+                                <span className="w-9 shrink-0 font-semibold tabular-nums text-slate-900">v{version.versionNumber}</span>
+                                <span className="truncate tabular-nums text-slate-500">từ {formatDateTime(version.effectiveFrom)}</span>
+                              </span>
+                              <VersionStatusBadge status={versionStatusOf(version, current)} />
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </section>
       </div>
-      <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
-        {editor === 'create' ? <form onSubmit={save} className="space-y-4"><h2 className="text-xl font-bold">Tạo điều khoản</h2><label className="block text-sm font-medium">Tiêu đề điều khoản *<input className={field + ' mt-1'} required maxLength={250} value={title} onChange={e => setTitle(e.target.value)}/></label><label className="block text-sm font-medium">Loại *<select className={field + ' mt-1'} value={kind} onChange={e => setKind(e.target.value)}><option value="general">Lưu ý chung</option><option value="payment">Thanh toán / phụ thu</option><option value="cancellation">Đổi / hủy</option></select></label><label className="block text-sm font-medium">Mã tham chiếu<input className={field + ' mt-1'} maxLength={80} placeholder="Để trống để tự tạo mã" value={code} onChange={e => setCode(e.target.value)}/></label><PolicyEditorFields {...{content,setContent,immediate,setImmediate,effective,setEffective,fileName,extracting,extractFile,busy,selected:null,button,field,setAction,setReason}} /></form> : selected ? <form onSubmit={save} className="space-y-4"><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold">Chi tiết phiên bản</h2><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${selected.active ? 'bg-[#D5F0DD] text-[#176239]' : 'bg-rose-100 text-rose-800'}`}>{selected.active ? 'Đang áp dụng' : 'Ngừng áp dụng'}</span></div><label className="block text-sm font-medium">Tiêu đề điều khoản *<input className={field + ' mt-1'} value={selected.title} readOnly/></label><label className="block text-sm font-medium">Loại *<select className={field + ' mt-1'} value={selected.kind} disabled><option value="general">Lưu ý chung</option><option value="payment">Thanh toán / phụ thu</option><option value="cancellation">Đổi / hủy</option></select></label><label className="block text-sm font-medium">Phiên bản *<input className={field + ' mt-1'} value={`v${versions[0]?.versionNumber ?? '—'}`} readOnly/></label>{versionLoading ? <p className="text-sm text-slate-500">Đang tải nội dung phiên bản…</p> : <PolicyEditorFields {...{content,setContent,immediate,setImmediate,effective,setEffective,fileName,extracting,extractFile,busy,selected,button,field,setAction,setReason}} />}</form> : <div className="flex min-h-80 flex-col items-center justify-center text-center"><FileText className="mb-3 text-emerald-800" size={32}/><h2 className="text-lg font-semibold">Chọn điều khoản</h2><p className="mt-1 text-sm text-slate-500">Chọn một dòng bên trái để xem và cập nhật phiên bản.</p></div>}
-      </section>
+
+      {/* Create policy */}
+      <Modal
+        isOpen={editor === 'create'}
+        onClose={() => setEditor(null)}
+        preventClose={busy}
+        maxWidth="3xl"
+        title="Tạo điều khoản"
+        subtitle="Tạo điều khoản cùng phiên bản đầu tiên."
+      >
+        {editor === 'create' && (
+          <PolicyVersionForm
+            kind={newKind}
+            busy={busy}
+            submitLabel="Tạo điều khoản"
+            onCancel={() => setEditor(null)}
+            onSubmit={createPolicy}
+            validateHeader={() => (newTitle.trim() ? null : 'Vui lòng nhập tiêu đề điều khoản.')}
+            header={
+              <>
+                {modalError && (
+                  <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-800">
+                    {modalError}
+                  </p>
+                )}
+                <label className="block">
+                  <FieldLabel>
+                    Tiêu đề <span className="text-rose-700">*</span>
+                  </FieldLabel>
+                  <input className={fieldClass} maxLength={250} value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+                </label>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block">
+                    <FieldLabel>
+                      Loại <span className="text-rose-700">*</span>
+                    </FieldLabel>
+                    <select className={fieldClass} value={newKind} onChange={(e) => setNewKind(e.target.value as PolicyKind)}>
+                      {(Object.keys(POLICY_KIND_LABELS) as PolicyKind[]).map((kind) => (
+                        <option key={kind} value={kind}>
+                          {POLICY_KIND_LABELS[kind]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="block">
+                    <FieldLabel hint="Để trống để tự tạo">Mã tham chiếu</FieldLabel>
+                    <input
+                      className={`${fieldClass} font-mono`}
+                      maxLength={80}
+                      value={newCode}
+                      placeholder="VD: REFUND_POLICY"
+                      onChange={(e) => setNewCode(e.target.value.toUpperCase())}
+                    />
+                  </label>
+                </div>
+                {missingPublicDocuments.length > 0 && (
+                  <div>
+                    <p className="mb-1.5 text-xs text-slate-500">Dùng mã của trang website để nội dung hiện ở footer:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {missingPublicDocuments.map((document) => (
+                        <button
+                          key={document.code}
+                          type="button"
+                          aria-pressed={newCode === document.code}
+                          className="cursor-pointer rounded-full border border-slate-300 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-50 aria-pressed:border-[#0B7058] aria-pressed:bg-[#E7F4F0] aria-pressed:text-[#0B7058]"
+                          onClick={() => {
+                            setNewCode(document.code);
+                            if (!newTitle.trim()) setNewTitle(document.label);
+                            setNewKind(PUBLIC_DOCUMENT_KINDS[document.code] ?? 'general');
+                          }}
+                        >
+                          {document.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            }
+          />
+        )}
+      </Modal>
+
+      {/* Publish new version */}
+      <Modal
+        isOpen={editor === 'publish' && Boolean(selected)}
+        onClose={() => setEditor(null)}
+        preventClose={busy}
+        maxWidth="3xl"
+        title="Phát hành phiên bản mới"
+        subtitle={selected ? `${selected.title} · v${(versions[0]?.versionNumber ?? 0) + 1}` : undefined}
+      >
+        {editor === 'publish' && selected && (
+          <PolicyVersionForm
+            kind={selected.kind}
+            initialContent={latestLive?.content ?? ''}
+            initialTiers={latestLive?.refundTiers}
+            previousEffectiveFrom={latestLive?.effectiveFrom}
+            busy={busy}
+            submitLabel="Phát hành"
+            onCancel={() => setEditor(null)}
+            onSubmit={publishVersion}
+            header={
+              <>
+                {modalError && (
+                  <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-800">
+                    {modalError}
+                  </p>
+                )}
+                <p className="rounded-xl bg-[#E6F2EF] px-4 py-3 text-sm text-slate-800">
+                  Nội dung bên dưới chép từ phiên bản gần nhất để sửa tiếp. Booking đã tạo vẫn giữ phiên bản lúc đặt.
+                </p>
+              </>
+            }
+          />
+        )}
+      </Modal>
+
+      {/* Status / revoke / delete */}
+      <Modal
+        isOpen={Boolean(action)}
+        onClose={() => setAction(null)}
+        preventClose={busy}
+        maxWidth="lg"
+        title={
+          action?.type === 'delete'
+            ? 'Xoá điều khoản'
+            : action?.type === 'revoke'
+              ? `Thu hồi phiên bản v${action.version.versionNumber}`
+              : action?.policy.active
+                ? 'Ngừng áp dụng điều khoản'
+                : 'Kích hoạt lại điều khoản'
+        }
+      >
+        {action && (
+          <form onSubmit={confirmAction} className="space-y-4">
+            <p className="text-sm leading-relaxed text-slate-700">
+              {action.type === 'delete' && (
+                <>
+                  Xoá “<strong>{action.policy.title}</strong>” khỏi danh sách. Không thể hoàn tác. Booking đã tạo vẫn giữ điều khoản lúc đặt.
+                  {publicDocumentOf(action.policy.code) && ' Trang website tương ứng sẽ báo chưa công bố.'}
+                </>
+              )}
+              {action.type === 'revoke' &&
+                'Phiên bản bị thu hồi sẽ không còn hiệu lực với booking mới. Nếu đây là bản đang hiệu lực, điều khoản sẽ không có bản nào hiệu lực cho tới khi phát hành bản mới.'}
+              {action.type === 'status' &&
+                (action.policy.active
+                  ? 'Điều khoản sẽ không gắn được vào tour mới. Booking đã tạo vẫn giữ điều khoản lúc đặt.'
+                  : 'Điều khoản sẽ dùng lại được cho tour và phát hành phiên bản mới.')}
+            </p>
+            {action.type !== 'delete' && (
+              <label className="block">
+                <FieldLabel>
+                  Lý do <span className="text-rose-700">*</span>
+                </FieldLabel>
+                <textarea autoFocus className={`${fieldClass} min-h-24`} maxLength={1000} value={reason} onChange={(e) => setReason(e.target.value)} />
+              </label>
+            )}
+            {modalError && (
+              <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-800">
+                {modalError}
+              </p>
+            )}
+            <div className="flex justify-end gap-3">
+              <button type="button" className={buttonClass.outline} onClick={() => setAction(null)} disabled={busy}>
+                Đóng
+              </button>
+              <button
+                type="submit"
+                className={action.type === 'status' && !action.policy.active ? buttonClass.primary : buttonClass.danger}
+                disabled={busy}
+              >
+                {busy
+                  ? 'Đang xử lý…'
+                  : action.type === 'delete'
+                    ? 'Xoá điều khoản'
+                    : action.type === 'revoke'
+                      ? 'Thu hồi'
+                      : action.policy.active
+                        ? 'Ngừng áp dụng'
+                        : 'Kích hoạt lại'}
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
-    {action && <Modal isOpen={Boolean(action)} preventClose={busy} onClose={() => setAction(null)} maxWidth="2xl" title={action.type === 'delete' ? 'Xóa điều khoản' : action.type === 'revoke' ? 'Hủy phiên bản' : action.policy.active ? 'Ngừng áp dụng điều khoản' : 'Kích hoạt lại điều khoản'}>{error && <p role="alert" className="mb-4 text-red-700">{error}</p>}<form onSubmit={applyAction} className="space-y-4">{action.type === 'delete' ? <p>Xóa “{action.policy.title}” khỏi danh sách và ẩn khỏi các tour liên quan. Booking đã tạo vẫn giữ điều khoản cũ.</p> : <><p>Thay đổi có hiệu lực đối với booking mới. Điều khoản của booking đã tạo được giữ nguyên.</p><label className="block">Lý do<textarea autoFocus className={field} required maxLength={1000} value={reason} onChange={e => setReason(e.target.value)} /></label></>}<div className="flex justify-end gap-3"><button type="button" className={button} onClick={() => setAction(null)}>Đóng</button><button className={button + ' bg-rose-800 text-white'} disabled={busy}>{busy ? 'Đang xử lý...' : 'Xác nhận'}</button></div></form></Modal>}
-  </div>;
+  );
 }
