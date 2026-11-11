@@ -4,6 +4,9 @@ import { navigateTo, useLocation } from '../../lib/navigation';
 import { ROUTES } from '../../constants/routes';
 import { APP_CONFIG } from '../../constants/config';
 import { useAuthStore } from '../../stores/auth.store';
+import vietqrLogo from '../../assets/images/payments/vietqr.png';
+import payosLogo from '../../assets/images/payments/payos.svg';
+import { POLICY_DOCUMENTS, policyDocumentPath } from '../../features/policies/policy-documents';
 
 export const Footer: React.FC = () => {
   const { pathname } = useLocation();
@@ -19,11 +22,37 @@ export const Footer: React.FC = () => {
     (xRole === 'GUIDE' ||
       user?.role === 'guide' ||
       account?.roles?.some((r) => r.toUpperCase().replace(/^ROLE_/, '') === 'GUIDE'));
+  const policyColumn = (
+    <div>
+      <h4 className="font-bold text-[#1C2526] mb-3 uppercase tracking-wider text-[11px]">Chính sách</h4>
+      <ul className="space-y-2.5 text-[#64748B]">
+        {POLICY_DOCUMENTS.map((item) => {
+          const href = policyDocumentPath(item);
+          return (
+            <li key={item.code}>
+              <a
+                href={href}
+                onClick={(event) => {
+                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+                  event.preventDefault();
+                  navigateTo(href);
+                }}
+                className="hover:text-[#1C2526]"
+              >
+                {item.label}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+
   return (
     <footer className="bg-[#F7F4EE] border-t border-[#E6E1D8] text-[#1C2526]">
       {/* Main Links Grid */}
       <div className={`footer-links-grid py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 text-sm${isHomePage ? ' footer-home-grid' : ''}`}>
-        <div className={isHomePage ? '' : 'md:col-span-2'}>
+        <div>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 rounded-lg bg-[#1F4E43] text-[#B9EADB] flex items-center justify-center">
               <Mountain className="w-4 h-4" />
@@ -72,6 +101,7 @@ export const Footer: React.FC = () => {
                 </>}
               </ul>
             </div>
+            {policyColumn}
           </>
         ) : <>
         <div>
@@ -155,6 +185,7 @@ export const Footer: React.FC = () => {
             </div>
           </div>
         </div>
+        {policyColumn}
         </>}
       </div>
 
@@ -162,10 +193,16 @@ export const Footer: React.FC = () => {
       <div className="border-t border-[#E6E1D8] py-4 px-4 md:px-8 text-[11px] text-[#78716C] font-mono">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div>© {new Date().getFullYear()} WeTrek Vietnam.</div>
-          <div className="flex items-center gap-4">
-            <span>
-              MÚI GIỜ: <strong className="text-[#1F4E43]">Giờ Việt Nam (GMT+7)</strong>
-            </span>
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+            <span className="uppercase tracking-wider">Chấp nhận thanh toán</span>
+            <ul className="flex items-center gap-2" aria-label="Phương thức thanh toán được chấp nhận">
+              <li className="flex h-8 w-20 items-center justify-center rounded-md border border-[#E6E1D8] bg-white px-2.5">
+                <img src={payosLogo} alt="payOS" width={468} height={192} loading="lazy" className="h-6 w-full object-contain" />
+              </li>
+              <li className="flex h-8 w-20 items-center justify-center rounded-md border border-[#E6E1D8] bg-white px-2.5">
+                <img src={vietqrLogo} alt="VietQR" width={397} height={127} loading="lazy" className="h-4 w-full object-contain" />
+              </li>
+            </ul>
           </div>
         </div>
       </div>

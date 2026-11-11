@@ -3,6 +3,7 @@ export const ROUTES = {
     HOME: '/',
     TOURS: '/tours',
     TOUR_DETAIL: (id: string | number = ':tourId') => `/tours/${id}`,
+    POLICY: (slug: string) => `/chinh-sach/${slug}`,
   },
   AUTH: {
     LOGIN: '/login',

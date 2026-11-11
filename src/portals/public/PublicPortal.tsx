@@ -9,6 +9,8 @@ import TourListPage from '../../pages/public/tour-list/TourListPage';
 import TourDetailPage from '../../pages/public/tour-detail/TourDetailPage';
 import LoginPage from '../../pages/auth/login/LoginPage';
 import RegisterPage from '../../pages/auth/register/RegisterPage';
+import { PolicyPage } from '../../pages/public/policies/PolicyPage';
+import { POLICY_DOCUMENTS, policyDocumentPath } from '../../features/policies/policy-documents';
 
 import { Compass } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
@@ -46,6 +48,10 @@ export const PublicPortal: React.FC = () => {
       }
       return <HomePage />;
     }
+
+    // Policy documents `/chinh-sach/:slug`
+    const policyDocument = POLICY_DOCUMENTS.find((item) => policyDocumentPath(item) === pathname.replace(/\/$/, ''));
+    if (policyDocument) return <PolicyPage key={policyDocument.code} document={policyDocument} />;
 
     // 2. Tour list `/tours`
     if (pathname === ROUTES.PUBLIC.TOURS || pathname === '/tours/') {
