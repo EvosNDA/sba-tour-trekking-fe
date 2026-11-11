@@ -91,7 +91,16 @@ export const AdminAccountListPage: React.FC = () => {
         status: statusFilter || undefined,
         sort: sortParam,
       });
-      setItems(res.items || []);
+      const accounts = res.items || [];
+      setItems(
+        currentAccountId === null
+          ? accounts
+          : [...accounts].sort((left, right) => {
+              if (left.id === currentAccountId) return -1;
+              if (right.id === currentAccountId) return 1;
+              return 0;
+            })
+      );
       setTotalElements(res.totalElements ?? 0);
       setTotalPages(res.totalPages ?? 0);
     } catch (err: any) {
@@ -99,7 +108,7 @@ export const AdminAccountListPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [page, size, debouncedSearch, roleFilter, statusFilter, sortParam]);
+  }, [page, size, debouncedSearch, roleFilter, statusFilter, sortParam, currentAccountId]);
 
   // Reset về page 0 khi filter thay đổi
   useEffect(() => {
