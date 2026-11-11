@@ -1143,7 +1143,7 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-bold text-stone-900">
-                            Tất toán số dư còn lại (BALANCE)
+                            Thanh toán phần còn lại
                           </span>
                           <span className="font-mono text-sm font-bold text-[#1F4E43]">
                             {formatVND(booking.price.remainingAmountVnd)}
@@ -1156,35 +1156,37 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
                     </label>
                   )}
 
-                  <label
-                    className={`rounded-xl border p-4 cursor-pointer transition-all flex items-start gap-3 ${
-                      selectedPurpose === 'FULL'
-                        ? 'border-[#1F4E43] bg-[#1F4E43]/5 ring-1 ring-[#1F4E43]'
-                        : 'border-stone-200 hover:border-stone-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentPurpose"
-                      value="FULL"
-                      checked={selectedPurpose === 'FULL'}
-                      onChange={() => setSelectedPurpose('FULL')}
-                      className="mt-1 text-[#1F4E43] focus:ring-[#1F4E43]"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-stone-900">
-                          Thanh toán toàn bộ
-                        </span>
-                        <span className="font-mono text-sm font-bold text-[#1F4E43]">
-                          {formatVND(booking.price.remainingAmountVnd)}
-                        </span>
+                  {booking.status === 'PENDING_PAYMENT' && (
+                    <label
+                      className={`rounded-xl border p-4 cursor-pointer transition-all flex items-start gap-3 ${
+                        selectedPurpose === 'FULL'
+                          ? 'border-[#1F4E43] bg-[#1F4E43]/5 ring-1 ring-[#1F4E43]'
+                          : 'border-stone-200 hover:border-stone-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentPurpose"
+                        value="FULL"
+                        checked={selectedPurpose === 'FULL'}
+                        onChange={() => setSelectedPurpose('FULL')}
+                        className="mt-1 text-[#1F4E43] focus:ring-[#1F4E43]"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold text-stone-900">
+                            Thanh toán toàn bộ ngay
+                          </span>
+                          <span className="font-mono text-sm font-bold text-[#1F4E43]">
+                            {formatVND(booking.price.remainingAmountVnd)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-stone-600 mt-1">
+                          Thanh toán toàn bộ giá trị đặt chỗ trong một lần.
+                        </p>
                       </div>
-                      <p className="text-xs text-stone-600 mt-1">
-                        Thanh toán 100% số tiền cần trả trong một lần duy nhất.
-                      </p>
-                    </div>
-                  </label>
+                    </label>
+                  )}
                 </div>
 
                 {paymentError && (
