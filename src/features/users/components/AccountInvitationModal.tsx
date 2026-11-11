@@ -16,8 +16,12 @@ type Props = {
 const roles: { value: AdminAccountRole; label: string }[] = [
   { value: 'customer', label: 'Khách hàng' },
   { value: 'guide', label: 'Hướng dẫn viên' },
-  { value: 'admin', label: 'Quản trị viên' },
 ];
+
+function getAssignableRole(accountRoles: string[]): AdminAccountRole | '' {
+  const normalized = accountRoles.map((value) => value.toLowerCase().replace(/^role_/, ''));
+  return normalized.includes('guide') ? 'guide' : normalized.includes('customer') ? 'customer' : '';
+}
 
 export const AccountInvitationModal: React.FC<Props> = ({ isOpen, onClose, onInvited, onRolesUpdated, accountToEdit = null }) => {
   const [email, setEmail] = useState('');
@@ -25,7 +29,7 @@ export const AccountInvitationModal: React.FC<Props> = ({ isOpen, onClose, onInv
   const [role, setRole] = useState<'ADMIN' | 'GUIDE'>('GUIDE');
   const [mode, setMode] = useState<'invite' | 'duplicate' | 'roles'>('invite');
   const [existing, setExisting] = useState<AdminAccountItem | null>(null);
-  const [selectedRoles, setSelectedRoles] = useState<AdminAccountRole[]>([]);
+  const [selectedRole, setSelectedRole] = useState<AdminAccountRole | ''>('');
   const [reason, setReason] = useState('Cập nhật vai trò theo yêu cầu mời tài khoản');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -35,7 +39,7 @@ export const AccountInvitationModal: React.FC<Props> = ({ isOpen, onClose, onInv
     setError('');
     if (accountToEdit) {
       setExisting(accountToEdit);
-      setSelectedRoles(accountToEdit.roles);
+      setSelectedRole(getAssignableRole(accountToEdit.roles));
       setMode('roles');
     } else {
       setExisting(null);
@@ -65,7 +69,7 @@ export const AccountInvitationModal: React.FC<Props> = ({ isOpen, onClose, onInv
           const match = result.items.find((item) => item.email.toLowerCase() === payload.email.toLowerCase());
           if (match) {
             setExisting(match);
-            setSelectedRoles(match.roles || []);
+            setSelectedRole(getAssignableRole(match.roles || []));
             setMode('duplicate');
             return;
           }
@@ -80,7 +84,8 @@ export const AccountInvitationModal: React.FC<Props> = ({ isOpen, onClose, onInv
     if (!existing) return;
     setBusy(true); setError('');
     try {
-      const updated = await usersApi.replaceAccountRoles(existing.id, { roles: selectedRoles, reason });
+      if (!selectedRole) return;
+      const updated = await usersApi.replaceAccountRoles(existing.id, { roles: [selectedRole], reason });
       onRolesUpdated({ ...existing, roles: updated.roles, fullName: updated.fullName, phone: updated.phone, status: updated.status });
       close();
     } catch (err) {
@@ -88,10 +93,7 @@ export const AccountInvitationModal: React.FC<Props> = ({ isOpen, onClose, onInv
     } finally { setBusy(false); }
   };
 
-  const toggleRole = (value: AdminAccountRole) => setSelectedRoles((current) =>
-    current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
-
-  return <Modal isOpen={isOpen} onClose={close} title={mode === 'roles' ? 'Cập nhật vai trò tài khoản' : <span className="inline-flex items-center gap-3"><span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D8EFE8] text-[#126A55]"><UserRoundPlus aria-hidden="true" className="h-6 w-6" /></span>Mời hướng dẫn viên</span>} subtitle={mode === 'roles' ? 'Chọn các vai trò cần gán cho tài khoản.' : 'Gửi lời mời tham gia hệ thống với vai trò hướng dẫn viên.'} maxWidth="lg" className="admin-invite-drawer" preventClose={busy}>
+  return <Modal isOpen={isOpen} onClose={close} title={mode === 'roles' ? 'Cập nhật vai trò tài khoản' : <span className="inline-flex items-center gap-3"><span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#D8EFE8] text-[#126A55]"><UserRoundPlus aria-hidden="true" className="h-6 w-6" /></span>Mời hướng dẫn viên</span>} subtitle={mode === 'roles' ? 'Chọn một vai trò để gán cho tài khoản.' : 'Gửi lời mời tham gia hệ thống với vai trò hướng dẫn viên.'} maxWidth="lg" className="admin-invite-drawer" preventClose={busy}>
     {mode === 'invite' && <form onSubmit={submitInvite} className="space-y-5">
       <label className="block text-sm font-medium">Email hướng dẫn viên <span className="text-red-600">*</span><input required type="email" maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email hướng dẫn viên" className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 px-3" /></label>
       <label className="block text-sm font-medium">Vai trò <span className="text-red-600">*</span><select value={role} onChange={(e) => setRole(e.target.value as 'ADMIN' | 'GUIDE')} className="mt-1.5 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3"><option value="GUIDE">Hướng dẫn viên</option><option value="ADMIN">Quản trị viên</option></select></label>
@@ -106,11 +108,11 @@ export const AccountInvitationModal: React.FC<Props> = ({ isOpen, onClose, onInv
     </div>}
     {mode === 'roles' && existing && <form onSubmit={submitRoles} className="space-y-4">
       <p className="text-sm text-slate-600">{existing.fullName} · {existing.email}</p>
-      <fieldset className="space-y-2"><legend className="mb-2 text-sm font-semibold">Vai trò</legend>{roles.map((item) => <label key={item.value} className="flex min-h-11 items-center gap-3 rounded-lg border border-slate-200 px-3"><input type="checkbox" checked={selectedRoles.includes(item.value)} onChange={() => toggleRole(item.value)} />{item.label}</label>)}</fieldset>
+      <fieldset className="space-y-2"><legend className="mb-1 text-sm font-semibold">Vai trò</legend><p className="mb-2 text-xs text-slate-500">Chọn một vai trò. Lưu sẽ thay thế các vai trò hiện tại.</p>{roles.map((item) => <label key={item.value} className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 transition-colors ${selectedRole === item.value ? 'border-[#0B7058] bg-emerald-50/60' : 'border-slate-200 hover:bg-slate-50'}`}><input type="radio" name="account-role" value={item.value} checked={selectedRole === item.value} onChange={() => setSelectedRole(item.value)} />{item.label}</label>)}</fieldset>
       <label className="block text-sm font-medium">Lý do cập nhật<textarea required maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-300 p-3" rows={3} /></label>
       <div className="flex justify-end gap-3 border-t border-[#E0E6EE] pt-5">
         <button type="button" onClick={close} disabled={busy} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#CCD5E1] bg-white px-5 font-semibold text-[#344054] hover:bg-slate-50 disabled:opacity-60">Hủy</button>
-        <button type="submit" disabled={busy || selectedRoles.length === 0} className="min-h-11 rounded-xl bg-[#0B7058] px-5 font-semibold text-white disabled:opacity-60">{busy ? 'Đang cập nhật…' : 'Lưu vai trò'}</button>
+        <button type="submit" disabled={busy || !selectedRole} className="min-h-11 rounded-xl bg-[#0B7058] px-5 font-semibold text-white disabled:opacity-60">{busy ? 'Đang cập nhật…' : 'Lưu vai trò'}</button>
       </div>
     </form>}
     {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">{error}</p>}
