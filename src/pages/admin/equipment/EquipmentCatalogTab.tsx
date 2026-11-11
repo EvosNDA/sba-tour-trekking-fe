@@ -500,13 +500,13 @@ export const EquipmentCatalogTab: React.FC<EquipmentCatalogTabProps> = ({ onRegi
               <table className="w-full text-left text-sm">
                 <thead className="bg-[#FAF8F5] border-b border-[#E0E6EE] text-xs font-semibold uppercase tracking-wider text-slate-600">
                   <tr>
-                    <th className="py-3.5 px-4">Thiết bị</th>
-                    <th className="py-3.5 px-3">Danh mục</th>
-                    <th className="py-3.5 px-3 text-center">Tổng số</th>
-                    <th className="py-3.5 px-3 text-center">Bảo trì</th>
-                    <th className="py-3.5 px-3 text-center">Khả dụng</th>
-                    <th className="py-3.5 px-3">Trạng thái</th>
-                    <th className="py-3.5 px-3 text-right">Thao tác</th>
+                    <th className="py-3.5 px-4 whitespace-nowrap">Thiết bị</th>
+                    <th className="py-3.5 px-2.5 whitespace-nowrap">Danh mục</th>
+                    <th className="py-3.5 px-2.5 text-center whitespace-nowrap">Tổng số</th>
+                    <th className="py-3.5 px-2.5 text-center whitespace-nowrap">Bảo trì</th>
+                    <th className="py-3.5 px-2.5 text-center whitespace-nowrap">Khả dụng</th>
+                    <th className="py-3.5 px-2.5 whitespace-nowrap">Trạng thái</th>
+                    <th className="py-3.5 px-3 text-right whitespace-nowrap">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -526,7 +526,7 @@ export const EquipmentCatalogTab: React.FC<EquipmentCatalogTabProps> = ({ onRegi
                               <ImageIcon className="w-5 h-5 text-slate-400" />
                             )}
                           </div>
-                          <div className="space-y-0.5">
+                          <div className="min-w-0 space-y-0.5">
                             <span className="font-bold text-[#172033] block text-sm sm:text-base">
                               {item.name}
                             </span>
@@ -540,30 +540,30 @@ export const EquipmentCatalogTab: React.FC<EquipmentCatalogTabProps> = ({ onRegi
                       </td>
 
                       {/* Category */}
-                      <td className="py-4 px-3 text-xs font-medium text-slate-700">
+                      <td className="py-4 px-2.5 text-xs font-medium text-slate-700">
                         {item.categoryName ? (
-                          <span className="px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E0E6EE] text-slate-800">
+                          <span className="inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E0E6EE] text-slate-800">
                             {item.categoryName}
                           </span>
                         ) : (
-                          <span className="text-slate-400 italic">Chưa phân nhóm</span>
+                          <span className="whitespace-nowrap text-slate-400 italic">Chưa phân nhóm</span>
                         )}
                       </td>
 
-                      <td className="py-4 px-3 text-center font-semibold tabular-nums">{item.totalQuantity}</td>
-                      <td className="py-4 px-3 text-center font-semibold tabular-nums text-amber-700">{item.maintenanceQuantity}</td>
-                      <td className="py-4 px-3 text-center font-semibold tabular-nums text-emerald-700">{item.availableQuantity}</td>
+                      <td className="py-4 px-2.5 text-center font-semibold tabular-nums">{item.totalQuantity}</td>
+                      <td className="py-4 px-2.5 text-center font-semibold tabular-nums text-amber-700">{item.maintenanceQuantity}</td>
+                      <td className="py-4 px-2.5 text-center font-semibold tabular-nums text-emerald-700">{item.availableQuantity}</td>
 
                       {/* Active Status */}
-                      <td className="py-4 px-3">
+                      <td className="py-4 px-2.5">
                         {item.active ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3" />
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 shrink-0" />
                             <span>Hoạt động</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                            <XCircle className="w-3 h-3" />
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                            <XCircle className="w-3 h-3 shrink-0" />
                             <span>Bảo trì</span>
                           </span>
                         )}
@@ -571,7 +571,7 @@ export const EquipmentCatalogTab: React.FC<EquipmentCatalogTabProps> = ({ onRegi
 
                       {/* Actions */}
                       <td className="py-4 px-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(item)}

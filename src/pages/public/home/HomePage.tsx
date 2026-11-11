@@ -106,10 +106,19 @@ export const HomePage: React.FC = () => {
       </section>
 
       <section className="home-routes" id="featured-routes">
+        <form className="home-search" onSubmit={submitSearch} aria-label="Tìm kiếm cung đường trekking">
+          <label className="home-search-field home-search-keyword"><span><Search size={14} /> Tìm cung đường</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nhập cung đường, điểm đến, tỉnh, thành..." /></label>
+          <label className="home-search-field"><span><Mountain size={14} /> Độ khó</span><select value={difficulty} onChange={(event) => setDifficulty(event.target.value as DifficultyLevel | '')}><option value="">Mọi cấp độ</option>{DIFFICULTY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><ChevronDown size={14} /></label>
+          <label className="home-search-field"><span><CalendarDays size={14} /> Thời lượng (số ngày)</span><input aria-label="Thời lượng (số ngày)" type="number" min={1} max={30} value={durationDays} onChange={(event) => setDurationDays(event.target.value)} placeholder="Tất cả" /></label>
+          <label className="home-search-field"><span><CalendarDays size={14} /> Ngày khởi hành</span><input aria-label="Ngày khởi hành" type="date" value={departureDate} onChange={(event) => setDepartureDate(event.target.value)} /></label>
+          <button className="home-button home-button-forest home-search-submit" type="submit"><Search size={15} /> Tìm kiếm</button>
+        </form>
+
         <div className="home-section-heading">
           <div><h2>Những cung đường nổi bật</h2><span className="home-route-count">{total} hành trình</span></div>
           <button className="home-text-link" onClick={openFilteredTours}>Xem tất cả <ArrowRight size={14} /></button>
         </div>
+
         {loading ? <div className="home-tour-grid" aria-label="Đang tải cung đường">{Array.from({ length: 6 }, (_, i) => <div key={i} className="home-tour-skeleton" />)}</div> : null}
         {error ? <div className="home-state"><p>{error}</p><button className="home-text-link" onClick={() => setReload((value) => value + 1)}>Tải lại <ArrowRight size={14} /></button></div> : null}
         {!loading && !error && tours.length === 0 ? <div className="home-state home-state-empty">Chưa có cung đường được xuất bản.</div> : null}
@@ -129,14 +138,6 @@ export const HomePage: React.FC = () => {
             ))}
           </div>
         ) : null}
-
-        <form className="home-search" onSubmit={submitSearch} aria-label="Tìm kiếm cung đường trekking">
-          <label className="home-search-field home-search-keyword"><span><Search size={14} /> Tìm cung đường</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nhập cung đường, điểm đến, tỉnh, thành..." /></label>
-          <label className="home-search-field"><span><Mountain size={14} /> Độ khó</span><select value={difficulty} onChange={(event) => setDifficulty(event.target.value as DifficultyLevel | '')}><option value="">Mọi cấp độ</option>{DIFFICULTY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><ChevronDown size={14} /></label>
-          <label className="home-search-field"><span><CalendarDays size={14} /> Thời lượng (số ngày)</span><input aria-label="Thời lượng (số ngày)" type="number" min={1} max={30} value={durationDays} onChange={(event) => setDurationDays(event.target.value)} placeholder="Tất cả" /></label>
-          <label className="home-search-field"><span><CalendarDays size={14} /> Ngày khởi hành</span><input aria-label="Ngày khởi hành" type="date" value={departureDate} onChange={(event) => setDepartureDate(event.target.value)} /></label>
-          <button className="home-button home-button-forest home-search-submit" type="submit"><Search size={15} /> Tìm kiếm</button>
-        </form>
       </section>
 
       <section className="home-process" id="how-it-works">
