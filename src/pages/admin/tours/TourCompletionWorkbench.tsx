@@ -21,6 +21,8 @@ type StepId = 'basic' | 'locations' | 'itinerary' | 'terms' | 'equipment' | 'med
 type CompletionStepId = Exclude<StepId, 'statistics'>;
 type StepState = 'complete' | 'pending' | 'optional';
 type ProgressData = { locations: number; itineraryDays: number; hasTerms: boolean; hasEquipment: boolean };
+const emptyProgress: ProgressData = { locations: 0, itineraryDays: 0, hasTerms: false, hasEquipment: false };
+const progressCache = new Map<number, ProgressData>();
 
 type Props = {
   tour: TourDetailResponse;
@@ -57,7 +59,7 @@ const STEPS: Array<{ id: CompletionStepId; title: string; description: string; i
 
 export function TourCompletionWorkbench(props: Props) {
   const [activeStep, setActiveStep] = useState<StepId>('locations');
-  const [progress, setProgress] = useState<ProgressData>({ locations: 0, itineraryDays: 0, hasTerms: false, hasEquipment: false });
+  const [progress, setProgress] = useState<ProgressData>(() => progressCache.get(props.tour.id) ?? emptyProgress);
   const [progressLoading, setProgressLoading] = useState(true);
   const [progressError, setProgressError] = useState('');
   const [refreshToken, setRefreshToken] = useState(0);
@@ -65,6 +67,7 @@ export function TourCompletionWorkbench(props: Props) {
 
   useEffect(() => {
     let active = true;
+    setProgress(progressCache.get(props.tour.id) ?? emptyProgress);
     setProgressLoading(true);
     setProgressError('');
     Promise.allSettled([
@@ -77,20 +80,24 @@ export function TourCompletionWorkbench(props: Props) {
       const [locations, itinerary, terms, equipment] = results;
       const failed = results.some((result) => result.status === 'rejected');
       setProgressError(failed ? 'Một số mục chưa thể kiểm tra trạng thái. Tải lại tiến độ để thử lại.' : '');
-      setProgress({
-        locations: locations.status === 'fulfilled' ? locations.value.length : 0,
-        itineraryDays: itinerary.status === 'fulfilled' ? itinerary.value.length : 0,
-        hasTerms: terms.status === 'fulfilled' ? terms.value.some((term) => term.primaryCancellation) : false,
+      setProgress((current) => {
+        const next = {
+        locations: locations.status === 'fulfilled' ? locations.value.length : current.locations,
+        itineraryDays: itinerary.status === 'fulfilled' ? itinerary.value.length : current.itineraryDays,
+        hasTerms: terms.status === 'fulfilled' ? terms.value.some((term) => term.primaryCancellation) : current.hasTerms,
         hasEquipment: equipment.status === 'fulfilled'
           ? ((equipment.value.packages?.length || 0) + (equipment.value.individualItems?.length || equipment.value.items?.length || 0)) > 0
-          : false,
+          : current.hasEquipment,
+        };
+        progressCache.set(props.tour.id, next);
+        return next;
       });
     }).finally(() => { if (active) setProgressLoading(false); });
     return () => { active = false; };
-  }, [props.tour.id, props.tour.cancellationPolicyVersionId, refreshToken]);
+  }, [props.tour.id, props.tour.cancellationPolicyVersionId, props.tour.durationDays, refreshToken]);
 
   const states: Record<CompletionStepId, StepState> = {
-    basic: props.tour.title && props.tour.description ? 'complete' : 'pending',
+    basic: Boolean(props.tour.title?.trim() && props.tour.difficulty && Number(props.tour.durationDays) > 0) ? 'complete' : 'pending',
     locations: progress.locations > 0 ? 'complete' : 'pending',
     itinerary: progress.itineraryDays >= Math.max(1, props.tour.durationDays || 1) ? 'complete' : 'pending',
     terms: props.tour.cancellationPolicyVersionId || progress.hasTerms ? 'complete' : 'pending',
@@ -101,9 +108,9 @@ export function TourCompletionWorkbench(props: Props) {
   const progressPct = Math.round((completed / STEPS.length) * 100);
 
   const refreshProgress = () => setRefreshToken((value) => value + 1);
-  const goToPolicyAdmin = () => navigateTo(ROUTES.ADMIN.POLICIES);
-
-  const statusMarker = (status: StepState, active: boolean) => status === 'complete'
+  const statusMarker = (status: StepState, active: boolean) => progressLoading && status !== 'optional'
+    ? <RefreshCw className="h-5 w-5 shrink-0 animate-spin text-[#168353]" aria-label="Đang kiểm tra trạng thái" />
+    : status === 'complete'
     ? <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#147A52] text-white"><Check className="h-3.5 w-3.5" /></span>
     : status === 'optional'
       ? <span className="rounded-full bg-[#edf0f2] px-2 py-1 text-[10px] font-semibold text-[#596a78]">Tùy chọn</span>
@@ -121,10 +128,7 @@ export function TourCompletionWorkbench(props: Props) {
       case 'itinerary':
         return <TourItineraryEditor tourId={props.tour.id} durationDays={props.tour.durationDays} onUpdated={() => { refreshProgress(); props.onUpdated(); }} onContinue={() => setActiveStep('terms')} />;
       case 'terms':
-        return <div className="space-y-4">
-          {!props.tour.cancellationPolicyVersionId && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#ead8ad] bg-[#fff8e9] p-4"><div><p className="font-semibold text-[#664b19]">Chưa có chính sách hủy đang áp dụng</p><p className="mt-1 text-sm text-[#78643e]">Tạo một phiên bản đã duyệt trong danh mục trước khi xuất bản tour.</p></div><button type="button" onClick={goToPolicyAdmin} className="rounded-lg border border-[#ae8742] px-3.5 py-2 text-sm font-semibold text-[#71541e] hover:bg-[#fff1cd]">Tạo điều khoản</button></div>}
-          <TourTermsEditor tourId={props.tour.id} cancellationId={props.tour.cancellationPolicyVersionId} status={props.tour.status} onUpdated={() => { refreshProgress(); props.onUpdated(); }} />
-        </div>;
+        return <TourTermsEditor tourId={props.tour.id} cancellationId={props.tour.cancellationPolicyVersionId} status={props.tour.status} onUpdated={() => { refreshProgress(); props.onUpdated(); }} />;
       case 'equipment':
         return <section className="rounded-xl border border-[#d8e0e7] bg-white p-5 sm:p-6"><TourEquipmentEditor tourId={props.tour.id} onUpdated={() => { refreshProgress(); props.onUpdated(); }} /></section>;
       case 'statistics':
@@ -152,21 +156,19 @@ export function TourCompletionWorkbench(props: Props) {
     <section aria-label="Tiến độ hoàn thiện tour" className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-xl border border-[#d7e0e7] bg-white px-4 py-3.5 sm:px-5"><div className="flex items-center gap-2.5"><Sparkles className="h-5 w-5 text-[#08775b]" /><h2 className="text-lg font-bold text-[#18364a]">Hoàn thiện tour</h2></div><span className="text-sm font-semibold text-[#526a7a]">{progressLoading ? 'Đang kiểm tra…' : `${completed}/6 mục đã hoàn tất`}</span><div className="h-2 min-w-[120px] flex-1 overflow-hidden rounded-full bg-[#e4eaf0]"><div className="h-full rounded-full bg-[#08775b] transition-[width] duration-300" style={{ width: `${progressPct}%` }} /></div><button type="button" onClick={refreshProgress} aria-label="Tải lại tiến độ" className="rounded-md p-2 text-[#627785] hover:bg-[#f0f4f6]"><RefreshCw className="h-4 w-4" /></button></section>
     {progressError && <p role="status" className="flex items-center gap-2 text-xs text-[#6c7e8b]"><Info className="h-4 w-4" />{progressError}</p>}
 
-    <div className="grid items-start gap-4 lg:grid-cols-[270px_minmax(0,1fr)]">
-      <aside className="overflow-hidden rounded-xl border border-[#d7e0e7] bg-white lg:sticky lg:top-4">
-        <nav aria-label="Các mục hoàn thiện tour" className="flex gap-1.5 overflow-x-auto p-2 lg:block lg:space-y-1.5 lg:overflow-visible">
+    <div className="space-y-4">
+      <nav aria-label="Các mục hoàn thiện tour" className="flex gap-1.5 overflow-x-auto rounded-xl border border-[#d7e0e7] bg-white p-2">
           {STEPS.map((step) => {
             const active = activeStep === step.id;
             const status = states[step.id];
-            return <button type="button" key={step.id} onClick={() => setActiveStep(step.id)} aria-current={active ? 'step' : undefined} className={`flex min-w-[205px] items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors lg:min-w-0 lg:w-full ${active ? 'bg-[#e6f5ef] text-[#123f32] ring-1 ring-inset ring-[#c1e6d4]' : 'text-[#294353] hover:bg-[#f5f8fa]'}`}>
+            return <button type="button" key={step.id} onClick={() => setActiveStep(step.id)} aria-current={active ? 'step' : undefined} className={`flex min-w-[185px] shrink-0 items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors ${active ? 'bg-[#e6f5ef] text-[#123f32] ring-1 ring-inset ring-[#c1e6d4]' : 'text-[#294353] hover:bg-[#f5f8fa]'}`}>
               <step.icon className={`h-5 w-5 shrink-0 ${active ? 'text-[#08775b]' : 'text-[#546d7c]'}`} />
               <span className="min-w-0 flex-1"><span className="block truncate text-sm font-bold">{step.title}</span><span className={`mt-0.5 block truncate text-xs ${active ? 'text-[#416556]' : 'text-[#6a7d89]'}`}>{step.description}</span></span>
               {statusMarker(status, active)}
             </button>;
           })}
-          <div className="border-t border-[#e5eaee] pt-1.5 lg:mt-2"><button type="button" onClick={() => setActiveStep('statistics')} className={`flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold ${activeStep === 'statistics' ? 'bg-[#e6f5ef] text-[#123f32]' : 'text-[#5a6f7d] hover:bg-[#f5f8fa]'}`}><Mountain className="h-4 w-4" />Thống kê tour</button></div>
-        </nav>
-      </aside>
+          <button type="button" onClick={() => setActiveStep('statistics')} aria-current={activeStep === 'statistics' ? 'step' : undefined} className={`flex min-h-11 min-w-[155px] shrink-0 items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold ${activeStep === 'statistics' ? 'bg-[#e6f5ef] text-[#123f32]' : 'text-[#5a6f7d] hover:bg-[#f5f8fa]'}`}><Mountain className="h-4 w-4" />Thống kê tour</button>
+      </nav>
 
       <main className="min-h-[510px] min-w-0">{renderActivePanel()}</main>
     </div>

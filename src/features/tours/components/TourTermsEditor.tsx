@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '../../../lib/axios';
 import type { TourStatus } from '../types/tour.types';
+import { navigateTo } from '../../../lib/navigation';
+import { ROUTES } from '../../../constants/routes';
 
 type Term = { versionId: number; title: string; content: string; versionNumber: number; primaryCancellation: boolean };
 type Option = { id: number; title: string; versionNumber: number; kind: string };
@@ -11,7 +13,7 @@ export function TourTermsEditor({ tourId, cancellationId, status, onUpdated }: P
   const [options, setOptions] = useState<Option[]>([]);
   const [selected, setSelected] = useState<number[]>([]);
   const [cancellation, setCancellation] = useState(cancellationId ? String(cancellationId) : '');
-  const [edit, setEdit] = useState(false);
+  const [edit, setEdit] = useState(!cancellationId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -55,6 +57,7 @@ export function TourTermsEditor({ tourId, cancellationId, status, onUpdated }: P
       <p className="text-sm text-stone-600">Chọn các điều khoản áp dụng cho tour.</p>
       {terms.filter(t => !options.some(o => o.id === t.versionId)).map(t => <label key={t.versionId} className="flex items-start gap-3 rounded-lg border p-3 text-sm"><input type="checkbox" checked={t.primaryCancellation ? cancellation === String(t.versionId) : selected.includes(t.versionId)} onChange={e => t.primaryCancellation ? setCancellation(e.target.checked ? String(t.versionId) : '') : setSelected(x => e.target.checked ? [...x, t.versionId] : x.filter(i => i !== t.versionId))} /><span>{t.title} — phiên bản {t.versionNumber} <span className="text-amber-800">(không còn hiệu lực)</span></span></label>)}
       {options.map(o => <label key={o.id} className="flex items-start gap-3 rounded-lg border p-3 text-sm"><input type="checkbox" checked={o.kind === 'cancellation' ? cancellation === String(o.id) : selected.includes(o.id)} onChange={e => { if (o.kind === 'cancellation') setCancellation(e.target.checked ? String(o.id) : ''); else setSelected(x => e.target.checked ? [...x, o.id] : x.filter(i => i !== o.id)); }} /><span>{o.title} — phiên bản {o.versionNumber}{o.kind === 'cancellation' && <span className="ml-2 text-stone-500">(đổi/hủy)</span>}</span></label>)}
+      {cancellationOptions.length === 0 && <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"><p>Chưa có chính sách đổi/hủy đang có hiệu lực. Tạo và áp dụng chính sách ở danh mục Điều khoản.</p><button type="button" onClick={() => navigateTo(ROUTES.ADMIN.POLICIES)} className="mt-2 font-semibold underline underline-offset-2">Mở danh mục điều khoản</button></div>}
       {options.length === 0 && terms.length === 0 && <p className="text-sm text-stone-500">Chưa có điều khoản đang có hiệu lực.</p>}
       <p className="text-sm text-stone-500">Chọn một chính sách đổi/hủy có hiệu lực để xuất bản tour và nhận đặt chỗ. Chọn chính sách đổi/hủy khác sẽ thay thế lựa chọn cũ.</p>
       {status === 'PUBLISHED' && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Booking đã tạo giữ chính sách cũ. Booking mới trong cùng chuyến có thể dùng chính sách khác khi bạn thay đổi.</p>}
