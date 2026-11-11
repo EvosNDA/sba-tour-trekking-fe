@@ -1,4 +1,6 @@
 import { APP_CONFIG } from '../constants/config';
+import { ROUTES } from '../constants/routes';
+import { navigateTo } from './navigation';
 import { ApiError } from '../types/api.types';
 import { authStore, AccountProfile } from '../stores/auth.store';
 
@@ -117,6 +119,20 @@ export function normalizeApiError(raw: any, status?: number): ApiError {
 
 let activeRefreshPromise: Promise<string | null> | null = null;
 
+function handleExpiredSession() {
+  authStore.clearSession();
+
+  const { pathname, search } = window.location;
+  const isProtectedRoute = ['/admin', '/guide', '/booking', '/account', '/customer', '/payment']
+    .some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register');
+
+  if (isProtectedRoute && !isAuthRoute) {
+    const returnUrl = `${pathname}${search}`;
+    navigateTo(`${ROUTES.AUTH.LOGIN}?redirect=${encodeURIComponent(returnUrl)}`, { replace: true });
+  }
+}
+
 async function withAuthLock<T>(fn: () => Promise<T>): Promise<T> {
   if (typeof navigator !== 'undefined' && 'locks' in navigator && navigator.locks?.request) {
     return navigator.locks.request('wetrek_auth_refresh_lock', fn);
@@ -188,7 +204,7 @@ class HttpClient {
         });
 
         if (!res.ok) {
-          authStore.clearSession();
+          handleExpiredSession();
           return null;
         }
 
@@ -198,10 +214,10 @@ class HttpClient {
           return data.accessToken;
         }
 
-        authStore.clearSession();
+        handleExpiredSession();
         return null;
       } catch {
-        authStore.clearSession();
+        handleExpiredSession();
         return null;
       }
     }).finally(() => {
