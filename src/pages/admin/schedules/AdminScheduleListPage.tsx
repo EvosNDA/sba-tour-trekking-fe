@@ -1,9 +1,9 @@
 import { Modal } from '../../../components/ui/Modal';
 import { AdminPageHeader } from '../../../components/ui/AdminPageHeader';
+import { Pagination } from '../../../components/ui/Pagination';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Calendar,
-  ChevronDown,
   ArrowUpDown,
   Filter,
   AlertTriangle,
@@ -18,6 +18,7 @@ import {
   Users,
   CheckCircle2,
 } from 'lucide-react';
+import { ScheduleDateFilter } from './ScheduleDateFilter';
 import { toursApi } from '../../../features/tours/api/tours.api';
 import type { TourScheduleRangeResponse, TourStatus, ScheduleDetailResponse } from '../../../features/tours/types/tour.types';
 import type { ApiError } from '../../../types/api.types';
@@ -76,41 +77,6 @@ function diffDays(startStr: string, endStr: string): number {
   return Math.round((e - s) / 86400000);
 }
 
-function getIsoWeekValue(dateStr: string): string {
-  const date = new Date(`${dateStr}T00:00:00`);
-  date.setDate(date.getDate() + 4 - (date.getDay() || 7));
-  const yearStart = new Date(date.getFullYear(), 0, 1);
-  const week = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-  return `${date.getFullYear()}-W${String(week).padStart(2, '0')}`;
-}
-
-function getIsoWeekRange(value: string): [string, string] | null {
-  const match = /^(\d{4})-W(\d{2})$/.exec(value);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const week = Number(match[2]);
-  const jan4 = new Date(year, 0, 4);
-  const monday = new Date(jan4);
-  monday.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7) + (week - 1) * 7);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return [toDateInputString(monday), toDateInputString(sunday)];
-}
-
-function formatDateRangeLabel(startDate: string, endDate: string): string {
-  const start = new Date(`${startDate}T00:00:00`);
-  const end = new Date(`${endDate}T00:00:00`);
-  const formatDayMonth = (date: Date) => new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit' }).format(date);
-  if (startDate === endDate) return new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(start);
-  if (diffDays(startDate, endDate) === 6 && start.getDay() === 1 && end.getDay() === 0) {
-    return `Tuần ${formatDayMonth(start)} – ${formatDayMonth(end)}, ${end.getFullYear()}`;
-  }
-  if (start.getDate() === 1 && end.getDate() === new Date(end.getFullYear(), end.getMonth() + 1, 0).getDate() && start.getMonth() === end.getMonth()) {
-    return `01–${String(end.getDate()).padStart(2, '0')} tháng ${start.getMonth() + 1}, ${start.getFullYear()}`;
-  }
-  return `${formatDayMonth(start)} – ${formatDayMonth(end)}, ${end.getFullYear()}`;
-}
-
 function isSameDay(d1: Date, d2: Date): boolean {
   return (
     d1.getFullYear() === d2.getFullYear() &&
@@ -155,14 +121,16 @@ export const AdminScheduleListPage: React.FC = () => {
     const now = new Date();
     return toDateInputString(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   });
-  const [dateRangeMode, setDateRangeMode] = useState<'day' | 'week' | 'month'>('month');
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // View preferences
   const [viewMode, setViewMode] = useState<'tkb' | 'list'>('list');
   const [displayMode, setDisplayMode] = useState<'departure_only' | 'full_span'>('departure_only');
 
   const [schedules, setSchedules] = useState<ScheduleListItem[]>([]);
+  const [schedulePage, setSchedulePage] = useState(0);
+  const [scheduleTotalPages, setScheduleTotalPages] = useState(0);
+  const [scheduleTotalElements, setScheduleTotalElements] = useState(0);
+  const SCHEDULE_PAGE_SIZE = 10;
   const [tourFilter, setTourFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -209,8 +177,8 @@ export const AdminScheduleListPage: React.FC = () => {
       const startParam = formatOffsetDateTime(startObj);
       const endParam = formatOffsetDateTime(endObj);
 
-      const list = await toursApi.listSchedulesInRange(startParam, endParam);
-      const detailed = await Promise.all((list || []).map(async (item): Promise<ScheduleListItem> => {
+      const result = await toursApi.listSchedulesInRangePage(startParam, endParam, schedulePage, SCHEDULE_PAGE_SIZE);
+      const detailed = await Promise.all((result.content || []).map(async (item): Promise<ScheduleListItem> => {
         try {
           const detail = await toursApi.getScheduleDetail(item.tourId, item.id);
           return { ...item, capacity: detail.capacity, confirmedSeats: detail.confirmedSeats, heldSeats: detail.heldSeats };
@@ -219,6 +187,8 @@ export const AdminScheduleListPage: React.FC = () => {
         }
       }));
       setSchedules(detailed);
+      setScheduleTotalPages(result.totalPages || 0);
+      setScheduleTotalElements(result.totalElements || 0);
     } catch (err) {
       const apiErr = err as ApiError;
       if (apiErr.status === 401) {
@@ -232,7 +202,7 @@ export const AdminScheduleListPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, schedulePage]);
 
   const filteredSchedules = useMemo(() => schedules
     .filter(item => (!tourFilter || item.tourId === Number(tourFilter)) && (!statusFilter || item.status === statusFilter))
@@ -250,6 +220,7 @@ export const AdminScheduleListPage: React.FC = () => {
     const now = new Date();
     setStartDate(toDateInputString(new Date(now.getFullYear(), now.getMonth(), 1)));
     setEndDate(toDateInputString(new Date(now.getFullYear(), now.getMonth() + 1, 0)));
+    setSchedulePage(0);
     setRangeNotice(null);
   };
 
@@ -259,6 +230,7 @@ export const AdminScheduleListPage: React.FC = () => {
   const handleStartDateChange = (value: string) => {
     if (!value) return;
     setStartDate(value);
+    setSchedulePage(0);
     const span = diffDays(value, endDate);
     if (span < 0) {
       setEndDate(value);
@@ -275,6 +247,7 @@ export const AdminScheduleListPage: React.FC = () => {
   const handleEndDateChange = (value: string) => {
     if (!value) return;
     setEndDate(value);
+    setSchedulePage(0);
     const span = diffDays(startDate, value);
     if (span < 0) {
       setStartDate(value);
@@ -403,28 +376,15 @@ export const AdminScheduleListPage: React.FC = () => {
           {/* Time Navigation & Filter Bar */}
           <div className="bg-white rounded-2xl border border-[#E0E6EE] p-5 shadow-2xs space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="relative">
-                <button type="button" aria-label="Chọn ngày, tuần hoặc tháng" aria-expanded={datePickerOpen} onClick={() => setDatePickerOpen(open => !open)} className="inline-flex min-h-12 min-w-[250px] items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 text-left text-sm font-semibold text-slate-800 hover:border-[#0B7058] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0B7058]">
-                  <Calendar className="h-5 w-5 shrink-0" />
-                  <span>{formatDateRangeLabel(startDate, endDate)}</span>
-                  <ChevronDown className={`ml-auto h-4 w-4 shrink-0 transition-transform ${datePickerOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {datePickerOpen && <div className="absolute left-0 top-full z-30 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
-                  <div className="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1" role="tablist" aria-label="Kiểu lọc thời gian">
-                    {([['day', 'Ngày'], ['week', 'Tuần'], ['month', 'Tháng']] as const).map(([mode, label]) => <button key={mode} type="button" role="tab" aria-selected={dateRangeMode === mode} onClick={() => setDateRangeMode(mode)} className={`rounded-md px-3 py-2 text-sm font-semibold ${dateRangeMode === mode ? 'bg-[#0B7058] text-white shadow-sm' : 'text-slate-700 hover:bg-white'}`}>{label}</button>)}
-                  </div>
-                  <label className="mt-4 block text-sm font-semibold text-slate-700" htmlFor="schedule-date-range">{dateRangeMode === 'day' ? 'Chọn ngày' : dateRangeMode === 'week' ? 'Chọn tuần' : 'Chọn tháng'}</label>
-                  <input id="schedule-date-range" type={dateRangeMode} aria-label={dateRangeMode === 'day' ? 'Ngày hiển thị' : dateRangeMode === 'week' ? 'Tuần hiển thị' : 'Tháng hiển thị'} value={dateRangeMode === 'week' ? getIsoWeekValue(startDate) : dateRangeMode === 'day' ? startDate : startDate.slice(0, 7)} onChange={event => {
-                    const value = event.target.value;
-                    if (!value) return;
-                    if (dateRangeMode === 'day') { setStartDate(value); setEndDate(value); }
-                    else if (dateRangeMode === 'week') { const range = getIsoWeekRange(value); if (range) { setStartDate(range[0]); setEndDate(range[1]); } }
-                    else { const [year, month] = value.split('-').map(Number); setStartDate(toDateInputString(new Date(year, month - 1, 1))); setEndDate(toDateInputString(new Date(year, month, 0))); }
-                    setRangeNotice(null);
-                    setDatePickerOpen(false);
-                  }} className="mt-2 min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 focus:border-[#0B7058] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20" />
-                </div>}
-              </div>
+              <ScheduleDateFilter
+                startDate={startDate}
+                endDate={endDate}
+                onRangeChange={(nextStart, nextEnd) => {
+                  setStartDate(nextStart);
+                  setEndDate(nextEnd);
+                  setRangeNotice(null);
+                }}
+              />
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" onClick={() => setFiltersOpen(open => !open)} aria-expanded={filtersOpen} className="relative inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Filter className="h-4 w-4"/>Bộ lọc{(tourFilter || statusFilter) && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-emerald-600"/>}</button>
                 <button type="button" onClick={() => setSortDescending(value => !value)} aria-label={`Sắp xếp ngày khởi hành ${sortDescending ? 'tăng dần' : 'giảm dần'}`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"><ArrowUpDown className="h-4 w-4"/>Sắp xếp</button>
@@ -832,6 +792,11 @@ export const AdminScheduleListPage: React.FC = () => {
                   </table>
                 </div>
               )}
+            </div>
+          )}
+          {scheduleTotalPages > 1 && (
+            <div className="rounded-2xl border border-slate-200 bg-white">
+              <Pagination page={schedulePage} totalPages={scheduleTotalPages} totalElements={scheduleTotalElements} pageSize={SCHEDULE_PAGE_SIZE} onPageChange={setSchedulePage} />
             </div>
           )}
         </div>

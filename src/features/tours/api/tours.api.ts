@@ -199,21 +199,34 @@ export const toursApi = {
     { signal }
   ),
 
+  listSchedulesInRangePage: async (
+    start: string,
+    end: string,
+    page = 0,
+    size = 20,
+    signal?: AbortSignal
+  ): Promise<SpringPage<TourScheduleRangeResponse>> => {
+    return apiClient.get<SpringPage<TourScheduleRangeResponse>>(
+      '/api/v1/tours/schedules',
+      { params: { start, end, page, size }, signal }
+    );
+  },
+
   listSchedulesInRange: async (
     start: string,
     end: string,
     signal?: AbortSignal
   ): Promise<TourScheduleRangeResponse[]> => {
-    return apiClient.get<TourScheduleRangeResponse[]>(
-      '/api/v1/tours/schedules',
-      {
-        params: {
-          start,
-          end,
-        },
-        signal,
-      }
-    );
+    const results: TourScheduleRangeResponse[] = [];
+    let page = 0;
+    let last = false;
+    while (!last) {
+      const result = await toursApi.listSchedulesInRangePage(start, end, page, 100, signal);
+      results.push(...result.content);
+      last = result.last;
+      page += 1;
+    }
+    return results;
   },
 
   uploadTourMedia: async (
