@@ -52,7 +52,7 @@ export const AccountInvitationModal: React.FC<Props> = ({ isOpen, onClose, onInv
     event.preventDefault(); setBusy(true); setError('');
     const inviteEmail = email.trim();
     const inferredName = inviteEmail.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\p{L}/gu, (letter) => letter.toUpperCase()).trim();
-    const payload: AdminInvitationRequest = { email: inviteEmail, fullName: fullName.trim() || inferredName || inviteEmail, role };
+    const payload: AdminInvitationRequest = { email: inviteEmail, fullName: fullName.trim() || inferredName || inviteEmail, role: role.toLowerCase() as 'admin' | 'guide' };
     try {
       const response = await usersApi.inviteAccount(payload);
       onInvited(response);

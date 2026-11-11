@@ -68,7 +68,7 @@ export interface AccountActionRequest {
 export interface AdminInvitationRequest {
   email: string;
   fullName: string;
-  role: 'ADMIN' | 'GUIDE';
+  role: 'admin' | 'guide';
   phone?: string;
   bio?: string;
 }
