@@ -100,10 +100,6 @@ export function normalizeApiError(raw: any, status?: number): ApiError {
   let message: string = FRIENDLY_ERROR_MESSAGES[code] || raw.message || 'Đã xảy ra lỗi khi xử lý yêu cầu.';
   if (code === 'ACTIVE_BOOKING_HOLD_EXISTS') {
     message = raw.message || FRIENDLY_ERROR_MESSAGES.ACTIVE_BOOKING_HOLD_EXISTS;
-  } else if (raw.message && code === 'INSUFFICIENT_SEATS') {
-    message = `${FRIENDLY_ERROR_MESSAGES[code]} (${raw.message})`;
-  } else if (raw.message && code === 'EQUIPMENT_UNAVAILABLE') {
-    message = `${FRIENDLY_ERROR_MESSAGES[code]} (${raw.message})`;
   } else if (raw.message && !FRIENDLY_ERROR_MESSAGES[code]) {
     message = raw.message;
   }

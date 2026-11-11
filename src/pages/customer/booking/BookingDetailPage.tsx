@@ -1190,11 +1190,6 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
                 {paymentError && (
                   <div className="rounded-xl bg-rose-50 border border-rose-200 p-3.5 text-xs text-rose-800">
                     <p className="font-semibold">{paymentError.message}</p>
-                    {paymentError.code && (
-                      <p className="font-mono text-[11px] text-rose-600 mt-0.5">
-                        Mã lỗi: {paymentError.code}
-                      </p>
-                    )}
                   </div>
                 )}
 
