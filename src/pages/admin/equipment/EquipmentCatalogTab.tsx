@@ -24,6 +24,7 @@ import type {
   EquipmentCatalogItem,
   EquipmentInventoryItem,
   EquipmentCategory,
+  RentalPackageTemplate,
 } from '../../../features/equipment/types/equipment.types';
 import { formatVND } from '../../../lib/utils';
 import { toast } from '../../../components/ui/Toast';
@@ -44,10 +45,13 @@ export interface MergedEquipmentItem {
   hasInventoryRecord: boolean;
 }
 
-export const EquipmentCatalogTab: React.FC = () => {
+type EquipmentCatalogTabProps = { onRegisterCreateAction?: (action: () => void) => void };
+
+export const EquipmentCatalogTab: React.FC<EquipmentCatalogTabProps> = ({ onRegisterCreateAction }) => {
   const [catalogItems, setCatalogItems] = useState<EquipmentCatalogItem[]>([]);
   const [inventoryItems, setInventoryItems] = useState<EquipmentInventoryItem[]>([]);
   const [categories, setCategories] = useState<EquipmentCategory[]>([]);
+  const [rentalPackages, setRentalPackages] = useState<RentalPackageTemplate[]>([]);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,15 +99,17 @@ export const EquipmentCatalogTab: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [catalogRes, inventoryRes, catRes] = await Promise.all([
+      const [catalogRes, inventoryRes, catRes, packageRes] = await Promise.all([
         equipmentApi.listCatalog(),
         equipmentApi.listInventory().catch(() => []),
         equipmentApi.listCategories().catch(() => []),
+        equipmentApi.listPackages().catch(() => []),
       ]);
 
       setCatalogItems(catalogRes || []);
       setInventoryItems(inventoryRes || []);
       setCategories(catRes || []);
+      setRentalPackages(packageRes || []);
     } catch (err: any) {
       setError(err?.message || 'Không thể tải danh mục thiết bị và tồn kho.');
     } finally {
@@ -139,7 +145,7 @@ export const EquipmentCatalogTab: React.FC = () => {
     });
   }, [catalogItems, inventoryItems]);
 
-  const handleOpenCreateModal = () => {
+  const handleOpenCreateModal = useCallback(() => {
     setEditingItem(null);
     setCreatedEquipmentId(null);
     setName('');
@@ -158,7 +164,11 @@ export const EquipmentCatalogTab: React.FC = () => {
     setNewCategoryName('');
     setCategoryCreateError(null);
     setIsModalOpen(true);
-  };
+  }, [categories]);
+
+  useEffect(() => {
+    onRegisterCreateAction?.(handleOpenCreateModal);
+  }, [handleOpenCreateModal, onRegisterCreateAction]);
 
   const handleOpenEditModal = (item: MergedEquipmentItem) => {
     setEditingItem(item);
@@ -373,29 +383,30 @@ export const EquipmentCatalogTab: React.FC = () => {
   }, [mergedList, searchQuery, selectedCategoryFilter, selectedStatusFilter]);
 
   return (
-    <div className="space-y-6">
+    <div className="equipment-catalog-layout grid items-start gap-5">
+      <div className="min-w-0 space-y-5">
       {/* Search & Filter Toolbar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white rounded-2xl p-4 border border-[#E6E1D8] shadow-2xs">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white rounded-2xl p-4 border border-[#E0E6EE] shadow-2xs">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
           {/* Search Box */}
           <div className="relative flex-1 max-w-sm">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Tìm theo tên thiết bị..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone-200 text-sm focus:border-[#1F4E43] focus:ring-1 focus:ring-[#1F4E43] outline-none"
+              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0B7058] focus:ring-1 focus:ring-[#0B7058] outline-none"
             />
           </div>
 
           {/* Category Filter */}
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="w-4 h-4 text-stone-400 shrink-0 hidden sm:block" />
+            <SlidersHorizontal className="w-4 h-4 text-slate-400 shrink-0 hidden sm:block" />
             <select
               value={selectedCategoryFilter}
               onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-              className="py-2.5 px-3 rounded-xl border border-stone-200 text-xs sm:text-sm text-stone-700 bg-white focus:border-[#1F4E43] outline-none cursor-pointer"
+              className="py-2.5 px-3 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-700 bg-white focus:border-[#0B7058] outline-none cursor-pointer"
             >
               <option value="ALL">Tất cả nhóm</option>
               {categories.map((c) => (
@@ -408,7 +419,7 @@ export const EquipmentCatalogTab: React.FC = () => {
             <select
               value={selectedStatusFilter}
               onChange={(e) => setSelectedStatusFilter(e.target.value)}
-              className="py-2.5 px-3 rounded-xl border border-stone-200 text-xs sm:text-sm text-stone-700 bg-white focus:border-[#1F4E43] outline-none cursor-pointer"
+              className="py-2.5 px-3 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-700 bg-white focus:border-[#0B7058] outline-none cursor-pointer"
             >
               <option value="ALL">Tất cả trạng thái</option>
               <option value="ACTIVE">Đang hoạt động</option>
@@ -422,28 +433,20 @@ export const EquipmentCatalogTab: React.FC = () => {
           <button
             type="button"
             onClick={fetchData}
-            className="p-2.5 rounded-xl border border-stone-200 text-stone-600 hover:bg-[#F7F4EE] transition-colors cursor-pointer"
+            className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-[#F3F6FA] transition-colors cursor-pointer"
             title="Tải lại danh sách"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
 
-          <button
-            type="button"
-            onClick={handleOpenCreateModal}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs sm:text-sm font-semibold transition-colors cursor-pointer shadow-2xs"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Thêm thiết bị mới</span>
-          </button>
         </div>
       </div>
 
       {/* Loading state */}
       {isLoading && (
-        <div className="bg-white rounded-2xl border border-[#E6E1D8] p-12 text-center space-y-3">
-          <Loader2 className="w-8 h-8 animate-spin text-[#1F4E43] mx-auto" />
-          <p className="text-sm text-stone-500 font-medium">Đang tải danh mục thiết bị & dữ liệu kho...</p>
+        <div className="bg-white rounded-2xl border border-[#E0E6EE] p-12 text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0B7058] mx-auto" />
+          <p className="text-sm text-slate-500 font-medium">Đang tải danh mục thiết bị & dữ liệu kho...</p>
         </div>
       )}
 
@@ -455,7 +458,7 @@ export const EquipmentCatalogTab: React.FC = () => {
           <button
             type="button"
             onClick={fetchData}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1F4E43] text-white text-xs font-semibold hover:bg-[#15372F] transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0B7058] text-white text-xs font-semibold hover:bg-[#075743] transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Thử lại</span>
@@ -465,18 +468,18 @@ export const EquipmentCatalogTab: React.FC = () => {
 
       {/* Table / List */}
       {!isLoading && !error && (
-        <div className="bg-white rounded-2xl border border-[#E6E1D8] overflow-hidden shadow-2xs">
+        <div className="bg-white rounded-2xl border border-[#E0E6EE] overflow-hidden shadow-2xs">
           {filteredItems.length === 0 ? (
             <div className="p-12 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#F7F4EE] border border-[#E6E1D8] flex items-center justify-center text-[#1F4E43] mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-[#F3F6FA] border border-[#E0E6EE] flex items-center justify-center text-[#0B7058] mx-auto">
                 <Package className="w-6 h-6" />
               </div>
-              <h4 className="font-bold text-base text-[#1C2526]">
+              <h4 className="font-bold text-base text-[#172033]">
                 {searchQuery || selectedCategoryFilter !== 'ALL' || selectedStatusFilter !== 'ALL'
                   ? 'Không tìm thấy thiết bị phù hợp bộ lọc'
                   : 'Chưa có thiết bị nào trong danh mục'}
               </h4>
-              <p className="text-xs text-stone-500 max-w-sm mx-auto">
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
                 {searchQuery
                   ? 'Thử thay đổi từ khóa hoặc điều chỉnh bộ lọc nhóm thiết bị.'
                   : 'Hãy thêm các thiết bị lẻ (lều, túi ngủ, gậy trekking...) để quản lý tồn kho và đưa vào combo tour.'}
@@ -485,7 +488,7 @@ export const EquipmentCatalogTab: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleOpenCreateModal}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1F4E43] text-white text-xs font-semibold cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0B7058] text-white text-xs font-semibold cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Thêm thiết bị ngay</span>
@@ -495,23 +498,24 @@ export const EquipmentCatalogTab: React.FC = () => {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-[#FAF8F5] border-b border-[#E6E1D8] text-xs font-semibold uppercase tracking-wider text-stone-600">
+                <thead className="bg-[#FAF8F5] border-b border-[#E0E6EE] text-xs font-semibold uppercase tracking-wider text-slate-600">
                   <tr>
-                    <th className="py-3.5 px-6">Thiết bị</th>
-                    <th className="py-3.5 px-4">Nhóm</th>
-                    <th className="py-3.5 px-4">Giá thuê lẻ</th>
-                    <th className="py-3.5 px-4 text-center">Tồn kho (Tổng / Bảo trì / Khả dụng)</th>
-                    <th className="py-3.5 px-4">Trạng thái</th>
-                    <th className="py-3.5 px-6 text-right">Thao tác</th>
+                    <th className="py-3.5 px-4">Thiết bị</th>
+                    <th className="py-3.5 px-3">Danh mục</th>
+                    <th className="py-3.5 px-3 text-center">Tổng số</th>
+                    <th className="py-3.5 px-3 text-center">Bảo trì</th>
+                    <th className="py-3.5 px-3 text-center">Khả dụng</th>
+                    <th className="py-3.5 px-3">Trạng thái</th>
+                    <th className="py-3.5 px-3 text-right">Thao tác</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="divide-y divide-slate-100">
                   {filteredItems.map((item) => (
                     <tr key={item.id} className="hover:bg-[#FAF8F5]/60 transition-colors">
                       {/* Name & Photo */}
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-stone-100 border border-stone-200 overflow-hidden shrink-0 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center">
                             {item.imageUrl ? (
                               <img
                                 src={item.imageUrl}
@@ -519,15 +523,15 @@ export const EquipmentCatalogTab: React.FC = () => {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <ImageIcon className="w-5 h-5 text-stone-400" />
+                              <ImageIcon className="w-5 h-5 text-slate-400" />
                             )}
                           </div>
                           <div className="space-y-0.5">
-                            <span className="font-bold text-[#1C2526] block text-sm sm:text-base">
+                            <span className="font-bold text-[#172033] block text-sm sm:text-base">
                               {item.name}
                             </span>
                             {item.description && (
-                              <p className="text-xs text-stone-500 line-clamp-1 max-w-xs">
+                              <p className="text-xs text-slate-500 line-clamp-1 max-w-xs">
                                 {item.description}
                               </p>
                             )}
@@ -536,54 +540,29 @@ export const EquipmentCatalogTab: React.FC = () => {
                       </td>
 
                       {/* Category */}
-                      <td className="py-4 px-4 text-xs font-medium text-stone-700">
+                      <td className="py-4 px-3 text-xs font-medium text-slate-700">
                         {item.categoryName ? (
-                          <span className="px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E6E1D8] text-stone-800">
+                          <span className="px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E0E6EE] text-slate-800">
                             {item.categoryName}
                           </span>
                         ) : (
-                          <span className="text-stone-400 italic">Chưa phân nhóm</span>
+                          <span className="text-slate-400 italic">Chưa phân nhóm</span>
                         )}
                       </td>
 
-                      {/* Rental Price */}
-                      <td className="py-4 px-4">
-                        {item.individualRentalPriceVnd !== null &&
-                        item.individualRentalPriceVnd !== undefined ? (
-                          <span className="font-bold text-[#C2410C] text-sm">
-                            {formatVND(item.individualRentalPriceVnd)}
-                          </span>
-                        ) : (
-                          <span className="text-stone-400 text-xs italic">Chưa thiết lập</span>
-                        )}
-                      </td>
-
-                      {/* Inventory Count (Total / Maintenance / Available) */}
-                      <td className="py-4 px-4 text-center">
-                        <div className="inline-flex items-center gap-2 p-1.5 rounded-xl bg-[#FAF8F5] border border-[#E6E1D8] text-xs">
-                          <span className="font-semibold text-stone-800" title="Tổng số lượng">
-                            Tổng: <strong>{item.totalQuantity}</strong>
-                          </span>
-                          <span className="text-stone-300">|</span>
-                          <span className="text-amber-700" title="Đang bảo trì">
-                            Bảo trì: <strong>{item.maintenanceQuantity}</strong>
-                          </span>
-                          <span className="text-stone-300">|</span>
-                          <span className="text-emerald-700 font-bold" title="Khả dụng">
-                            Khả dụng: <strong>{item.availableQuantity}</strong>
-                          </span>
-                        </div>
-                      </td>
+                      <td className="py-4 px-3 text-center font-semibold tabular-nums">{item.totalQuantity}</td>
+                      <td className="py-4 px-3 text-center font-semibold tabular-nums text-amber-700">{item.maintenanceQuantity}</td>
+                      <td className="py-4 px-3 text-center font-semibold tabular-nums text-emerald-700">{item.availableQuantity}</td>
 
                       {/* Active Status */}
-                      <td className="py-4 px-4">
+                      <td className="py-4 px-3">
                         {item.active ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <CheckCircle2 className="w-3 h-3" />
                             <span>Hoạt động</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-stone-100 text-stone-600 border border-stone-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
                             <XCircle className="w-3 h-3" />
                             <span>Bảo trì</span>
                           </span>
@@ -591,12 +570,12 @@ export const EquipmentCatalogTab: React.FC = () => {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-4 px-6 text-right">
+                      <td className="py-4 px-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(item)}
-                            className="p-2 rounded-lg text-stone-500 hover:text-[#1F4E43] hover:bg-[#F7F4EE] transition-colors cursor-pointer"
+                            className="p-2 rounded-lg text-slate-500 hover:text-[#0B7058] hover:bg-[#F3F6FA] transition-colors cursor-pointer"
                             title="Chỉnh sửa thông tin & kho"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -607,7 +586,7 @@ export const EquipmentCatalogTab: React.FC = () => {
                               setDeletingItem(item);
                               setDeleteError(null);
                             }}
-                            className="p-2 rounded-lg text-stone-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            className="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                             title="Xóa thiết bị"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -622,6 +601,12 @@ export const EquipmentCatalogTab: React.FC = () => {
           )}
         </div>
       )}
+      </div>
+
+      <aside className="rounded-2xl border border-[#E0E6EE] bg-white p-5 shadow-2xs lg:min-h-[580px]">
+        <h2 className="mb-5 flex items-center gap-3 text-xl font-bold text-[#172033]"><span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[#E3F5F1] text-[#0B7058]"><Boxes className="h-5 w-5" /></span>Combo cho thuê</h2>
+        {isLoading ? <p className="text-sm text-slate-500">Đang tải combo…</p> : rentalPackages.length === 0 ? <div className="rounded-xl border border-dashed border-slate-200 p-5 text-sm text-slate-500">Chưa có combo thiết bị.</div> : <div className="space-y-4">{rentalPackages.map(pkg => <article key={pkg.id} className="rounded-xl border border-slate-200 p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-bold text-slate-900">{pkg.title}</h3><span className="mt-1 block text-sm text-slate-500">{pkg.items.length} thiết bị</span></div><span className="whitespace-nowrap rounded-lg bg-[#D9F2ED] px-2.5 py-1.5 font-bold text-[#075541]">{formatVND(pkg.rentalPriceVnd)}/ngày</span></div><div className="mt-3 space-y-2 border-t border-slate-100 pt-3">{pkg.items.map(item => <div key={item.equipmentId} className="flex items-start gap-2 text-sm text-slate-700"><Package className="mt-0.5 h-4 w-4 shrink-0 text-slate-500"/><span>{item.name} <strong>× {item.quantityInPackage}</strong></span></div>)}</div></article>)}</div>}
+      </aside>
 
       {/* Modal: Tạo / Chỉnh sửa Thiết bị & Tồn kho */}
       {isModalOpen && (
@@ -645,7 +630,7 @@ export const EquipmentCatalogTab: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Name */}
               <div>
-                <label htmlFor="equipmentcatalogtab-field-1" className="block text-sm font-medium text-[#1C2526] mb-2">
+                <label htmlFor="equipmentcatalogtab-field-1" className="block text-sm font-medium text-[#172033] mb-2">
                   Tên thiết bị <span className="text-red-500">*</span>
                 </label>
               <input id="equipmentcatalogtab-field-1"                   type="text"
@@ -654,27 +639,27 @@ export const EquipmentCatalogTab: React.FC = () => {
                   placeholder="Ví dụ: Lều 2 người Naturehike, Gậy trekking Black Diamond..."
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:border-[#1F4E43] focus:ring-1 focus:ring-[#1F4E43] outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0B7058] focus:ring-1 focus:ring-[#0B7058] outline-none"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label htmlFor="equipmentcatalogtab-field-2" className="block text-sm font-medium text-[#1C2526] mb-2">
+                <label htmlFor="equipmentcatalogtab-field-2" className="block text-sm font-medium text-[#172033] mb-2">
                   Mô tả / Thông số kỹ thuật
                 </label>
               <textarea id="equipmentcatalogtab-field-2"                   rows={2}
                   placeholder="Trọng lượng, kích thước, khả năng chống nước..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:border-[#1F4E43] focus:ring-1 focus:ring-[#1F4E43] outline-none resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0B7058] focus:ring-1 focus:ring-[#0B7058] outline-none resize-none"
                 />
               </div>
 
               {/* Rental Price & Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
                 <div>
-                  <label htmlFor="equipmentcatalogtab-field-3" className="block text-sm font-medium text-[#1C2526] mb-2">
+                  <label htmlFor="equipmentcatalogtab-field-3" className="block text-sm font-medium text-[#172033] mb-2">
                     Giá thuê lẻ (VNĐ)
                   </label>
               <input id="equipmentcatalogtab-field-3"                     type="number"
@@ -683,16 +668,16 @@ export const EquipmentCatalogTab: React.FC = () => {
                     placeholder="Để trống nếu chưa thiết lập"
                     value={rentalPrice}
                     onChange={(e) => setRentalPrice(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:border-[#1F4E43] focus:ring-1 focus:ring-[#1F4E43] outline-none font-mono"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0B7058] focus:ring-1 focus:ring-[#0B7058] outline-none font-mono"
                   />
-                  <span className="text-xs text-stone-400 mt-1 block">
+                  <span className="text-xs text-slate-400 mt-1 block">
                     0 đ là giá hợp lệ (miễn phí)
                   </span>
                 </div>
 
                 <div className="min-w-0">
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-[#1C2526]">
+                    <label className="block text-xs font-bold text-[#172033]">
                       Nhóm thiết bị
                     </label>
                     <button
@@ -701,7 +686,7 @@ export const EquipmentCatalogTab: React.FC = () => {
                         setIsQuickCategoryOpen((prev) => !prev);
                         setCategoryCreateError(null);
                       }}
-                      className="text-xs font-semibold text-[#1F4E43] hover:text-[#15372F] hover:underline inline-flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-semibold text-[#0B7058] hover:text-[#075743] hover:underline inline-flex items-center gap-1 cursor-pointer"
                     >
                       <Plus className="w-3 h-3" />
                       <span>{isQuickCategoryOpen ? 'Đóng tạo nhóm' : 'Tạo nhóm mới'}</span>
@@ -710,8 +695,8 @@ export const EquipmentCatalogTab: React.FC = () => {
 
                   {/* Inline quick category creation box */}
                   {isQuickCategoryOpen && (
-                    <div className="mb-2.5 p-3 rounded-xl bg-[#FAF8F5] border border-[#1F4E43]/30 space-y-2.5 animate-in fade-in duration-150 shadow-xs">
-                      <div className="flex items-center justify-between text-xs text-[#1C2526]">
+                    <div className="mb-2.5 p-3 rounded-xl bg-[#FAF8F5] border border-[#0B7058]/30 space-y-2.5 animate-in fade-in duration-150 shadow-xs">
+                      <div className="flex items-center justify-between text-xs text-[#172033]">
                         <span className="font-bold">Tạo nhóm thiết bị mới</span>
                         <button
                           type="button"
@@ -720,7 +705,7 @@ export const EquipmentCatalogTab: React.FC = () => {
                             setNewCategoryName('');
                             setCategoryCreateError(null);
                           }}
-                          className="p-1 text-stone-400 hover:text-stone-600 rounded-lg hover:bg-stone-200/50 cursor-pointer"
+                          className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-200/50 cursor-pointer"
                           title="Đóng"
                         >
                           <X className="w-3.5 h-3.5" />
@@ -738,7 +723,7 @@ export const EquipmentCatalogTab: React.FC = () => {
                             handleQuickCreateCategory();
                           }
                         }}
-                        className="w-full px-3 py-2 text-xs rounded-lg border border-stone-200 bg-white focus:outline-none focus:ring-1 focus:ring-[#1F4E43] focus:border-[#1F4E43]"
+                        className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-1 focus:ring-[#0B7058] focus:border-[#0B7058]"
                         autoFocus
                       />
 
@@ -751,7 +736,7 @@ export const EquipmentCatalogTab: React.FC = () => {
                               setNewCategoryName('');
                               setCategoryCreateError(null);
                             }}
-                            className="px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-200/60 rounded-lg transition-colors cursor-pointer"
+                            className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
                           >
                             Hủy
                           </button>
@@ -759,7 +744,7 @@ export const EquipmentCatalogTab: React.FC = () => {
                             type="button"
                             disabled={isCreatingCategory || !newCategoryName.trim()}
                             onClick={handleQuickCreateCategory}
-                            className="px-3.5 py-1.5 text-xs rounded-lg bg-[#1F4E43] hover:bg-[#15372F] text-white font-semibold inline-flex items-center gap-1.5 disabled:opacity-50 transition-colors shadow-2xs cursor-pointer"
+                            className="px-3.5 py-1.5 text-xs rounded-lg bg-[#0B7058] hover:bg-[#075743] text-white font-semibold inline-flex items-center gap-1.5 disabled:opacity-50 transition-colors shadow-2xs cursor-pointer"
                           >
                             {isCreatingCategory ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
@@ -785,7 +770,7 @@ export const EquipmentCatalogTab: React.FC = () => {
                         setCategoryId(e.target.value);
                       }
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:border-[#1F4E43] focus:ring-1 focus:ring-[#1F4E43] outline-none bg-white cursor-pointer"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0B7058] focus:ring-1 focus:ring-[#0B7058] outline-none bg-white cursor-pointer"
                   >
                     <option value="">-- Chưa chọn nhóm --</option>
                     {categories.map((c) => (
@@ -793,7 +778,7 @@ export const EquipmentCatalogTab: React.FC = () => {
                         {c.name}
                       </option>
                     ))}
-                    <option value="__CREATE_NEW__" className="text-[#1F4E43] font-semibold bg-emerald-50">
+                    <option value="__CREATE_NEW__" className="text-[#0B7058] font-semibold bg-emerald-50">
                       + Thêm nhóm mới vào danh sách...
                     </option>
                   </select>
@@ -801,15 +786,15 @@ export const EquipmentCatalogTab: React.FC = () => {
               </div>
 
               {/* Inventory Quantities */}
-              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#E6E1D8] space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-[#1C2526]">
-                  <Boxes className="w-4 h-4 text-[#1F4E43]" />
+              <div className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#E0E6EE] space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#172033]">
+                  <Boxes className="w-4 h-4 text-[#0B7058]" />
                   <span>Quản lý số lượng tồn kho</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3.5">
                   <div>
-                    <label htmlFor="equipmentcatalogtab-field-4" className="block text-xs font-medium text-stone-600 mb-1">
+                    <label htmlFor="equipmentcatalogtab-field-4" className="block text-xs font-medium text-slate-600 mb-1">
                       Tổng số lượng có
                     </label>
               <input id="equipmentcatalogtab-field-4"                       type="number"
@@ -817,12 +802,12 @@ export const EquipmentCatalogTab: React.FC = () => {
                       required
                       value={totalQuantity}
                       onChange={(e) => setTotalQuantity(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-white text-sm focus:border-[#1F4E43] outline-none font-mono"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:border-[#0B7058] outline-none font-mono"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="equipmentcatalogtab-field-5" className="block text-xs font-medium text-stone-600 mb-1">
+                    <label htmlFor="equipmentcatalogtab-field-5" className="block text-xs font-medium text-slate-600 mb-1">
                       Đang bảo trì / hỏng
                     </label>
               <input id="equipmentcatalogtab-field-5"                       type="number"
@@ -830,13 +815,13 @@ export const EquipmentCatalogTab: React.FC = () => {
                       required
                       value={maintenanceQuantity}
                       onChange={(e) => setMaintenanceQuantity(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-stone-200 bg-white text-sm focus:border-[#1F4E43] outline-none font-mono"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:border-[#0B7058] outline-none font-mono"
                     />
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs text-stone-600">Số lượng khả dụng ước tính:</span>
+                  <span className="text-xs text-slate-600">Số lượng khả dụng ước tính:</span>
                   <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
                     {Math.max(0, (parseInt(totalQuantity, 10) || 0) - (parseInt(maintenanceQuantity, 10) || 0))} món
                   </span>
@@ -845,11 +830,11 @@ export const EquipmentCatalogTab: React.FC = () => {
 
               {/* Image Picker */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-[#1C2526]">
+                <label className="block text-xs font-bold text-[#172033]">
                   Hình ảnh thiết bị
                 </label>
                 {imagePreviewUrl ? (
-                  <div className="relative w-32 h-24 rounded-xl border border-stone-200 overflow-hidden group">
+                  <div className="relative w-32 h-24 rounded-xl border border-slate-200 overflow-hidden group">
                     <img
                       src={imagePreviewUrl}
                       alt="Xem trước ảnh thiết bị"
@@ -865,9 +850,9 @@ export const EquipmentCatalogTab: React.FC = () => {
                     </button>
                   </div>
                 ) : (
-                  <label className="border-2 border-dashed border-stone-200 hover:border-[#1F4E43] rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-[#FAF8F5]/50">
-                    <UploadCloud className="w-6 h-6 text-stone-400 mb-1" />
-                    <span className="text-xs font-semibold text-[#1F4E43]">
+                  <label className="border-2 border-dashed border-slate-200 hover:border-[#0B7058] rounded-2xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors bg-[#FAF8F5]/50">
+                    <UploadCloud className="w-6 h-6 text-slate-400 mb-1" />
+                    <span className="text-xs font-semibold text-[#0B7058]">
                       Tải ảnh từ máy tính (JPG, PNG, WebP)
                     </span>
                     <input
@@ -881,10 +866,10 @@ export const EquipmentCatalogTab: React.FC = () => {
               </div>
 
               {/* Active Toggle */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] border border-[#E6E1D8]">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] border border-[#E0E6EE]">
                 <div>
-                  <span className="text-xs font-bold text-[#1C2526] block">Trạng thái thiết bị</span>
-                  <span className="text-xs text-stone-500 block">
+                  <span className="text-xs font-bold text-[#172033] block">Trạng thái thiết bị</span>
+                  <span className="text-xs text-slate-500 block">
                     Đang sẵn sàng cho tour thuê
                   </span>
                 </div>
@@ -895,23 +880,23 @@ export const EquipmentCatalogTab: React.FC = () => {
                     onChange={(e) => setIsActive(e.target.checked)}
                     aria-label="Active" className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-stone-300 peer-focus-visible:ring-2 peer-focus-visible:ring-[#1F4E43] peer-focus-visible:ring-offset-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1F4E43]"></div>
+                  <div className="w-11 h-6 bg-slate-300 peer-focus-visible:ring-2 peer-focus-visible:ring-[#0B7058] peer-focus-visible:ring-offset-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0B7058]"></div>
                 </label>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-100">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   disabled={isSubmitting} onClick={() => { if (!isSubmitting) setIsModalOpen(false); }}
-                  className="px-4 py-2.5 rounded-xl border border-stone-200 text-stone-600 text-xs font-semibold hover:bg-stone-50 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#0B7058] hover:bg-[#075743] text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{editingItem ? 'Lưu thay đổi' : 'Thêm thiết bị'}</span>
@@ -930,8 +915,8 @@ export const EquipmentCatalogTab: React.FC = () => {
 
             <div className="text-center space-y-2">
 
-              <p className="text-xs text-stone-600">
-                Xóa thiết bị <strong className="text-stone-900">"{deletingItem.name}"</strong>? Thiết bị sẽ không còn được chọn mới và vẫn xuất hiện trong lịch sử.
+              <p className="text-xs text-slate-600">
+                Xóa thiết bị <strong className="text-slate-900">"{deletingItem.name}"</strong>? Thiết bị sẽ không còn được chọn mới và vẫn xuất hiện trong lịch sử.
               </p>
             </div>
 
@@ -947,7 +932,7 @@ export const EquipmentCatalogTab: React.FC = () => {
                 type="button"
                 onClick={() => setDeletingItem(null)}
                 disabled={isDeleting}
-                className="flex-1 py-2.5 rounded-xl border border-stone-200 text-stone-700 text-xs font-semibold hover:bg-stone-50 cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
               >
                 Hủy
               </button>

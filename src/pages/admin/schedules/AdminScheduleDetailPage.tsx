@@ -1,5 +1,4 @@
 import { Modal } from '../../../components/ui/Modal';
-import { AdminSectionNav } from '../components/AdminSectionNav';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   ArrowLeft,
@@ -17,11 +16,11 @@ import {
   CheckCircle2,
   Boxes,
   RefreshCw,
-  ExternalLink,
   ClipboardCheck,
   Camera,
   XCircle,
   Package,
+  Pencil,
 } from 'lucide-react';
 import { toursApi } from '../../../features/tours/api/tours.api';
 import {
@@ -37,6 +36,7 @@ import type {
   ScheduleDetailResponse,
   TourDetailResponse,
   TourScheduleRangeResponse,
+  CreateScheduleRequest,
 } from '../../../features/tours/types/tour.types';
 import type {
   HandoverEquipmentCondition,
@@ -58,6 +58,7 @@ import { navigateTo, useLocation } from '../../../lib/navigation';
 import { ROUTES } from '../../../constants/routes';
 import {
   formatDateTime,
+  formatOffsetDateTime,
   formatVND,
 } from '../../../lib/utils';
 
@@ -87,9 +88,32 @@ const ADMIN_CONDITION_BADGES: Record<
   },
 };
 
+const toLocalDateTimeField = (value: string) => {
+  const date = new Date(value);
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 16);
+};
+
+const formatScheduleDateRange = (startsAt: string, endsAt: string) => {
+  const parts = (value: string) => Object.fromEntries(new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: 'long', year: 'numeric',
+  }).formatToParts(new Date(value)).map(({ type, value: part }) => [type, part]));
+  const start = parts(startsAt);
+  const end = parts(endsAt);
+  if (start.month === end.month && start.year === end.year) {
+    return `${start.day}–${end.day} ${start.month}, ${start.year}`;
+  }
+  return `${start.day} ${start.month}, ${start.year} – ${end.day} ${end.month}, ${end.year}`;
+};
+
 export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = ({
   scheduleIdProp,
 }) => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'passengers' | 'equipment'>('passengers');
+  const [editScheduleOpen, setEditScheduleOpen] = useState(false);
+  const [editScheduleBusy, setEditScheduleBusy] = useState(false);
+  const [editScheduleError, setEditScheduleError] = useState('');
+  const [editDraft, setEditDraft] = useState<CreateScheduleRequest | null>(null);
   const { search } = useLocation();
 
   const scheduleId = useMemo(() => {
@@ -207,6 +231,45 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
       setIsLoading(false);
     }
   }, [scheduleId, queryTourId]);
+
+  const openScheduleEditor = () => {
+    if (!schedule) return;
+    setEditDraft({
+      startsAt: toLocalDateTimeField(schedule.startsAt),
+      endsAt: toLocalDateTimeField(schedule.endsAt),
+      balanceDueAt: toLocalDateTimeField(schedule.balanceDueAt || schedule.startsAt),
+      capacity: schedule.capacity,
+      basePriceVnd: schedule.basePriceVnd,
+      equipmentFeeVnd: schedule.equipmentFeeVnd,
+      depositPercent: schedule.depositPercent,
+      meetingPoint: schedule.meetingPoint || '',
+      contactPhone: schedule.contactPhone || '',
+    });
+    setEditScheduleError('');
+    setEditScheduleOpen(true);
+  };
+
+  const saveScheduleEdits = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editDraft || !schedule || !tour) return;
+    setEditScheduleBusy(true);
+    setEditScheduleError('');
+    try {
+      const updated = await toursApi.updateSchedule(tour.id, schedule.id, {
+        ...editDraft,
+        startsAt: formatOffsetDateTime(new Date(editDraft.startsAt)),
+        endsAt: formatOffsetDateTime(new Date(editDraft.endsAt)),
+        balanceDueAt: formatOffsetDateTime(new Date(editDraft.balanceDueAt)),
+      });
+      setSchedule(updated);
+      setEditScheduleOpen(false);
+      toast.success('Đã cập nhật lịch khởi hành.');
+    } catch (error) {
+      setEditScheduleError((error as Error)?.message || 'Không thể cập nhật lịch khởi hành.');
+    } finally {
+      setEditScheduleBusy(false);
+    }
+  };
 
   // Fetch bookings and their equipment reservations for this schedule
   const fetchBookings = useCallback(async () => {
@@ -568,7 +631,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Top Breadcrumb */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() =>
@@ -578,33 +641,20 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                 : ROUTES.ADMIN.SCHEDULES
             )
           }
-          className="inline-flex items-center gap-2 text-sm sm:text-sm font-semibold text-stone-600 hover:text-stone-900 cursor-pointer"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-[#126A55] hover:text-slate-900 cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4" />
-          <span>
-            {queryTourId
-              ? 'Quay lại danh sách lịch khởi hành của tour'
-              : 'Quay lại Quản lý Lịch khởi hành'}
-          </span>
+          <Calendar className="w-5 h-5" />
+          <span>Lịch khởi hành</span>
         </button>
-
-        {tour && (
-          <button
-            type="button"
-            onClick={() => navigateTo(ROUTES.ADMIN.SCHEDULE_OVERVIEW_TOUR(tour.id))}
-            className="text-sm text-[#1F4E43] font-semibold hover:underline inline-flex items-center gap-1 cursor-pointer"
-          >
-            <span>Xem tất cả lịch của tour này</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <span className="text-slate-400">/</span>
+        <span className="text-sm font-medium text-slate-700">Chi tiết lịch</span>
       </div>
 
       {/* Main Schedule Header Card */}
       {isLoading ? (
         <div className="py-16 text-center space-y-3">
-          <div className="w-10 h-10 border-3 border-[#1F4E43]/30 border-t-[#1F4E43] rounded-full animate-spin mx-auto" />
-          <p className="text-sm sm:text-sm text-stone-500">
+          <div className="w-10 h-10 border-3 border-[#0B7058]/30 border-t-[#0B7058] rounded-full animate-spin mx-auto" />
+          <p className="text-sm sm:text-sm text-slate-500">
             Đang nạp chi tiết lịch khởi hành...
           </p>
         </div>
@@ -621,105 +671,70 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
           </button>
         </div>
       ) : (
-        <div className="space-y-6">
-          <AdminSectionNav items={[{ id: 'schedule-overview', label: 'Tổng quan' }, { id: 'schedule-guides', label: 'Hướng dẫn viên' }, { id: 'schedule-equipment', label: 'Thiết bị' }, { id: 'schedule-operations', label: 'Điểm danh & bàn giao' }, { id: 'schedule-bookings', label: 'Đặt chỗ' }]} />
+        <div className={`grid grid-cols-1 gap-5 ${activeTab === 'passengers' ? 'lg:grid-cols-[1.15fr_.95fr]' : 'lg:grid-cols-2'}`}>
           {/* Overview Info Card */}
-          <div id="schedule-overview" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-5">
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-stone-100 pb-4">
+          <div id="schedule-overview" className="scroll-mt-48 space-y-5 lg:col-span-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1.5">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <span className="font-mono text-sm font-bold text-stone-500 uppercase">
-                    Chuyến #{schedule?.id} • Tour #{schedule?.tourId}
-                  </span>
-                  {schedule?.status && (
-                    <StatusBadge scheduleStatus={schedule.status} size="sm" />
-                  )}
-                </div>
-                <h1 className="font-editorial text-2xl sm:text-3xl font-bold text-[#1C2526]">
-                  {tour?.title || 'Lịch khởi hành tour'}
+                <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="font-sans text-3xl xl:text-4xl font-bold tracking-tight text-[#101828]">
+                  {tour?.title || 'Lịch khởi hành tour'}{schedule && ` · ${formatScheduleDateRange(schedule.startsAt, schedule.endsAt)}`}
                 </h1>
+                  {schedule?.status && <StatusBadge scheduleStatus={schedule.status} size="sm" />}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    fetchScheduleData();
-                    fetchBookings();
-                    fetchConfirmedOperationsReport();
-                  }}
-                  className="px-3.5 py-2 rounded-xl border border-stone-300 hover:bg-stone-50 text-sm font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  onClick={openScheduleEditor}
+                  className="whitespace-nowrap px-4 py-2.5 rounded-xl border border-[#0B7058] hover:bg-emerald-50 text-sm font-semibold text-[#0B7058] inline-flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Làm mới</span>
+                  <Pencil className="w-4 h-4" />
+                  <span>Chỉnh sửa lịch</span>
                 </button>
               </div>
             </div>
 
-            {/* Logistics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm sm:text-sm text-stone-700">
-              <div className="p-3 bg-stone-50 rounded-xl space-y-1">
-                <span className="text-xs text-stone-500 block">
-                  Thời gian diễn ra (VN):
-                </span>
-                <div className="font-semibold text-stone-900">
-                  {schedule ? formatVietnamDateTime(schedule.startsAt) : '—'}
+            <div className="grid grid-cols-1 gap-3 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { label: 'Sức chứa', value: schedule?.capacity ?? 0, detail: 'người', Icon: Users, tone: 'bg-[#E3F5F1] text-[#126A55]' },
+                { label: 'Đã xác nhận', value: schedule?.confirmedSeats ?? 0, detail: 'hành khách', Icon: CheckCircle2, tone: 'bg-[#E3F5F1] text-[#126A55]' },
+                { label: 'Đang giữ', value: schedule?.heldSeats ?? 0, detail: 'chỗ', Icon: Clock, tone: 'bg-[#FFF1D8] text-[#A45C08]' },
+                { label: 'Còn', value: Math.max(0, (schedule?.capacity ?? 0) - (schedule?.confirmedSeats ?? 0) - (schedule?.heldSeats ?? 0)), detail: 'chỗ', Icon: UserCheck, tone: 'bg-[#E3F5F1] text-[#126A55]' },
+              ].map(({ label, value, detail, Icon, tone }) => (
+                <div key={label} className="flex min-h-24 items-center gap-4 rounded-xl border border-slate-200 bg-white p-4">
+                  <span className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${tone}`}><Icon className="h-6 w-6" /></span>
+                  <div><span className="block text-sm text-slate-600">{label}</span><strong className="text-2xl leading-tight text-slate-950">{value}</strong><span className="ml-1.5 text-sm text-slate-600">{detail}</span></div>
                 </div>
-                <div className="text-xs text-stone-500">
-                  Đến: {schedule ? formatVietnamDateTime(schedule.endsAt) : '—'}
-                </div>
-              </div>
-
-              <div className="p-3 bg-stone-50 rounded-xl space-y-1">
-                <span className="text-xs text-stone-500 block">
-                  Sức chứa & Đặt chỗ:
-                </span>
-                <div className="font-semibold text-stone-900">
-                  {schedule?.confirmedSeats ?? 0} đã đặt / {schedule?.capacity ?? 0} chỗ
-                </div>
-                <div className="text-xs text-stone-500">
-                  Đang giữ chỗ: {schedule?.heldSeats ?? 0} ghế
-                </div>
-              </div>
-
-              <div className="p-3 bg-stone-50 rounded-xl space-y-1">
-                <span className="text-xs text-stone-500 block">
-                  Giá cơ bản / Khách:
-                </span>
-                <div className="font-semibold font-mono text-[#1F4E43]">
-                  {formatVND(schedule?.basePriceVnd || 0)}
-                </div>
-                <div className="text-xs text-stone-500">
-                  Cọc: {schedule?.depositPercent ?? 0}%
-                </div>
-              </div>
-
-              <div className="p-3 bg-stone-50 rounded-xl space-y-1">
-                <span className="text-xs text-stone-500 block">
-                  Điểm tập trung & Liên hệ:
-                </span>
-                <div className="font-semibold text-stone-900 truncate">
-                  {schedule?.meetingPoint || 'Chưa cập nhật'}
-                </div>
-                <div className="text-xs font-mono text-stone-600">
-                  Hotline: {schedule?.contactPhone || '1900 8888'}
-                </div>
-              </div>
+              ))}
             </div>
+            {activeTab === 'overview' && <div className="grid gap-3 rounded-2xl border border-[#E0E6EE] bg-white p-5 sm:grid-cols-2">
+              <div><span className="text-sm text-slate-500">Giá cơ bản / khách</span><p className="font-semibold text-[#0B7058]">{formatVND(schedule?.basePriceVnd || 0)} <span className="text-sm font-normal text-slate-500">· Cọc {schedule?.depositPercent ?? 0}%</span></p></div>
+              <div><span className="text-sm text-slate-500">Điểm tập trung & liên hệ</span><p className="font-semibold">{schedule?.meetingPoint || 'Chưa cập nhật'} · {schedule?.contactPhone || 'Chưa có số liên hệ'}</p></div>
+            </div>}
           </div>
+
+          <nav aria-label="Chi tiết lịch" className="col-span-full flex items-center gap-8 overflow-x-auto border-b border-slate-200 px-2">
+            {([{ id: 'overview', label: 'Tổng quan' }, { id: 'passengers', label: 'Hành khách' }, { id: 'equipment', label: 'Thiết bị bàn giao' }] as const).map((tab) => (
+              <button key={tab.id} type="button" aria-pressed={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} className={`shrink-0 border-b-2 px-4 py-4 text-base font-semibold transition-colors ${activeTab === tab.id ? 'border-[#0B7058] text-[#0B7058]' : 'border-transparent text-slate-600 hover:text-slate-900'}`}>
+                {tab.label}
+              </button>
+            ))}
+          </nav>
 
           {/* ============================================================== */}
           {/* SECTION 1: PHÂN CÔNG HƯỚNG DẪN VIÊN (GUIDE ASSIGNMENT)         */}
           {/* ============================================================== */}
-          <div id="schedule-guides" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
+          <div id="schedule-guides" className={`scroll-mt-48 bg-white rounded-2xl border border-[#E0E6EE] p-6 shadow-2xs space-y-4 ${activeTab === 'passengers' ? 'lg:col-start-2 lg:row-start-3' : 'hidden'}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
-                <h2 className="font-editorial text-lg sm:text-xl font-bold text-[#1C2526] flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-[#1F4E43]" />
-                  <span>Phân công Hướng dẫn viên phụ trách chuyến</span>
+                <h2 className="font-sans text-lg sm:text-xl font-bold text-[#172033] flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-[#0B7058]" />
+                  <span>Hướng dẫn viên</span>
                 </h2>
-                <p className="text-sm text-stone-500 mt-0.5">
-                  Chỉ định một hoặc nhiều Guide cho lịch khởi hành này. Guide được phân công mới có thẩm quyền điểm danh khách.
+                <p className="text-sm text-slate-500 mt-0.5">
+                  Chỉ định hướng dẫn viên phụ trách chuyến.
                 </p>
               </div>
 
@@ -731,146 +746,68 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                   setAssignModalOpen(true);
                 }}
                 disabled={allGuides.length > 0 && availableGuidesForSelect.length === 0}
-                className="px-4 py-2 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-sm font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-xl bg-[#0B7058] hover:bg-[#075743] text-white text-sm font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-4 h-4" />
-                <span>Phân công Guide cho lịch</span>
+                <span>Chỉnh sửa phân công</span>
               </button>
             </div>
 
-            {draftGuides.length === 0 ? (
-              <div className="py-8 text-center text-sm text-stone-500 bg-stone-50 rounded-xl border border-dashed border-stone-200 space-y-2">
-                <Users className="w-8 h-8 text-stone-400 mx-auto" />
-                <p>Lịch khởi hành này chưa được phân công Hướng dẫn viên.</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedGuideId('');
-                    setSelectedIsLead(false);
-                    setAssignModalOpen(true);
-                  }}
-                  className="font-semibold text-[#1F4E43] hover:underline cursor-pointer"
-                >
-                  Bấm vào đây để phân công Guide ngay
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {draftGuides.map((guide, idx) => {
-                  const isNewlyAdded = !assignedGuides.some(
-                    (a) => a.guideId === guide.guideId
-                  );
-                  return (
-                    <div
-                      key={guide.guideId ?? guide.accountId ?? idx}
-                      className={`p-4 rounded-xl border transition-colors flex items-start justify-between gap-3 text-sm ${
-                        isNewlyAdded
-                          ? 'border-amber-300 bg-amber-50/40'
-                          : 'border-stone-200 bg-stone-50/70 hover:bg-stone-50'
-                      }`}
-                    >
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <strong className="text-stone-900 text-sm">
-                            {guide.fullName}
-                          </strong>
-                          {guide.isLead && (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
-                              Guide Chính
-                            </span>
-                          )}
-                          {isNewlyAdded && (
-                            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold">
-                              Chưa xác nhận
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-stone-600 font-mono">
-                          {guide.phone
-                            ? `SĐT: ${guide.phone}`
-                            : `Email: ${guide.email || '—'}`}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleLeadGuide(guide.guideId)}
-                          className="text-xs font-semibold text-[#1F4E43] hover:underline cursor-pointer"
-                        >
-                          {guide.isLead
-                            ? 'Bỏ đánh dấu Guide Chính'
-                            : 'Đặt làm Guide Chính'}
-                        </button>
-                      </div>
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-slate-700">Đã phân công ({draftGuides.length})</p>
+              {draftGuides.length > 0 ? <div className="flex flex-wrap gap-2.5">
+                {draftGuides.map((guide) => <div key={guide.guideId} className="inline-flex items-center gap-2 rounded-xl bg-[#E3F5F1] px-3 py-2 text-sm font-semibold text-[#124F40]">
+                  <Users className="h-4 w-4" />
+                  <span>{guide.fullName}</span>
+                  {guide.isLead && <span className="text-xs font-medium">· Chính</span>}
+                  <button type="button" onClick={() => handleRemoveGuide(guide.guideId)} aria-label={`Gỡ ${guide.fullName}`} className="rounded p-0.5 hover:bg-white/70"><XCircle className="h-4 w-4" /></button>
+                </div>)}
+              </div> : <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">Chưa có hướng dẫn viên được phân công.</p>}
+            </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveGuide(guide.guideId)}
-                        title="Xóa khỏi danh sách"
-                        className="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <form onSubmit={handleAddGuideToDraft} className="space-y-2 border-t border-slate-200 pt-4">
+              <label htmlFor="schedule-guide-select" className="block text-sm font-medium text-slate-700">Chọn hướng dẫn viên</label>
+              <select id="schedule-guide-select" value={selectedGuideId} onChange={(event) => setSelectedGuideId(event.target.value)} disabled={availableGuidesForSelect.length === 0} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 disabled:bg-slate-50">
+                <option value="">{availableGuidesForSelect.length ? 'Chọn hướng dẫn viên' : 'Không còn hướng dẫn viên khả dụng'}</option>
+                {availableGuidesForSelect.map((guide) => <option key={guide.guideId} value={guide.guideId}>{guide.fullName}</option>)}
+              </select>
+              {selectedGuideConflict && <p role="alert" className="text-xs text-amber-800">Hướng dẫn viên này có lịch trùng thời gian.</p>}
+              <button type="submit" disabled={!selectedGuideId || isSavingGuide} className="text-sm font-semibold text-[#0B7058] disabled:text-slate-400">+ Thêm vào phân công</button>
+            </form>
 
-            {hasUnsavedGuideChanges && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-amber-200 bg-amber-50/60 p-3.5 rounded-xl">
-                <div className="flex items-center gap-2 text-sm text-amber-900">
-                  <Info className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span>
-                    Danh sách phân công có thay đổi chưa lưu. Bạn có thể kiểm tra, đổi Guide chính hoặc xóa bớt trước khi xác nhận hoàn tất.
-                  </span>
-                </div>
-                <div className="flex items-center justify-end gap-2.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleDiscardGuideChanges}
-                    disabled={isSavingGuide}
-                    className="px-3.5 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-sm font-semibold cursor-pointer disabled:opacity-50"
-                  >
-                    Hủy thay đổi
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleConfirmSaveGuides}
-                    disabled={isSavingGuide}
-                    className="px-4 py-2 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-sm font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>{isSavingGuide ? 'Đang lưu...' : 'Xác nhận hoàn tất'}</span>
-                  </button>
-                </div>
-              </div>
-            )}
+            <div className="space-y-2 border-t border-slate-200 pt-4">
+              {hasUnsavedGuideChanges && <button type="button" onClick={handleDiscardGuideChanges} disabled={isSavingGuide} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Hủy thay đổi</button>}
+              <button type="button" onClick={handleConfirmSaveGuides} disabled={isSavingGuide || !hasUnsavedGuideChanges} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#075743] px-4 py-3.5 text-sm font-semibold text-white hover:bg-[#064635] disabled:cursor-not-allowed disabled:opacity-50">
+                <CheckCircle2 className="h-4 w-4" />{isSavingGuide ? 'Đang lưu...' : 'Lưu phân công'}
+              </button>
+            </div>
           </div>
 
           {/* ============================================================== */}
           {/* SECTION 2: TỔNG HỢP THIẾT BỊ KHÁCH ĐẶT CỦA LỊCH KHỞI HÀNH       */}
           {/* ============================================================== */}
-          <div id="schedule-equipment" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
+          <div id="schedule-equipment" className={`scroll-mt-48 bg-white rounded-2xl border border-[#E0E6EE] p-6 shadow-2xs space-y-4 ${activeTab === 'equipment' ? 'lg:col-span-2' : 'hidden'}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
-                <h2 className="font-editorial text-lg sm:text-xl font-bold text-[#1C2526] flex items-center gap-2">
-                  <Boxes className="w-5 h-5 text-[#1F4E43]" />
+                <h2 className="font-sans text-lg sm:text-xl font-bold text-[#172033] flex items-center gap-2">
+                  <Boxes className="w-5 h-5 text-[#0B7058]" />
                   <span>Tổng hợp thiết bị khách đặt</span>
                 </h2>
-                <p className="text-sm text-stone-500 mt-0.5">
+                <p className="text-sm text-slate-500 mt-0.5">
                   Cộng gộp số lượng từng thiết bị từ các đơn đặt chỗ đã xác nhận thuộc lịch khởi hành #{scheduleId} (không bao gồm đơn đã hủy, giữ chỗ hết hạn hoặc thiết bị đã giải phóng).
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-sm font-mono text-stone-600 shrink-0">
-                <span className="px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E6E1D8]">
+              <div className="flex flex-wrap items-center gap-2 text-sm font-mono text-slate-600 shrink-0">
+                <span className="px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E0E6EE]">
                   Đơn thuê thiết bị:{' '}
-                  <strong className="text-stone-900">
+                  <strong className="text-slate-900">
                     {scheduleEquipmentSummary.totalBookingsWithEquipment}
                   </strong>
                 </span>
-                <span className="px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E6E1D8]">
+                <span className="px-2.5 py-1 rounded-lg bg-[#FAF8F5] border border-[#E0E6EE]">
                   Tổng số món:{' '}
-                  <strong className="text-[#1F4E43]">
+                  <strong className="text-[#0B7058]">
                     {equipmentTotals.totalQuantity}
                   </strong>
                 </span>
@@ -878,16 +815,16 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
             </div>
 
             {isLoadingBookings || isLoadingEquipment ? (
-              <div className="py-8 text-center text-sm text-stone-500">
+              <div className="py-8 text-center text-sm text-slate-500">
                 Đang tổng hợp thiết bị khách đặt cho lịch khởi hành này...
               </div>
             ) : scheduleEquipmentSummary.items.length === 0 ? (
-              <div className="py-8 text-center text-sm text-stone-500 bg-stone-50 rounded-xl border border-dashed border-stone-200 space-y-1.5">
-                <Boxes className="w-7 h-7 text-stone-400 mx-auto" />
-                <p className="font-semibold text-stone-700">
+              <div className="py-8 text-center text-sm text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-1.5">
+                <Boxes className="w-7 h-7 text-slate-400 mx-auto" />
+                <p className="font-semibold text-slate-700">
                   Chưa có thiết bị nào được đặt cho lịch này
                 </p>
-                <p className="text-stone-500">
+                <p className="text-slate-500">
                   Chưa có đơn đặt chỗ xác nhận nào đăng ký thuê thiết bị cho chuyến đi này.
                 </p>
               </div>
@@ -895,7 +832,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
-                    <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-xs font-mono uppercase tracking-wider text-stone-600">
+                    <tr className="bg-[#F3F6FA] border-b border-[#E0E6EE] text-xs font-mono uppercase tracking-wider text-slate-600">
                       <th className="py-3 px-3.5 font-bold">Tên thiết bị</th>
                       <th className="py-3 px-3.5 font-bold text-center">Số đơn đặt</th>
                       <th className="py-3 px-3.5 font-bold text-center">
@@ -905,23 +842,23 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                       <th className="py-3 px-3.5 font-bold text-center">Đã trả</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-200">
+                  <tbody className="divide-y divide-slate-200">
                     {scheduleEquipmentSummary.items.map((item) => (
                       <tr
                         key={item.equipmentId}
-                        className="hover:bg-[#FDFBF7] transition-colors"
+                        className="hover:bg-[#F3F6FA] transition-colors"
                       >
-                        <td className="py-3 px-3.5 font-semibold text-stone-900">
+                        <td className="py-3 px-3.5 font-semibold text-slate-900">
                           {item.equipmentName}
-                          <span className="ml-2 font-mono text-xs font-normal text-stone-400">
+                          <span className="ml-2 font-mono text-xs font-normal text-slate-400">
                             #{item.equipmentId}
                           </span>
                         </td>
-                        <td className="py-3 px-3.5 text-center font-mono text-stone-600">
+                        <td className="py-3 px-3.5 text-center font-mono text-slate-600">
                           {item.bookingCount} đơn
                         </td>
                         <td className="py-3 px-3.5 text-center font-mono">
-                          <span className="px-2.5 py-0.5 rounded-md bg-stone-100 text-stone-900 font-bold">
+                          <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-900 font-bold">
                             {item.totalQuantity}
                           </span>
                         </td>
@@ -935,14 +872,14 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-[#FAF8F5] border-t border-[#E6E1D8] font-mono text-sm font-bold text-stone-800">
+                    <tr className="bg-[#FAF8F5] border-t border-[#E0E6EE] font-mono text-sm font-bold text-slate-800">
                       <td className="py-3 px-3.5 font-sans">
                         Tổng cộng ({scheduleEquipmentSummary.items.length} loại thiết bị)
                       </td>
-                      <td className="py-3 px-3.5 text-center text-stone-600">
+                      <td className="py-3 px-3.5 text-center text-slate-600">
                         {scheduleEquipmentSummary.totalBookingsWithEquipment} đơn
                       </td>
-                      <td className="py-3 px-3.5 text-center text-[#1F4E43]">
+                      <td className="py-3 px-3.5 text-center text-[#0B7058]">
                         {equipmentTotals.totalQuantity}
                       </td>
                       <td className="py-3 px-3.5 text-center text-emerald-700">
@@ -962,18 +899,18 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
           {/* SECTION 3 (GIAI ĐOẠN 2): GIÁM SÁT BÁO CÁO CHECK-IN / CHECK-OUT */}
           {/* & BÀN GIAO THIẾT BỊ CỦA GUIDE (CHỈ XEM - READ ONLY)            */}
           {/* ============================================================== */}
-          <div id="schedule-operations" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
+          <div id="schedule-operations" className={`scroll-mt-48 bg-white rounded-2xl border border-[#E0E6EE] p-6 shadow-2xs space-y-5 ${activeTab === 'equipment' ? 'lg:col-span-2' : 'hidden'}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-editorial text-lg sm:text-xl font-bold text-[#1C2526] flex items-center gap-2">
-                    <ClipboardCheck className="w-5 h-5 text-[#1F4E43]" />
+                  <h2 className="font-sans text-lg sm:text-xl font-bold text-[#172033] flex items-center gap-2">
+                    <ClipboardCheck className="w-5 h-5 text-[#0B7058]" />
                     <span>
                       Giám sát báo cáo Check-in / Check-out & Bàn giao Thiết bị của Guide
                     </span>
                   </h2>
                 </div>
-                <p className="text-sm text-stone-500 mt-0.5">
+                <p className="text-sm text-slate-500 mt-0.5">
                   Chỉ hiển thị kết quả sau khi Guide đã bấm xác nhận hoàn tất từng lượt (không hiển thị bản nháp đang nhập dở). Phân biệt rõ thời điểm đánh dấu từng khách/thiết bị và thời điểm xác nhận gửi cả lượt.
                 </p>
               </div>
@@ -982,7 +919,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                 type="button"
                 onClick={fetchConfirmedOperationsReport}
                 disabled={isLoadingOpsReport}
-                className="px-3.5 py-2 rounded-xl border border-stone-300 hover:bg-stone-50 text-sm font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer self-start"
+                className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-sm font-semibold text-slate-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer self-start"
               >
                 <RefreshCw
                   className={`w-3.5 h-3.5 ${isLoadingOpsReport ? 'animate-spin' : ''}`}
@@ -998,11 +935,11 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                 className={`p-4 rounded-xl border space-y-2 text-sm ${
                   confirmedCheckIn
                     ? 'border-emerald-200 bg-emerald-50/40'
-                    : 'border-stone-200 bg-stone-50'
+                    : 'border-slate-200 bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-sm text-stone-900">
+                  <span className="font-bold text-sm text-slate-900">
                     1. Lượt Check-in & Bàn giao Thiết bị
                   </span>
                   {confirmedCheckIn ? (
@@ -1010,21 +947,21 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                       Đã xác nhận hoàn tất
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full bg-stone-200 text-stone-700 font-semibold text-xs">
+                    <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700 font-semibold text-xs">
                       Chưa có báo cáo xác nhận
                     </span>
                   )}
                 </div>
 
                 {confirmedCheckIn ? (
-                  <div className="space-y-1 text-stone-700">
+                  <div className="space-y-1 text-slate-700">
                     <div>
                       Guide thực hiện:{' '}
-                      <strong className="text-stone-900">
+                      <strong className="text-slate-900">
                         {confirmedCheckIn.submittedByGuideName}
                       </strong>
                       {confirmedCheckIn.submittedByGuideEmail && (
-                        <span className="text-stone-500">
+                        <span className="text-slate-500">
                           {' '}
                           ({confirmedCheckIn.submittedByGuideEmail})
                         </span>
@@ -1055,14 +992,14 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                       </span>
                     </div>
                     {confirmedCheckIn.generalNote && (
-                      <div className="mt-2 p-2 rounded-lg bg-white border border-emerald-200/80 text-stone-700">
+                      <div className="mt-2 p-2 rounded-lg bg-white border border-emerald-200/80 text-slate-700">
                         <strong>Ghi chú chung lượt Check-in:</strong>{' '}
                         {confirmedCheckIn.generalNote}
                       </div>
                     )}
                   </div>
                 ) : (
-                  <p className="text-stone-500">
+                  <p className="text-slate-500">
                     Guide chưa gửi xác nhận hoàn tất lượt Check-in cho lịch khởi hành này.
                   </p>
                 )}
@@ -1073,11 +1010,11 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                 className={`p-4 rounded-xl border space-y-2 text-sm ${
                   confirmedCheckOut
                     ? 'border-teal-200 bg-teal-50/40'
-                    : 'border-stone-200 bg-stone-50'
+                    : 'border-slate-200 bg-slate-50'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-sm text-stone-900">
+                  <span className="font-bold text-sm text-slate-900">
                     2. Lượt Check-out & Nhận lại Thiết bị
                   </span>
                   {confirmedCheckOut ? (
@@ -1085,21 +1022,21 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                       Đã xác nhận hoàn tất
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full bg-stone-200 text-stone-700 font-semibold text-xs">
+                    <span className="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700 font-semibold text-xs">
                       Chưa có báo cáo xác nhận
                     </span>
                   )}
                 </div>
 
                 {confirmedCheckOut ? (
-                  <div className="space-y-1 text-stone-700">
+                  <div className="space-y-1 text-slate-700">
                     <div>
                       Guide thực hiện:{' '}
-                      <strong className="text-stone-900">
+                      <strong className="text-slate-900">
                         {confirmedCheckOut.submittedByGuideName}
                       </strong>
                       {confirmedCheckOut.submittedByGuideEmail && (
-                        <span className="text-stone-500">
+                        <span className="text-slate-500">
                           {' '}
                           ({confirmedCheckOut.submittedByGuideEmail})
                         </span>
@@ -1130,14 +1067,14 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                       </span>
                     </div>
                     {confirmedCheckOut.generalNote && (
-                      <div className="mt-2 p-2 rounded-lg bg-white border border-teal-200/80 text-stone-700">
+                      <div className="mt-2 p-2 rounded-lg bg-white border border-teal-200/80 text-slate-700">
                         <strong>Ghi chú chung lượt Check-out:</strong>{' '}
                         {confirmedCheckOut.generalNote}
                       </div>
                     )}
                   </div>
                 ) : (
-                  <p className="text-stone-500">
+                  <p className="text-slate-500">
                     Guide chưa gửi xác nhận hoàn tất lượt Check-out cho lịch khởi hành này.
                   </p>
                 )}
@@ -1146,12 +1083,12 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
 
             {/* Detailed Per-Participant Supervision Table */}
             {!confirmedCheckIn && !confirmedCheckOut ? (
-              <div className="py-10 text-center text-sm text-stone-500 bg-stone-50 rounded-xl border border-dashed border-stone-200 space-y-1.5">
-                <ClipboardCheck className="w-8 h-8 text-stone-400 mx-auto" />
-                <p className="font-bold text-stone-700">
+              <div className="py-10 text-center text-sm text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200 space-y-1.5">
+                <ClipboardCheck className="w-8 h-8 text-slate-400 mx-auto" />
+                <p className="font-bold text-slate-700">
                   Chưa có báo cáo điểm danh & bàn giao thiết bị nào được Guide xác nhận hoàn tất
                 </p>
-                <p className="text-stone-500 max-w-lg mx-auto">
+                <p className="text-slate-500 max-w-lg mx-auto">
                   Khi Guide hoàn tất và bấm xác nhận từng lượt Check-in hoặc Check-out, chi tiết điểm danh từng khách, thiết bị bàn giao/thu hồi, ảnh hiện trạng và ghi chú sẽ hiển thị tại đây.
                 </p>
               </div>
@@ -1159,7 +1096,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
-                    <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-xs font-mono uppercase tracking-wider text-stone-600">
+                    <tr className="bg-[#F3F6FA] border-b border-[#E0E6EE] text-xs font-mono uppercase tracking-wider text-slate-600">
                       <th className="py-3 px-3 font-bold">Hành khách & Đơn</th>
                       <th className="py-3 px-3 font-bold">
                         Check-in & Thời điểm đánh dấu
@@ -1175,7 +1112,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-200 align-top">
+                  <tbody className="divide-y divide-slate-200 align-top">
                     {(confirmedCheckIn?.participants || []).map((ciGuest) => {
                       const coGuest = checkOutByParticipantId.get(
                         ciGuest.participantId
@@ -1184,18 +1121,18 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                       return (
                         <tr
                           key={ciGuest.participantId}
-                          className="hover:bg-[#FDFBF7] transition-colors"
+                          className="hover:bg-[#F3F6FA] transition-colors"
                         >
                           {/* Column 1: Guest Info */}
                           <td className="py-3.5 px-3 space-y-1 min-w-[170px]">
-                            <div className="font-bold text-stone-900">
+                            <div className="font-bold text-slate-900">
                               {ciGuest.fullName}
                             </div>
-                            <div className="font-mono text-xs text-stone-500">
+                            <div className="font-mono text-xs text-slate-500">
                               Đơn #{ciGuest.bookingCode}
                             </div>
                             {ciGuest.phone && (
-                              <div className="font-mono text-xs text-stone-500">
+                              <div className="font-mono text-xs text-slate-500">
                                 SĐT: {ciGuest.phone}
                               </div>
                             )}
@@ -1216,14 +1153,14 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                 </span>
                               )}
                             </div>
-                            <div className="text-xs text-stone-600">
+                            <div className="text-xs text-slate-600">
                               <div>
                                 Đánh dấu khách:{' '}
-                                <strong className="font-mono text-stone-900">
+                                <strong className="font-mono text-slate-900">
                                   {formatVietnamDateTime(ciGuest.markedAt, true)}
                                 </strong>
                               </div>
-                              <div className="text-stone-500">
+                              <div className="text-slate-500">
                                 Gửi lượt:{' '}
                                 <span className="font-mono">
                                   {formatVietnamDateTime(
@@ -1234,7 +1171,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                               </div>
                             </div>
                             {ciGuest.note && (
-                              <div className="p-1.5 rounded bg-stone-100 text-stone-700 text-xs">
+                              <div className="p-1.5 rounded bg-slate-100 text-slate-700 text-xs">
                                 Ghi chú: {ciGuest.note}
                               </div>
                             )}
@@ -1244,7 +1181,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                           <td className="py-3.5 px-3 min-w-[250px]">
                             {!ciGuest.equipmentItems ||
                             ciGuest.equipmentItems.length === 0 ? (
-                              <span className="text-stone-400 italic">
+                              <span className="text-slate-400 italic">
                                 Không nhận thiết bị
                               </span>
                             ) : (
@@ -1252,10 +1189,10 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                 {ciGuest.equipmentItems.map((eq) => (
                                   <div
                                     key={eq.equipmentId}
-                                    className="p-2.5 rounded-lg border border-stone-200 bg-white space-y-1.5"
+                                    className="p-2.5 rounded-lg border border-slate-200 bg-white space-y-1.5"
                                   >
                                     <div className="flex items-center justify-between gap-2">
-                                      <span className="font-bold text-stone-900">
+                                      <span className="font-bold text-slate-900">
                                         {eq.equipmentName}
                                       </span>
                                       <span className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 font-mono font-bold text-emerald-800">
@@ -1272,7 +1209,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                         {ADMIN_CONDITION_BADGES[eq.condition]?.label ||
                                           eq.condition}
                                       </span>
-                                      <span className="font-mono text-stone-500">
+                                      <span className="font-mono text-slate-500">
                                         Lúc:{' '}
                                         {formatVietnamDateTime(eq.handedOverAt, true)}
                                       </span>
@@ -1294,7 +1231,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                                 title: `Ảnh bàn giao Check-in: ${eq.equipmentName} (${ciGuest.fullName})`,
                                               })
                                             }
-                                            className="relative w-12 h-12 rounded-lg overflow-hidden border border-stone-300 hover:ring-2 hover:ring-[#1F4E43] cursor-pointer"
+                                            className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-300 hover:ring-2 hover:ring-[#0B7058] cursor-pointer"
                                           >
                                             <img
                                               src={ph.url}
@@ -1314,7 +1251,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                           {/* Column 4: Check-out Status & Timestamps */}
                           <td className="py-3.5 px-3 space-y-1.5 min-w-[190px]">
                             {!coGuest ? (
-                              <span className="text-stone-400 italic">
+                              <span className="text-slate-400 italic">
                                 Chưa xác nhận lượt Check-out
                               </span>
                             ) : (
@@ -1331,19 +1268,19 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                       Kết thúc sớm
                                     </span>
                                   ) : (
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-stone-200 text-stone-700 font-bold text-xs">
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold text-xs">
                                       Vắng mặt từ Check-in
                                     </span>
                                   )}
                                 </div>
-                                <div className="text-xs text-stone-600">
+                                <div className="text-xs text-slate-600">
                                   <div>
                                     Đánh dấu khách:{' '}
-                                    <strong className="font-mono text-stone-900">
+                                    <strong className="font-mono text-slate-900">
                                       {formatVietnamDateTime(coGuest.markedAt, true)}
                                     </strong>
                                   </div>
-                                  <div className="text-stone-500">
+                                  <div className="text-slate-500">
                                     Gửi lượt:{' '}
                                     <span className="font-mono">
                                       {formatVietnamDateTime(
@@ -1354,7 +1291,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                   </div>
                                 </div>
                                 {coGuest.note && (
-                                  <div className="p-1.5 rounded bg-stone-100 text-stone-700 text-xs">
+                                  <div className="p-1.5 rounded bg-slate-100 text-slate-700 text-xs">
                                     Ghi chú: {coGuest.note}
                                   </div>
                                 )}
@@ -1365,12 +1302,12 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                           {/* Column 5: Equipment Returned at Check-out */}
                           <td className="py-3.5 px-3 min-w-[260px]">
                             {!coGuest ? (
-                              <span className="text-stone-400 italic">
+                              <span className="text-slate-400 italic">
                                 Chờ xác nhận Check-out
                               </span>
                             ) : !coGuest.equipmentItems ||
                               coGuest.equipmentItems.length === 0 ? (
-                              <span className="text-stone-400 italic">
+                              <span className="text-slate-400 italic">
                                 Không có thiết bị cần trả
                               </span>
                             ) : (
@@ -1387,11 +1324,11 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                       className={`p-2.5 rounded-lg border space-y-1.5 ${
                                         hasProblem
                                           ? 'border-rose-300 bg-rose-50/30'
-                                          : 'border-stone-200 bg-white'
+                                          : 'border-slate-200 bg-white'
                                       }`}
                                     >
                                       <div className="flex items-center justify-between gap-2">
-                                        <span className="font-bold text-stone-900">
+                                        <span className="font-bold text-slate-900">
                                           {eq.equipmentName}
                                         </span>
                                         <span
@@ -1415,7 +1352,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                           {ADMIN_CONDITION_BADGES[eq.condition]?.label ||
                                             eq.condition}
                                         </span>
-                                        <span className="font-mono text-stone-500">
+                                        <span className="font-mono text-slate-500">
                                           Lúc:{' '}
                                           {formatVietnamDateTime(eq.returnedAt, true)}
                                         </span>
@@ -1439,7 +1376,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                                                   title: `Ảnh nhận lại Check-out: ${eq.equipmentName} (${ciGuest.fullName})`,
                                                 })
                                               }
-                                              className="relative w-12 h-12 rounded-lg overflow-hidden border border-stone-300 hover:ring-2 hover:ring-[#1F4E43] cursor-pointer"
+                                              className="relative w-12 h-12 rounded-lg overflow-hidden border border-slate-300 hover:ring-2 hover:ring-[#0B7058] cursor-pointer"
                                             >
                                               <img
                                                 src={ph.url}
@@ -1468,28 +1405,28 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
           {/* ============================================================== */}
           {/* SECTION 4: DANH SÁCH KHÁCH & ĐƠN ĐẶT CHỖ                       */}
           {/* ============================================================== */}
-          <div id="schedule-bookings" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
+          <div id="schedule-bookings" className={`scroll-mt-48 bg-white rounded-2xl border border-[#E0E6EE] p-6 shadow-2xs space-y-4 ${activeTab === 'passengers' ? 'lg:col-start-1 lg:row-start-3' : 'hidden'}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
-                <h2 className="font-editorial text-lg sm:text-xl font-bold text-[#1C2526]">
+                <h2 className="font-sans text-lg sm:text-xl font-bold text-[#172033]">
                   Danh sách hành khách theo Đơn đặt chỗ ({allPassengers.length} khách)
                 </h2>
-                <p className="text-sm text-stone-500 mt-0.5">
+                <p className="text-sm text-slate-500 mt-0.5">
                   Theo dõi danh sách khách hàng và thiết bị đặt thuê theo từng booking.
                 </p>
               </div>
 
-              <div className="text-sm font-mono text-stone-600">
+              <div className="text-sm font-mono text-slate-600">
                 Tổng đơn: <strong>{bookings.length}</strong>
               </div>
             </div>
 
             {isLoadingBookings ? (
-              <div className="py-8 text-center text-sm text-stone-500">
+              <div className="py-8 text-center text-sm text-slate-500">
                 Đang nạp danh sách đặt chỗ của lịch...
               </div>
             ) : bookings.length === 0 ? (
-              <div className="py-8 text-center text-sm text-stone-500 bg-stone-50 rounded-xl">
+              <div className="py-8 text-center text-sm text-slate-500 bg-slate-50 rounded-xl">
                 Chưa có đơn đặt chỗ nào được ghi nhận cho lịch khởi hành này.
               </div>
             ) : (
@@ -1501,11 +1438,11 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                   return (
                     <div
                       key={booking.id}
-                      className="rounded-xl border border-stone-200 p-4 space-y-3 bg-[#FDFBF7]"
+                      className="rounded-xl border border-slate-200 p-4 space-y-3 bg-[#F3F6FA]"
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200/80 pb-2.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-2.5">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-stone-900 text-sm">
+                          <span className="font-bold text-slate-900 text-sm">
                             Đặt chỗ #{booking.id} ({booking.bookingCode})
                           </span>
                           <StatusBadge bookingStatus={booking.status} size="sm" />
@@ -1517,9 +1454,9 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                           )}
                         </div>
 
-                        <div className="text-sm text-stone-600 font-mono">
+                        <div className="text-sm text-slate-600 font-mono">
                           Số lượng: <strong>{passengers.length} người</strong> • Tổng tiền:{' '}
-                          <strong className="text-[#1F4E43]">
+                          <strong className="text-[#0B7058]">
                             {formatVND(booking.price?.totalPriceVnd || 0)}
                           </strong>
                         </div>
@@ -1529,32 +1466,32 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                           <thead>
-                            <tr className="text-xs font-mono text-stone-500 uppercase border-b border-stone-200">
+                            <tr className="text-xs font-mono text-slate-500 uppercase border-b border-slate-200">
                               <th className="py-2 px-2">Họ tên khách</th>
                               <th className="py-2 px-2">Số điện thoại</th>
                               <th className="py-2 px-2">Email</th>
                               <th className="py-2 px-2 text-center">Vai trò</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-stone-100">
+                          <tbody className="divide-y divide-slate-100">
                             {passengers.map((p) => (
                               <tr key={p.id}>
-                                <td className="py-2 px-2 font-semibold text-stone-900">
+                                <td className="py-2 px-2 font-semibold text-slate-900">
                                   {p.fullName}
                                 </td>
-                                <td className="py-2 px-2 font-mono text-stone-600">
+                                <td className="py-2 px-2 font-mono text-slate-600">
                                   {p.phone || '—'}
                                 </td>
-                                <td className="py-2 px-2 font-mono text-stone-600">
+                                <td className="py-2 px-2 font-mono text-slate-600">
                                   {p.email || '—'}
                                 </td>
                                 <td className="py-2 px-2 text-center">
                                   {p.bookingCustomer ? (
-                                    <span className="px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 font-bold text-xs">
+                                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-xs">
                                       Trưởng đoàn
                                     </span>
                                   ) : (
-                                    <span className="text-stone-400">Thành viên</span>
+                                    <span className="text-slate-400">Thành viên</span>
                                   )}
                                 </td>
                               </tr>
@@ -1567,16 +1504,16 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                       {reservation &&
                         reservation.items &&
                         reservation.items.length > 0 && (
-                          <div className="p-3 bg-white rounded-lg border border-stone-200 text-sm space-y-1.5">
-                            <span className="font-semibold text-stone-800 flex items-center gap-1.5">
-                              <Boxes className="w-3.5 h-3.5 text-stone-600" />
+                          <div className="p-3 bg-white rounded-lg border border-slate-200 text-sm space-y-1.5">
+                            <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                              <Boxes className="w-3.5 h-3.5 text-slate-600" />
                               <span>Thiết bị thuê theo đơn:</span>
                             </span>
                             <div className="flex flex-wrap gap-2 pt-0.5">
                               {reservation.items.map((it) => (
                                 <span
                                   key={it.equipmentId}
-                                  className="px-2.5 py-1 rounded-md bg-stone-100 text-stone-800 font-mono text-xs border border-stone-200"
+                                  className="px-2.5 py-1 rounded-md bg-slate-100 text-slate-800 font-mono text-xs border border-slate-200"
                                 >
                                   {it.equipmentName}: <strong>{it.quantity}</strong> đặt (Đã giao:{' '}
                                   <strong className="text-emerald-700">
@@ -1601,6 +1538,29 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
         </div>
       )}
 
+      {editScheduleOpen && editDraft && (
+        <Modal isOpen onClose={() => { if (!editScheduleBusy) setEditScheduleOpen(false); }} title="Chỉnh sửa lịch" subtitle="Cập nhật thời gian, sức chứa và thông tin chuyến khởi hành." maxWidth="3xl" preventClose={editScheduleBusy}>
+          <form onSubmit={saveScheduleEdits} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm font-medium">Thời gian bắt đầu<input required type="datetime-local" value={editDraft.startsAt} onChange={e => setEditDraft({...editDraft, startsAt:e.target.value})} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5" /></label>
+              <label className="block text-sm font-medium">Thời gian kết thúc<input required type="datetime-local" value={editDraft.endsAt} onChange={e => setEditDraft({...editDraft, endsAt:e.target.value})} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5" /></label>
+              <label className="block text-sm font-medium">Sức chứa<input required type="number" min={1} value={editDraft.capacity} onChange={e => setEditDraft({...editDraft, capacity:Number(e.target.value)})} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5" /></label>
+              <label className="block text-sm font-medium">Giá cơ bản / khách (₫)<input required type="number" min={0} value={editDraft.basePriceVnd} onChange={e => setEditDraft({...editDraft, basePriceVnd:Number(e.target.value)})} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5" /></label>
+              <label className="block text-sm font-medium">Phí thiết bị / khách (₫)<input required type="number" min={0} value={editDraft.equipmentFeeVnd} onChange={e => setEditDraft({...editDraft, equipmentFeeVnd:Number(e.target.value)})} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5" /></label>
+              <label className="block text-sm font-medium">Tiền cọc (%)<input required type="number" min={0.01} max={100} step="0.01" value={editDraft.depositPercent} onChange={e => setEditDraft({...editDraft, depositPercent:Number(e.target.value)})} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5" /></label>
+              <label className="block text-sm font-medium">Hạn thanh toán phần còn lại<input required type="datetime-local" value={editDraft.balanceDueAt} onChange={e => setEditDraft({...editDraft, balanceDueAt:e.target.value})} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5" /></label>
+              <label className="block text-sm font-medium">Số điện thoại liên hệ<input maxLength={30} value={editDraft.contactPhone || ''} onChange={e => setEditDraft({...editDraft, contactPhone:e.target.value})} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5" /></label>
+              <label className="block text-sm font-medium sm:col-span-2">Điểm tập trung<input value={editDraft.meetingPoint || ''} onChange={e => setEditDraft({...editDraft, meetingPoint:e.target.value})} className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5" /></label>
+            </div>
+            {editScheduleError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{editScheduleError}</p>}
+            <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
+              <button type="button" disabled={editScheduleBusy} onClick={() => setEditScheduleOpen(false)} className="rounded-xl border border-slate-300 px-5 py-2.5 font-semibold text-slate-700">Hủy</button>
+              <button type="submit" disabled={editScheduleBusy} className="inline-flex items-center gap-2 rounded-xl bg-[#0B7058] px-5 py-2.5 font-semibold text-white disabled:opacity-60">{editScheduleBusy ? 'Đang lưu…' : 'Lưu thay đổi'}</button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
       {/* ============================================================== */}
       {/* MODAL: PHÂN CÔNG GUIDE CHO LỊCH KHỞI HÀNH                     */}
       {/* ============================================================== */}
@@ -1612,7 +1572,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
               <div className="space-y-1.5">
                 <label
                   htmlFor="select-guide"
-                  className="text-sm font-semibold text-stone-700"
+                  className="text-sm font-semibold text-slate-700"
                 >
                   Chọn Hướng dẫn viên:
                 </label>
@@ -1620,7 +1580,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                   id="select-guide"
                   value={selectedGuideId}
                   onChange={(e) => setSelectedGuideId(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-stone-300 text-sm sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/30"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-sm sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0B7058]/30"
                   required
                   disabled={availableGuidesForSelect.length === 0}
                 >
@@ -1645,7 +1605,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                   ))}
                 </select>
                 {isLoadingGuideConflicts && (
-                  <p className="text-sm text-stone-500">
+                  <p className="text-sm text-slate-500">
                     Đang kiểm tra lịch đã phân công của các Guide…
                   </p>
                 )}
@@ -1657,7 +1617,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                 {!isLoadingGuideConflicts &&
                   !guideConflictCheckFailed &&
                   Object.keys(guideConflicts).length > 0 && (
-                    <p className="text-sm text-stone-500">
+                    <p className="text-sm text-slate-500">
                       Guide đang bận được hiển thị theo chuyến trùng lịch và không thể chọn.
                     </p>
                   )}
@@ -1677,23 +1637,23 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                 </div>
               )}
 
-              <label className="flex items-center gap-2.5 text-sm text-stone-800 cursor-pointer pt-1">
+              <label className="flex items-center gap-2.5 text-sm text-slate-800 cursor-pointer pt-1">
                 <input
                   type="checkbox"
                   checked={selectedIsLead}
                   onChange={(e) => setSelectedIsLead(e.target.checked)}
-                  className="w-4 h-4 text-[#1F4E43] rounded border-stone-300 focus:ring-[#1F4E43]"
+                  className="w-4 h-4 text-[#0B7058] rounded border-slate-300 focus:ring-[#0B7058]"
                 />
                 <span className="font-semibold">
                   Đánh dấu là Hướng dẫn viên chính (Lead Guide)
                 </span>
               </label>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-100">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setAssignModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 text-sm font-semibold cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-semibold cursor-pointer"
                 >
                   Hủy
                 </button>
@@ -1705,7 +1665,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
                     isLoadingGuideConflicts ||
                     guideConflictCheckFailed
                   }
-                  className="px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2.5 rounded-xl bg-[#0B7058] hover:bg-[#075743] text-white text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Thêm vào danh sách
                 </button>
@@ -1720,7 +1680,7 @@ export const AdminScheduleDetailPage: React.FC<AdminScheduleDetailPageProps> = (
       {selectedPhotoModal && (
         <Modal isOpen={Boolean(selectedPhotoModal)} onClose={() => setSelectedPhotoModal(null)} title={selectedPhotoModal.title} subtitle={formatVietnamDateTime(selectedPhotoModal.photo.capturedAt, true)} maxWidth="3xl">
           <div className="space-y-4">
-            <div className="flex justify-center bg-stone-950 rounded-xl overflow-hidden max-h-[75vh]">
+            <div className="flex justify-center bg-slate-950 rounded-xl overflow-hidden max-h-[75vh]">
               <img
                 src={selectedPhotoModal.photo.url}
                 alt={selectedPhotoModal.photo.fileName}

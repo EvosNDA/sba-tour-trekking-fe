@@ -190,14 +190,14 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
 
     return (
       <AdminAccessGuard forbiddenError={tourError?.status === 403}>
-        <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] py-8 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[#F3F6FA] text-[#172033] py-8 px-4 sm:px-6 lg:px-8">
           <div className="max-w-6xl mx-auto space-y-6">
             {/* Top Navigation Bar */}
             <div className="flex flex-wrap items-center justify-between gap-4">
               <button
                 type="button"
                 onClick={() => navigateTo(ROUTES.ADMIN.SCHEDULE_OVERVIEW)}
-                className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-stone-600 hover:text-[#1F4E43] transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 hover:text-[#0B7058] transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Quay lại Tổng quan lịch</span>
@@ -211,11 +211,11 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                     fetchSchedules();
                   }}
                   disabled={isLoadingTour || isLoadingSchedules}
-                  className="px-3.5 py-2 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <RefreshCw
                     className={`w-3.5 h-3.5 ${
-                      isLoadingTour || isLoadingSchedules ? 'animate-spin text-[#1F4E43]' : ''
+                      isLoadingTour || isLoadingSchedules ? 'animate-spin text-[#0B7058]' : ''
                     }`}
                   />
                   <span>Làm mới</span>
@@ -224,12 +224,12 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
             </div>
 
             {/* Selected Tour Context Banner */}
-            <div className="bg-white rounded-2xl border border-[#E6E1D8] px-6 py-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+            <div className="bg-white rounded-2xl border border-[#E0E6EE] px-6 py-4 shadow-2xs flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-wider text-[#51756a]">
                   Lịch khởi hành theo tour • #{resolvedTourId}
                 </p>
-                <h1 className="font-editorial text-xl sm:text-2xl font-bold text-[#1C2526]">
+                <h1 className="font-sans text-xl sm:text-2xl font-bold text-[#172033]">
                   {displayTitle}
                 </h1>
               </div>
@@ -238,7 +238,7 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                 {displayStatus && <StatusBadge tourStatus={displayStatus} size="sm" />}
                 {tour?.difficulty && <StatusBadge difficulty={tour.difficulty} size="sm" />}
                 {tour?.durationDays && (
-                  <span className="px-2.5 py-1 rounded-lg bg-stone-100 text-stone-800 font-mono text-xs font-bold">
+                  <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-mono text-xs font-bold">
                     {tour.durationDays} ngày
                   </span>
                 )}
@@ -254,12 +254,12 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                   <AlertTriangle className="w-6 h-6" />
                 </div>
                 <div className="max-w-md mx-auto space-y-1">
-                  <h2 className="font-editorial text-xl font-bold text-[#1C2526]">
+                  <h2 className="font-sans text-xl font-bold text-[#172033]">
                     {tourError.status === 404
                       ? 'Không tìm thấy tour này'
                       : 'Không thể tải thông tin tour'}
                   </h2>
-                  <p className="text-xs sm:text-sm text-stone-600">
+                  <p className="text-xs sm:text-sm text-slate-600">
                     {tourError.message || 'Tour không tồn tại hoặc đã bị xóa khỏi hệ thống.'}
                   </p>
                 </div>
@@ -270,7 +270,7 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                       fetchTourDetail();
                       fetchSchedules();
                     }}
-                    className="px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl bg-[#0B7058] hover:bg-[#075743] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <RefreshCw className="w-4 h-4" />
                     <span>Thử lại</span>
@@ -278,7 +278,7 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                   <button
                     type="button"
                     onClick={() => navigateTo(ROUTES.ADMIN.SCHEDULE_OVERVIEW)}
-                    className="px-4 py-2.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer"
                   >
                     Quay lại Tổng quan lịch
                   </button>
@@ -286,14 +286,14 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
               </div>
             ) : (
               /* Main Card: Departure Schedules List of the Selected Tour */
-              <div className="bg-white rounded-2xl border border-[#E6E1D8] p-6 shadow-2xs space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-3">
+              <div className="bg-white rounded-2xl border border-[#E0E6EE] p-6 shadow-2xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
                   <div>
-                    <h2 className="text-base font-bold text-[#1C2526] flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-[#1F4E43]" />
+                    <h2 className="text-base font-bold text-[#172033] flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-[#0B7058]" />
                       <span>Danh sách lịch khởi hành của tour ({scheduleTotal})</span>
                     </h2>
-                    <p className="text-xs text-stone-500 mt-0.5">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Các đợt xuất phát đã được lên lịch và mở đặt chỗ cho chuyến đi này.
                     </p>
                   </div>
@@ -303,7 +303,7 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                       type="button"
                       disabled={!tour}
                       onClick={() => setScheduleOpen(true)}
-                      className="px-3.5 py-2 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-sm font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3.5 py-2 rounded-xl bg-[#0B7058] hover:bg-[#075743] text-white text-sm font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Thêm lịch khởi hành</span>
@@ -311,7 +311,7 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                     <button
                       type="button"
                       onClick={() => navigateTo(ROUTES.ADMIN.SCHEDULES)}
-                      className="px-3.5 py-2 rounded-xl border border-stone-300 hover:bg-stone-50 text-xs font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-xs font-semibold text-slate-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <span>Xem lịch tuần chung</span>
                     </button>
@@ -319,8 +319,8 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                 </div>
 
                 {isLoadingSchedules ? (
-                  <div className="py-8 text-center text-xs text-stone-500 flex items-center justify-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-[#1F4E43]" />
+                  <div className="py-8 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-[#0B7058]" />
                     <span>Đang tải danh sách lịch khởi hành...</span>
                   </div>
                 ) : scheduleError ? (
@@ -335,15 +335,15 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                     </button>
                   </div>
                 ) : schedules.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-stone-500 bg-stone-50 rounded-xl border border-dashed border-stone-200">
-                    <Calendar className="w-6 h-6 text-stone-400 mx-auto mb-1.5" />
+                  <div className="py-8 text-center text-xs text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <Calendar className="w-6 h-6 text-slate-400 mx-auto mb-1.5" />
                     <span>Tour này hiện chưa có lịch khởi hành nào.</span>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-[11px] font-mono uppercase tracking-wider text-stone-600">
+                        <tr className="bg-[#F3F6FA] border-b border-[#E0E6EE] text-[11px] font-mono uppercase tracking-wider text-slate-600">
                           <th className="py-3 px-3.5 font-bold">Bắt đầu</th>
                           <th className="py-3 px-3.5 font-bold">Kết thúc</th>
                           <th className="py-3 px-3.5 font-bold text-center">Sức chứa</th>
@@ -353,24 +353,24 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                           <th className="py-3 px-3.5 font-bold text-right">Quản lý</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-stone-200">
+                      <tbody className="divide-y divide-slate-200">
                         {schedules.map((s) => (
-                          <tr key={s.id} className="hover:bg-[#FDFBF7] transition-colors">
-                            <td className="py-3 px-3.5 font-medium text-stone-900 whitespace-nowrap">
+                          <tr key={s.id} className="hover:bg-[#F3F6FA] transition-colors">
+                            <td className="py-3 px-3.5 font-medium text-slate-900 whitespace-nowrap">
                               {formatDateTime(s.startsAt)}
                             </td>
-                            <td className="py-3 px-3.5 text-stone-700 whitespace-nowrap">
+                            <td className="py-3 px-3.5 text-slate-700 whitespace-nowrap">
                               {formatDateTime(s.endsAt)}
                             </td>
                             <td className="py-3 px-3.5 text-center font-mono whitespace-nowrap">
-                              <span className="px-2 py-0.5 rounded-md bg-stone-100 font-bold">
+                              <span className="px-2 py-0.5 rounded-md bg-slate-100 font-bold">
                                 {s.capacity} chỗ
                               </span>
                             </td>
-                            <td className="py-3 px-3.5 text-center font-mono text-stone-600 whitespace-nowrap">
+                            <td className="py-3 px-3.5 text-center font-mono text-slate-600 whitespace-nowrap">
                               {s.confirmedSeats} / {s.heldSeats} giữ
                             </td>
-                            <td className="py-3 px-3.5 font-mono font-semibold text-[#1F4E43] whitespace-nowrap">
+                            <td className="py-3 px-3.5 font-mono font-semibold text-[#0B7058] whitespace-nowrap">
                               {formatVND(s.basePriceVnd)}
                             </td>
                             <td className="py-3 px-3.5 whitespace-nowrap">
@@ -384,7 +384,7 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                                     `${ROUTES.ADMIN.SCHEDULE_DETAIL(s.id)}?tourId=${resolvedTourId}`
                                   )
                                 }
-                                className="px-2.5 py-1 rounded-lg bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                                className="px-2.5 py-1 rounded-lg bg-[#0B7058] hover:bg-[#075743] text-white text-xs font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors shadow-2xs"
                               >
                                 <span>Guide & Khách</span>
                               </button>
@@ -402,7 +402,7 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                       type="button"
                       disabled={schedulePage === 0}
                       onClick={() => setSchedulePage((p) => p - 1)}
-                      className="rounded-lg border border-stone-300 px-3 py-1 disabled:opacity-40 cursor-pointer"
+                      className="rounded-lg border border-slate-300 px-3 py-1 disabled:opacity-40 cursor-pointer"
                     >
                       Trước
                     </button>
@@ -413,7 +413,7 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                       type="button"
                       disabled={schedulePage + 1 >= scheduleTotalPages}
                       onClick={() => setSchedulePage((p) => p + 1)}
-                      className="rounded-lg border border-stone-300 px-3 py-1 disabled:opacity-40 cursor-pointer"
+                      className="rounded-lg border border-slate-300 px-3 py-1 disabled:opacity-40 cursor-pointer"
                     >
                       Sau
                     </button>
@@ -458,31 +458,31 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
             <p className="text-xs font-semibold uppercase tracking-wider text-[#51756a]">
               Lịch khởi hành
             </p>
-            <h1 className="mt-1 text-2xl font-bold text-[#1C2526]">Tổng quan lịch</h1>
-            <p className="mt-2 text-sm text-stone-500">
+            <h1 className="mt-1 text-2xl font-bold text-[#172033]">Tổng quan lịch</h1>
+            <p className="mt-2 text-sm text-slate-500">
               Xem tổng số lịch khởi hành của từng tour. Chọn một tour để mở danh sách lịch khởi hành thuộc tour đó.
             </p>
           </div>
           <button
             type="button"
             onClick={() => navigateTo(ROUTES.ADMIN.SCHEDULES)}
-            className="rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-[#1F4E43] hover:bg-stone-50 cursor-pointer"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-[#0B7058] hover:bg-slate-50 cursor-pointer"
           >
             Xem lịch tuần chung
           </button>
         </div>
 
-        <section className="overflow-hidden rounded-2xl border border-[#E6E1D8] bg-white shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stone-100 p-5">
+        <section className="overflow-hidden rounded-2xl border border-[#E0E6EE] bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-5">
             <div>
-              <h2 className="font-bold text-[#1C2526]">Danh sách tour</h2>
-              <p className="mt-1 text-xs text-stone-500">
+              <h2 className="font-bold text-[#172033]">Danh sách tour</h2>
+              <p className="mt-1 text-xs text-slate-500">
                 {loadingOverview ? 'Đang tải...' : `${totalTours} tour`}
               </p>
             </div>
             <label className="relative w-full sm:w-72">
               <span className="sr-only">Tìm tên tour</span>
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="search"
                 value={query}
@@ -492,13 +492,13 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                   setQuery(event.target.value);
                   setPage(0);
                 }}
-                className="w-full rounded-xl border border-stone-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#1F4E43]"
+                className="w-full rounded-xl border border-slate-200 py-2.5 pl-9 pr-3 text-sm outline-none focus:border-[#0B7058]"
               />
             </label>
           </div>
 
           {loadingOverview ? (
-            <div role="status" className="p-12 text-center text-sm text-stone-500">
+            <div role="status" className="p-12 text-center text-sm text-slate-500">
               Đang tải danh sách tour...
             </div>
           ) : overviewError ? (
@@ -513,13 +513,13 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
               </button>
             </div>
           ) : tours.length === 0 ? (
-            <div className="p-12 text-center text-sm text-stone-500">
+            <div className="p-12 text-center text-sm text-slate-500">
               {query.trim() ? 'Không tìm thấy tour phù hợp.' : 'Chưa có tour nào.'}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-[#FAF8F5] text-xs text-stone-500">
+                <thead className="bg-[#FAF8F5] text-xs text-slate-500">
                   <tr>
                     <th className="px-5 py-3 font-semibold">Tour</th>
                     <th className="px-5 py-3 font-semibold">Trạng thái</th>
@@ -527,14 +527,14 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                     <th className="px-5 py-3 text-right font-semibold">Lịch khởi hành</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="divide-y divide-slate-100">
                   {tours.map((item) => (
                     <tr
                       key={item.tourId}
                       onClick={() =>
                         navigateTo(ROUTES.ADMIN.SCHEDULE_OVERVIEW_TOUR(item.tourId))
                       }
-                      className="hover:bg-[#FDFBF7] transition-colors cursor-pointer group"
+                      className="hover:bg-[#F3F6FA] transition-colors cursor-pointer group"
                     >
                       <td className="px-5 py-4">
                         <button
@@ -543,17 +543,17 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                             e.stopPropagation();
                             navigateTo(ROUTES.ADMIN.SCHEDULE_OVERVIEW_TOUR(item.tourId));
                           }}
-                          className="font-semibold text-[#1C2526] group-hover:text-[#1F4E43] text-left cursor-pointer"
+                          className="font-semibold text-[#172033] group-hover:text-[#0B7058] text-left cursor-pointer"
                         >
                           {item.title}
                         </button>
-                        <span className="ml-2 text-xs text-stone-400">#{item.tourId}</span>
+                        <span className="ml-2 text-xs text-slate-400">#{item.tourId}</span>
                       </td>
                       <td className="px-5 py-4">
                         <StatusBadge tourStatus={item.status} size="sm" />
                       </td>
                       <td className="px-5 py-4">
-                        <span className="inline-flex items-center gap-2 font-semibold text-[#1F4E43]">
+                        <span className="inline-flex items-center gap-2 font-semibold text-[#0B7058]">
                           <CalendarDays className="h-4 w-4" />
                           {item.scheduleCount} lịch
                         </span>
@@ -565,7 +565,7 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
                             e.stopPropagation();
                             navigateTo(ROUTES.ADMIN.SCHEDULE_OVERVIEW_TOUR(item.tourId));
                           }}
-                          className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#1F4E43] hover:underline cursor-pointer"
+                          className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-[#0B7058] hover:underline cursor-pointer"
                         >
                           <span>Xem lịch khởi hành</span>
                           <ArrowRight className="h-4 w-4" />
@@ -578,7 +578,7 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
             </div>
           )}
           {!loadingOverview && !overviewError && totalPages > 1 && (
-            <div className="flex items-center justify-end gap-3 border-t border-stone-100 p-4 text-sm text-stone-600">
+            <div className="flex items-center justify-end gap-3 border-t border-slate-100 p-4 text-sm text-slate-600">
               <button
                 type="button"
                 disabled={page === 0}
@@ -601,7 +601,7 @@ export const AdminScheduleOverviewPage: React.FC<AdminScheduleOverviewPageProps>
             </div>
           )}
         </section>
-        <p className="text-xs text-stone-500">
+        <p className="text-xs text-slate-500">
           Tổng lịch bao gồm tất cả lịch khởi hành của tour, kể cả lịch đã hoàn thành hoặc đã hủy.
         </p>
       </div>

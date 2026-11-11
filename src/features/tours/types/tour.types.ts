@@ -37,6 +37,7 @@ export interface TourSummaryResponse {
   durationDays: number;
   status: TourStatus;
   coverImageUrl: string | null;
+  scheduleCount?: number;
 }
 
 export interface TourScheduleOverviewResponse {

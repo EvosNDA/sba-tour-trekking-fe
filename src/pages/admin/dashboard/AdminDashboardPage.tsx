@@ -1,74 +1,29 @@
 import { AdminPageHeader } from '../../../components/ui/AdminPageHeader';
 import React, { useState } from 'react';
-import { LayoutDashboard, ShieldCheck, RefreshCw } from 'lucide-react';
-import { DashboardBasis } from '../../../features/dashboard/types/dashboard.types';
+import { DashboardBasis, SummaryPeriod } from '../../../features/dashboard/types/dashboard.types';
 import { DashboardFilters } from '../../../features/dashboard/components/DashboardFilters';
 import { SummarySection } from '../../../features/dashboard/components/SummarySection';
 import { TrendSection } from '../../../features/dashboard/components/TrendSection';
-import { CompareSection } from '../../../features/dashboard/components/CompareSection';
 import { TopToursSection } from '../../../features/dashboard/components/TopToursSection';
 import { ScheduleFillRateSection } from '../../../features/dashboard/components/ScheduleFillRateSection';
+import { RecentBookingsSection } from '../../../features/dashboard/components/RecentBookingsSection';
 
 export const AdminDashboardPage: React.FC = () => {
   const [basis, setBasis] = useState<DashboardBasis>('BOOKING_DATE');
-  const [selectedTourId, setSelectedTourId] = useState<number | undefined>(undefined);
-  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
-
-  const handleRefreshAll = () => {
-    setRefreshTrigger((prev) => prev + 1);
-  };
+  const [period, setPeriod] = useState<SummaryPeriod>('THIS_MONTH');
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Top Dashboard Header Card theo spec chuẩn */}
-        <AdminPageHeader title="Bảng điều khiển & Thống kê vận hành" description="Tổng hợp dữ liệu doanh số, khối lượng khách, tỷ lệ lấp đầy lịch trình và phân tích tăng trưởng" actions={<div className="flex flex-wrap items-center gap-2.5 shrink-0">
-            <button
-              type="button"
-              onClick={handleRefreshAll}
-              className="px-4 py-2.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-[#1F4E43]" />
-              <span>Làm mới</span>
-            </button>
-          </div>} />
-
-        {/* 1. Bộ lọc dùng chung */}
-        <DashboardFilters
-          basis={basis}
-          onBasisChange={setBasis}
-          selectedTourId={selectedTourId}
-          onTourSelect={setSelectedTourId}
-          onRefreshAll={handleRefreshAll}
-        />
-
-        {/* 2. Section KPI Cards (Summary) */}
-        <SummarySection basis={basis} refreshTrigger={refreshTrigger} />
-
-        {/* 3. Section Biểu đồ xu hướng (Trend) */}
-        <TrendSection
-          basis={basis}
-          tourId={selectedTourId}
-          refreshTrigger={refreshTrigger}
-        />
-
-        {/* 4. Section So sánh cùng kỳ (Compare) */}
-        <CompareSection
-          basis={basis}
-          tourId={selectedTourId}
-          refreshTrigger={refreshTrigger}
-        />
-
-        {/* Grid 2 cột: Top tour và Tỷ lệ lấp đầy lịch */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* 5. Section Top tour thị phần */}
-          <TopToursSection basis={basis} refreshTrigger={refreshTrigger} />
-
-          {/* 6. Section Tỷ lệ lấp đầy (Fill-rate) */}
-          <ScheduleFillRateSection
-            tourId={selectedTourId}
-            refreshTrigger={refreshTrigger}
-          />
+    <div className="min-h-full px-4 py-5 text-[#172033] sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1500px] space-y-5">
+        <AdminPageHeader className="admin-dashboard-page-header" title="Tổng quan vận hành" description="Theo dõi booking, hành khách và tình trạng khởi hành." actions={<div className="flex flex-wrap items-center gap-3"><DashboardFilters basis={basis} onBasisChange={setBasis} period={period} onPeriodChange={setPeriod}/><span className="whitespace-nowrap border-l border-slate-300 pl-4 text-sm italic text-slate-500">Dữ liệu minh họa</span></div>} />
+        <SummarySection basis={basis} period={period} refreshTrigger={0} />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.35fr_.85fr]">
+          <TrendSection basis={basis} tourId={undefined} refreshTrigger={0} />
+          <TopToursSection basis={basis} refreshTrigger={0} />
+        </div>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <ScheduleFillRateSection tourId={undefined} refreshTrigger={0}/>
+          <RecentBookingsSection refreshTrigger={0}/>
         </div>
       </div>
     </div>

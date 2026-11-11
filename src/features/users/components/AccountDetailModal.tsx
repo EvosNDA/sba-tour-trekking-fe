@@ -99,8 +99,8 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
         {/* Content */}
         {isLoading && (
           <div className="py-12 flex flex-col items-center justify-center space-y-3">
-            <Loader2 className="w-6 h-6 animate-spin text-stone-500" />
-            <span className="text-sm text-stone-500">Đang tải thông tin tài khoản...</span>
+            <Loader2 className="w-6 h-6 animate-spin text-slate-500" />
+            <span className="text-sm text-slate-500">Đang tải thông tin tài khoản...</span>
           </div>
         )}
 
@@ -116,13 +116,13 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
         {!isLoading && detail && (
           <div className="space-y-4 text-sm">
             {/* Identity Card */}
-            <div className="flex items-center gap-3.5 p-3.5 bg-stone-50 rounded-xl border border-stone-200/80">
+            <div className="flex items-center gap-3.5 p-3.5 bg-slate-50 rounded-xl border border-slate-200/80">
               <UserAvatar name={detail.fullName} size="lg" />
               <div className="space-y-0.5 truncate">
-                <h3 className="font-bold text-sm text-stone-900 truncate">
+                <h3 className="font-bold text-sm text-slate-900 truncate">
                   {detail.fullName}
                 </h3>
-                <div className="flex items-center gap-2 text-stone-500 text-xs">
+                <div className="flex items-center gap-2 text-slate-500 text-xs">
                   <span>ID: #{detail.id}</span>
                   <span>•</span>
                   <span
@@ -131,7 +131,7 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                         ? 'bg-emerald-50 text-emerald-800'
                         : detail.status === 'blocked'
                         ? 'bg-rose-50 text-rose-800'
-                        : 'bg-stone-200 text-stone-700'
+                        : 'bg-slate-200 text-slate-700'
                     }`}
                   >
                     {detail.status === 'active'
@@ -146,33 +146,33 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
 
             {/* Thông tin cơ bản */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="p-3 bg-white border border-stone-200 rounded-xl space-y-1">
-                <span className="text-stone-400 text-xs flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-stone-400" /> Email liên hệ
+              <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
+                <span className="text-slate-400 text-xs flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-slate-400" /> Email liên hệ
                 </span>
-                <p className="font-mono text-stone-800 font-medium truncate" title={detail.email}>
+                <p className="font-mono text-slate-800 font-medium truncate" title={detail.email}>
                   {detail.email}
                 </p>
               </div>
 
-              <div className="p-3 bg-white border border-stone-200 rounded-xl space-y-1">
-                <span className="text-stone-400 text-xs flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-stone-400" /> Số điện thoại
+              <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
+                <span className="text-slate-400 text-xs flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-slate-400" /> Số điện thoại
                 </span>
-                <p className="font-mono text-stone-800 font-medium">
+                <p className="font-mono text-slate-800 font-medium">
                   {detail.phone || 'Chưa cập nhật'}
                 </p>
               </div>
 
-              <div className="p-3 bg-white border border-stone-200 rounded-xl space-y-1">
-                <span className="text-stone-400 text-xs flex items-center gap-1.5">
-                  <Shield className="w-3.5 h-3.5 text-stone-400" /> Vai trò (Roles)
+              <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
+                <span className="text-slate-400 text-xs flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-slate-400" /> Vai trò (Roles)
                 </span>
                 <div className="flex flex-wrap gap-1 mt-0.5">
                   {detail.roles.map((r) => (
                     <span
                       key={r}
-                      className="px-2 py-0.5 bg-stone-100 text-stone-800 rounded font-medium text-xs"
+                      className="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-medium text-xs"
                     >
                       {renderRoleLabel(r)}
                     </span>
@@ -180,40 +180,40 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                 </div>
               </div>
 
-              <div className="p-3 bg-white border border-stone-200 rounded-xl space-y-1">
-                <span className="text-stone-400 text-xs flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-stone-400" /> Ngày tạo tài khoản
+              <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
+                <span className="text-slate-400 text-xs flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" /> Ngày tạo tài khoản
                 </span>
-                <p className="font-mono text-stone-800 font-medium">
+                <p className="font-mono text-slate-800 font-medium">
                   {formatDate(detail.createdAt)}
                 </p>
               </div>
             </div>
 
             {/* Trạng thái xác thực & Bảo mật */}
-            <div className="p-3 bg-white border border-stone-200 rounded-xl space-y-2">
+            <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-stone-600 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-stone-400" /> Xác thực Email:
+                <span className="text-slate-600 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" /> Xác thực Email:
                 </span>
-                <span className="font-mono text-stone-800">
+                <span className="font-mono text-slate-800">
                   {detail.emailVerifiedAt ? (
                     <span className="text-emerald-700">Đã xác thực ({formatDate(detail.emailVerifiedAt)})</span>
                   ) : (
-                    <span className="text-stone-400">Chưa xác thực</span>
+                    <span className="text-slate-400">Chưa xác thực</span>
                   )}
                 </span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-stone-600 flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-stone-400" /> Yêu cầu đổi mật khẩu:
+                <span className="text-slate-600 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-slate-400" /> Yêu cầu đổi mật khẩu:
                 </span>
                 <span className="font-medium">
                   {detail.mustChangePassword ? (
                     <span className="text-amber-700 font-semibold">Bắt buộc</span>
                   ) : (
-                    <span className="text-stone-500">Không</span>
+                    <span className="text-slate-500">Không</span>
                   )}
                 </span>
               </div>
@@ -226,17 +226,17 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                   <AlertCircle className="w-4 h-4 text-rose-600" />
                   <span>Thông tin xử lý vi phạm</span>
                 </div>
-                <div className="space-y-1 text-stone-700">
+                <div className="space-y-1 text-slate-700">
                   <div>
-                    <span className="text-stone-500">Lý do khóa: </span>
-                    <span className="font-medium text-stone-900">
+                    <span className="text-slate-500">Lý do khóa: </span>
+                    <span className="font-medium text-slate-900">
                       {detail.blockedReason || 'Không có lý do chi tiết'}
                     </span>
                   </div>
                   {detail.blockedBy && (
                     <div>
-                      <span className="text-stone-500">Người thực hiện khóa: </span>
-                      <span className="font-mono text-stone-900 font-medium">
+                      <span className="text-slate-500">Người thực hiện khóa: </span>
+                      <span className="font-mono text-slate-900 font-medium">
                         Admin ID #{detail.blockedBy}
                       </span>
                     </div>
@@ -248,11 +248,11 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-end pt-2 border-t border-stone-100">
+        <div className="flex items-center justify-end pt-2 border-t border-slate-100">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-semibold cursor-pointer transition-colors"
+            className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold cursor-pointer transition-colors"
           >
             Đóng
           </button>

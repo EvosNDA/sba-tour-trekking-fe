@@ -139,8 +139,8 @@ export const AdminReviewListPage: React.FC = () => {
       case 'hidden':
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-stone-100 text-stone-600 border border-stone-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
             Đã ẩn
           </span>
         );
@@ -212,7 +212,7 @@ export const AdminReviewListPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#F3F6FA] text-[#172033] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Top Header Card theo spec chuẩn */}
         <AdminPageHeader title="Kiểm duyệt đánh giá & Phản hồi" description="Theo dõi ý kiến khách hàng, kiểm soát chất lượng dịch vụ và xử lý vi phạm nội dung" actions={<div className="flex flex-wrap items-center gap-2.5 shrink-0">
@@ -220,20 +220,20 @@ export const AdminReviewListPage: React.FC = () => {
               type="button"
               onClick={fetchReviews}
               disabled={isLoading}
-              className="px-4 py-2.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+              className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
             >
               <RefreshCw
-                className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#1F4E43]' : ''}`}
+                className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#0B7058]' : ''}`}
               />
               <span>Làm mới</span>
             </button>
           </div>} />
 
         {/* Ghi chú nghiệp vụ Admin */}
-        <div className="p-4 bg-stone-100/70 border border-[#E6E1D8] rounded-2xl text-xs text-stone-700 flex items-start gap-2.5 shadow-2xs">
-          <Info className="w-4 h-4 text-stone-500 shrink-0 mt-0.5" />
+        <div className="p-4 bg-slate-100/70 border border-[#E0E6EE] rounded-2xl text-xs text-slate-700 flex items-start gap-2.5 shadow-2xs">
+          <Info className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
           <div>
-            <strong className="text-stone-900 font-semibold">Nguyên tắc quản trị:</strong> Admin chỉ có quyền Ẩn hoặc Khôi phục hiển thị đánh giá; không xóa hay can thiệp sửa đổi nội dung và điểm đánh giá của khách hàng.
+            <strong className="text-slate-900 font-semibold">Nguyên tắc quản trị:</strong> Admin chỉ có quyền Ẩn hoặc Khôi phục hiển thị đánh giá; không xóa hay can thiệp sửa đổi nội dung và điểm đánh giá của khách hàng.
           </div>
         </div>
 
@@ -243,25 +243,25 @@ export const AdminReviewListPage: React.FC = () => {
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             {/* Search Input */}
             <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Tìm theo nội dung, tên khách hàng hoặc tour..."
-                className="w-full pl-9 pr-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-hidden focus:border-[#1F4E43] transition-colors"
+                className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:border-[#0B7058] transition-colors"
               />
             </div>
 
             {/* Dropdown Filters */}
             <div className="flex flex-wrap items-center gap-2.5">
               {/* Lọc Status */}
-              <div className="flex items-center gap-1.5 text-xs text-stone-600 font-medium">
-                <Filter className="w-3.5 h-3.5 text-stone-400" />
+              <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium">
+                <Filter className="w-3.5 h-3.5 text-slate-400" />
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as ReviewStatusParam | '')}
-                  className="bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-semibold text-stone-800 focus:outline-hidden focus:border-[#1F4E43]"
+                  className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-hidden focus:border-[#0B7058]"
                 >
                   <option value="">Tất cả trạng thái</option>
                   <option value="VISIBLE">Đang hiển thị (VISIBLE)</option>
@@ -273,7 +273,7 @@ export const AdminReviewListPage: React.FC = () => {
               <select
                 value={ratingFilter}
                 onChange={(e) => setRatingFilter(e.target.value ? Number(e.target.value) : '')}
-                className="bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-semibold text-stone-800 focus:outline-hidden focus:border-[#1F4E43]"
+                className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-hidden focus:border-[#0B7058]"
               >
                 <option value="">Tất cả số sao</option>
                 <option value="5">★ 5 sao</option>
@@ -287,7 +287,7 @@ export const AdminReviewListPage: React.FC = () => {
               <select
                 value={sortParam}
                 onChange={(e) => setSortParam(e.target.value)}
-                className="bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-xs font-semibold text-stone-800 focus:outline-hidden focus:border-[#1F4E43]"
+                className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:outline-hidden focus:border-[#0B7058]"
               >
                 <option value="createdAt,desc">Mới nhất trước</option>
                 <option value="createdAt,asc">Cũ nhất trước</option>
@@ -298,10 +298,10 @@ export const AdminReviewListPage: React.FC = () => {
           </div>
 
           {/* Row 2: Date Filters & Clear button */}
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E6E1D8] text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E0E6EE] text-xs">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-stone-600 font-medium flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-stone-400" />
+              <span className="text-slate-600 font-medium flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
                 Khoảng ngày tạo:
               </span>
               <input
@@ -309,15 +309,15 @@ export const AdminReviewListPage: React.FC = () => {
                 lang="vi"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="px-2.5 py-1 bg-stone-50 border border-stone-300 rounded-lg text-stone-800 text-xs"
+                className="px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 text-xs"
               />
-              <ArrowRight className="w-3 h-3 text-stone-400" />
+              <ArrowRight className="w-3 h-3 text-slate-400" />
               <input
                 type="date"
                 lang="vi"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="px-2.5 py-1 bg-stone-50 border border-stone-300 rounded-lg text-stone-800 text-xs"
+                className="px-2.5 py-1 bg-slate-50 border border-slate-300 rounded-lg text-slate-800 text-xs"
               />
             </div>
 
@@ -325,7 +325,7 @@ export const AdminReviewListPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleClearFilters}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-stone-600 hover:text-stone-900 bg-stone-50 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer font-medium"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer font-medium"
               >
                 <X className="w-3.5 h-3.5" /> Xóa bộ lọc
               </button>
@@ -351,17 +351,17 @@ export const AdminReviewListPage: React.FC = () => {
         )}
 
         {/* Main Table Card theo spec chuẩn */}
-        <div className="bg-white rounded-2xl border border-[#E6E1D8] overflow-hidden shadow-2xs">
-          <div className="divide-y divide-[#E6E1D8] md:hidden" aria-busy={isLoading}>
-            {isLoading ? <p role="status" className="p-6 text-sm text-stone-600">Đang tải đánh giá…</p> : items.length === 0 ? <DataState title="Không tìm thấy đánh giá" description="Thử thay đổi hoặc xóa bộ lọc để xem kết quả khác." /> : items.map((rev) => <article key={rev.id} className="space-y-4 p-5">
-              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words text-base font-semibold">{rev.customerName}</h2><p className="mt-1 break-words text-sm text-stone-600">{rev.tourName}</p></div><div className="shrink-0">{renderStars(rev.rating)}</div></div>
-              <p className="break-words text-sm leading-relaxed text-stone-700">{rev.comment || 'Không có nhận xét bằng chữ.'}</p>
-              <div className="flex flex-wrap items-center justify-between gap-2">{renderStatusBadge(rev.status)}<time className="text-sm text-stone-500">{formatDate(rev.createdAt)}</time></div>
-              <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-4"><button type="button" onClick={() => { setDetailReviewId(rev.id); setDetailModalOpen(true); }} className="min-h-11 rounded-lg border border-stone-200 px-3 text-sm font-medium">Xem chi tiết</button><button type="button" onClick={() => handleOpenAction(rev, rev.status === 'visible' ? 'hide' : 'restore')} className="min-h-11 rounded-lg border border-stone-200 px-3 text-sm font-medium text-[#1F4E43]">{rev.status === 'visible' ? 'Ẩn đánh giá' : 'Khôi phục'}</button></div>
+        <div className="bg-white rounded-2xl border border-[#E0E6EE] overflow-hidden shadow-2xs">
+          <div className="divide-y divide-[#E0E6EE] md:hidden" aria-busy={isLoading}>
+            {isLoading ? <p role="status" className="p-6 text-sm text-slate-600">Đang tải đánh giá…</p> : items.length === 0 ? <DataState title="Không tìm thấy đánh giá" description="Thử thay đổi hoặc xóa bộ lọc để xem kết quả khác." /> : items.map((rev) => <article key={rev.id} className="space-y-4 p-5">
+              <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words text-base font-semibold">{rev.customerName}</h2><p className="mt-1 break-words text-sm text-slate-600">{rev.tourName}</p></div><div className="shrink-0">{renderStars(rev.rating)}</div></div>
+              <p className="break-words text-sm leading-relaxed text-slate-700">{rev.comment || 'Không có nhận xét bằng chữ.'}</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">{renderStatusBadge(rev.status)}<time className="text-sm text-slate-500">{formatDate(rev.createdAt)}</time></div>
+              <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4"><button type="button" onClick={() => { setDetailReviewId(rev.id); setDetailModalOpen(true); }} className="min-h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium">Xem chi tiết</button><button type="button" onClick={() => handleOpenAction(rev, rev.status === 'visible' ? 'hide' : 'restore')} className="min-h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-[#0B7058]">{rev.status === 'visible' ? 'Ẩn đánh giá' : 'Khôi phục'}</button></div>
             </article>)}
           </div>
           <DataTable className="hidden md:block" tableClassName="w-full text-left text-sm border-collapse">
-              <thead className="bg-stone-50/80 text-stone-500 border-b border-[#E6E1D8]">
+              <thead className="bg-slate-50/80 text-slate-500 border-b border-[#E0E6EE]">
                 <tr>
                   <th className="py-3.5 px-4 font-semibold">Khách hàng</th>
                   <th className="py-3.5 px-4 font-semibold">Tuyến tour</th>
@@ -373,58 +373,58 @@ export const AdminReviewListPage: React.FC = () => {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-stone-100 text-stone-700">
+              <tbody className="divide-y divide-slate-100 text-slate-700">
                 {isLoading ? (
                   Array.from({ length: 6 }).map((_, i) => (
                     <tr key={i} className="animate-pulse">
                       <td className="py-4 px-4">
-                        <div className="h-3.5 bg-stone-200 rounded-sm w-28" />
+                        <div className="h-3.5 bg-slate-200 rounded-sm w-28" />
                       </td>
                       <td className="py-4 px-4">
-                        <div className="h-3.5 bg-stone-200 rounded-sm w-36" />
+                        <div className="h-3.5 bg-slate-200 rounded-sm w-36" />
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <div className="h-4 bg-stone-200 rounded-md w-12 mx-auto" />
+                        <div className="h-4 bg-slate-200 rounded-md w-12 mx-auto" />
                       </td>
                       <td className="py-4 px-4">
-                        <div className="h-3 bg-stone-200 rounded-sm w-48" />
+                        <div className="h-3 bg-slate-200 rounded-sm w-48" />
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <div className="h-4 bg-stone-200 rounded-full w-20 mx-auto" />
+                        <div className="h-4 bg-slate-200 rounded-full w-20 mx-auto" />
                       </td>
                       <td className="py-4 px-4">
-                        <div className="h-3 bg-stone-200 rounded-sm w-20" />
+                        <div className="h-3 bg-slate-200 rounded-sm w-20" />
                       </td>
                       <td className="py-4 px-4 text-right">
-                        <div className="h-6 bg-stone-200 rounded-lg w-20 ml-auto" />
+                        <div className="h-6 bg-slate-200 rounded-lg w-20 ml-auto" />
                       </td>
                     </tr>
                   ))
                 ) : items.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-xs text-stone-400">
+                    <td colSpan={7} className="py-12 text-center text-xs text-slate-400">
                       Không tìm thấy đánh giá nào phù hợp bộ lọc.
                     </td>
                   </tr>
                 ) : (
                   items.map((rev) => (
-                    <tr key={rev.id} className="hover:bg-stone-50/60 transition-colors">
+                    <tr key={rev.id} className="hover:bg-slate-50/60 transition-colors">
                       {/* Khách hàng */}
                       <td className="py-3 px-4">
-                        <div className="font-semibold text-stone-900 truncate max-w-[140px]" title={rev.customerName}>
+                        <div className="font-semibold text-slate-900 truncate max-w-[140px]" title={rev.customerName}>
                           {rev.customerName}
                         </div>
-                        <div className="text-xs text-stone-400 font-mono">
+                        <div className="text-xs text-slate-400 font-mono">
                           #{rev.customerId}
                         </div>
                       </td>
 
                       {/* Tour */}
                       <td className="py-3 px-4">
-                        <div className="font-medium text-stone-800 truncate max-w-[180px]" title={rev.tourName}>
+                        <div className="font-medium text-slate-800 truncate max-w-[180px]" title={rev.tourName}>
                           {rev.tourName}
                         </div>
-                        <div className="text-xs text-stone-400 font-mono">
+                        <div className="text-xs text-slate-400 font-mono">
                           Tour #{rev.tourId}
                         </div>
                       </td>
@@ -437,7 +437,7 @@ export const AdminReviewListPage: React.FC = () => {
                       {/* Nội dung comment */}
                       <td className="py-3 px-4">
                         <div
-                          className="truncate max-w-[280px] text-stone-700 cursor-pointer hover:text-stone-900"
+                          className="truncate max-w-[280px] text-slate-700 cursor-pointer hover:text-slate-900"
                           title={rev.comment || 'Không có nhận xét bằng chữ'}
                           onClick={() => {
                             setDetailReviewId(rev.id);
@@ -447,7 +447,7 @@ export const AdminReviewListPage: React.FC = () => {
                           {rev.comment ? (
                             rev.comment
                           ) : (
-                            <span className="italic text-stone-400">Không có chữ</span>
+                            <span className="italic text-slate-400">Không có chữ</span>
                           )}
                         </div>
                       </td>
@@ -458,7 +458,7 @@ export const AdminReviewListPage: React.FC = () => {
                       </td>
 
                       {/* Ngày tạo */}
-                      <td className="py-3 px-4 font-mono text-stone-500 whitespace-nowrap">
+                      <td className="py-3 px-4 font-mono text-slate-500 whitespace-nowrap">
                         {formatDate(rev.createdAt)}
                       </td>
 
@@ -473,7 +473,7 @@ export const AdminReviewListPage: React.FC = () => {
                               setDetailModalOpen(true);
                             }}
                             title="Xem chi tiết đánh giá"
-                            className="p-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                           >
                             <Eye className="w-4 h-4" />
                           </button>

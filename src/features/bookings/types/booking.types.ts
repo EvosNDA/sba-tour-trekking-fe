@@ -141,6 +141,7 @@ export interface BookingSummaryResponse {
   bookingCode: string;
   status: BookingStatus;
   customerId: number;
+  customerName?: string;
   scheduleId: number;
   tourId: number;
   tourTitle: string;

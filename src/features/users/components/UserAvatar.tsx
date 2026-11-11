@@ -32,7 +32,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       <img
         src={avatarUrl}
         alt={name}
-        className={cn('rounded-full object-cover border border-stone-200', sizes[size], className)}
+        className={cn('rounded-full object-cover border border-slate-200', sizes[size], className)}
       />
     );
   }

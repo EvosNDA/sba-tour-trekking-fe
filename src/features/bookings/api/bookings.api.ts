@@ -48,6 +48,7 @@ export const bookingsApi = {
       tourId?: number;
       customerId?: number;
       status?: BookingStatus | '';
+      query?: string;
       createdFrom?: string;
       createdTo?: string;
       page?: number;

@@ -15,6 +15,8 @@ export type ScheduleFillStatus = 'OPEN' | 'ALL';
 export interface Volume {
   bookingCount: number;
   passengerCount: number;
+  previousPeriod?: PeriodComparison;
+  samePeriodLastYear?: PeriodComparison;
 }
 
 // 1. Trend

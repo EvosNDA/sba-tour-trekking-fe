@@ -3,6 +3,5 @@ export * from './api/dashboard.api';
 export * from './components/DashboardFilters';
 export * from './components/SummarySection';
 export * from './components/TrendSection';
-export * from './components/CompareSection';
 export * from './components/TopToursSection';
 export * from './components/ScheduleFillRateSection';

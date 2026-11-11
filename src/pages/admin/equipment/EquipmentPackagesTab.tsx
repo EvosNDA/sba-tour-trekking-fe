@@ -117,19 +117,19 @@ export const EquipmentPackagesTab: React.FC = () => {
       {/* Header & Search */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Tìm theo tên combo hoặc món trong combo..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-stone-200 bg-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#1F4E43] focus:border-transparent transition-all"
+            className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-slate-200 bg-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#0B7058] focus:border-transparent transition-all"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -141,7 +141,7 @@ export const EquipmentPackagesTab: React.FC = () => {
             type="button"
             onClick={fetchData}
             disabled={isLoading}
-            className="p-2 rounded-xl border border-stone-200 bg-white text-stone-700 hover:bg-stone-50 transition-colors disabled:opacity-50"
+            className="p-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50"
             title="Tải lại danh sách"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -150,7 +150,7 @@ export const EquipmentPackagesTab: React.FC = () => {
           <button
             type="button"
             onClick={handleOpenCreate}
-            className="px-4 py-2 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-sm font-semibold inline-flex items-center gap-2 shadow-2xs transition-colors"
+            className="px-4 py-2 rounded-xl bg-[#0B7058] hover:bg-[#075743] text-white text-sm font-semibold inline-flex items-center gap-2 shadow-2xs transition-colors"
           >
             <Plus className="w-4 h-4" />
             <span>Tạo combo mới</span>
@@ -160,8 +160,8 @@ export const EquipmentPackagesTab: React.FC = () => {
 
       {/* Content list */}
       {isLoading ? (
-        <div className="py-16 text-center text-stone-500 space-y-3">
-          <Loader2 className="w-8 h-8 animate-spin text-[#1F4E43] mx-auto" />
+        <div className="py-16 text-center text-slate-500 space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0B7058] mx-auto" />
           <p className="text-sm">Đang tải danh sách combo thiết bị...</p>
         </div>
       ) : error ? (
@@ -177,12 +177,12 @@ export const EquipmentPackagesTab: React.FC = () => {
           </button>
         </div>
       ) : filteredPackages.length === 0 ? (
-        <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-stone-200 space-y-3">
-          <Package className="w-10 h-10 text-stone-300 mx-auto" />
-          <h3 className="text-base font-semibold text-stone-700">
+        <div className="py-16 text-center bg-white rounded-2xl border border-dashed border-slate-200 space-y-3">
+          <Package className="w-10 h-10 text-slate-300 mx-auto" />
+          <h3 className="text-base font-semibold text-slate-700">
             {searchQuery ? 'Không tìm thấy combo phù hợp' : 'Chưa có combo thiết bị nào'}
           </h3>
-          <p className="text-xs text-stone-400 max-w-sm mx-auto">
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
             {searchQuery
               ? 'Thử thay đổi từ khóa tìm kiếm.'
               : 'Hãy bấm nút "Tạo combo mới" để nhóm các thiết bị lẻ thành một gói thuê trọn vẹn cho tour.'}
@@ -191,7 +191,7 @@ export const EquipmentPackagesTab: React.FC = () => {
             <button
               type="button"
               onClick={handleOpenCreate}
-              className="mt-2 px-4 py-2 rounded-xl bg-[#1F4E43] text-white text-xs font-semibold inline-flex items-center gap-1.5"
+              className="mt-2 px-4 py-2 rounded-xl bg-[#0B7058] text-white text-xs font-semibold inline-flex items-center gap-1.5"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Tạo combo đầu tiên</span>
@@ -234,11 +234,11 @@ export const EquipmentPackagesTab: React.FC = () => {
             </div>
             <div className="text-center space-y-1">
 
-              <p className="text-sm text-stone-600">
+              <p className="text-sm text-slate-600">
                 Bạn có chắc chắn muốn xóa combo{' '}
-                <strong className="text-stone-800">"{deletePackageTarget.title}"</strong>?
+                <strong className="text-slate-800">"{deletePackageTarget.title}"</strong>?
               </p>
-              <p className="text-xs text-stone-500 pt-1">
+              <p className="text-xs text-slate-500 pt-1">
                 Lưu ý: Thao tác này chỉ xóa gói combo mẫu trong thư viện dùng chung. Các tour đã gắn
                 combo này trước đó vẫn giữ nguyên dữ liệu.
               </p>
@@ -248,7 +248,7 @@ export const EquipmentPackagesTab: React.FC = () => {
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setDeletePackageTarget(null)}
-                className="px-4 py-2 rounded-xl border border-stone-200 text-stone-700 hover:bg-stone-50 text-sm font-semibold transition-colors disabled:opacity-50"
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 Hủy
               </button>
@@ -317,13 +317,13 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, onEdit, onDelete, onRefr
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs hover:shadow-md transition-shadow flex flex-col">
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-2xs hover:shadow-md transition-shadow flex flex-col">
       <Modal isOpen={confirmImageDelete} onClose={() => setConfirmImageDelete(false)} preventClose={isDeletingImage} title="Xóa ảnh đại diện combo">
-        <p className="text-sm leading-relaxed text-stone-600">Xóa ảnh đại diện của “{pkg.title}”? Bạn có thể tải ảnh khác lên sau.</p>
-        <div className="mt-6 flex flex-wrap justify-end gap-3"><button type="button" disabled={isDeletingImage} onClick={() => setConfirmImageDelete(false)} className="min-h-11 rounded-lg border border-stone-200 px-4 text-sm font-medium">Hủy</button><button type="button" disabled={isDeletingImage} onClick={handleDeleteImage} className="min-h-11 rounded-lg bg-rose-700 px-4 text-sm font-medium text-white disabled:opacity-50">{isDeletingImage ? 'Đang xóa…' : 'Xóa ảnh'}</button></div>
+        <p className="text-sm leading-relaxed text-slate-600">Xóa ảnh đại diện của “{pkg.title}”? Bạn có thể tải ảnh khác lên sau.</p>
+        <div className="mt-6 flex flex-wrap justify-end gap-3"><button type="button" disabled={isDeletingImage} onClick={() => setConfirmImageDelete(false)} className="min-h-11 rounded-lg border border-slate-200 px-4 text-sm font-medium">Hủy</button><button type="button" disabled={isDeletingImage} onClick={handleDeleteImage} className="min-h-11 rounded-lg bg-rose-700 px-4 text-sm font-medium text-white disabled:opacity-50">{isDeletingImage ? 'Đang xóa…' : 'Xóa ảnh'}</button></div>
       </Modal>
       {/* Image Banner */}
-      <div className="relative h-44 bg-stone-100 group overflow-hidden">
+      <div className="relative h-44 bg-slate-100 group overflow-hidden">
         {pkg.imageUrl ? (
           <img
             src={pkg.imageUrl}
@@ -331,14 +331,14 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, onEdit, onDelete, onRefr
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-stone-400 gap-1.5 bg-[#FAF8F5]">
-            <Package className="w-10 h-10 text-stone-300" />
+          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-1.5 bg-[#FAF8F5]">
+            <Package className="w-10 h-10 text-slate-300" />
             <span className="text-xs">Chưa có ảnh đại diện</span>
           </div>
         )}
 
         {/* Floating Item Count Badge */}
-        <div className="absolute top-3 left-3 bg-[#1C2526]/80 backdrop-blur-xs text-white text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-xs">
+        <div className="absolute top-3 left-3 bg-[#172033]/80 backdrop-blur-xs text-white text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-xs">
           <Layers className="w-3 h-3 text-[#B9EADB]" />
           <span>{pkg.items?.length || 0} món</span>
         </div>
@@ -346,13 +346,13 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, onEdit, onDelete, onRefr
         {/* Quick Image Action buttons */}
         <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-90 hover:opacity-100">
           <label
-            className={`p-1.5 rounded-lg bg-white/90 hover:bg-white text-stone-700 shadow-xs cursor-pointer transition-colors ${
+            className={`p-1.5 rounded-lg bg-white/90 hover:bg-white text-slate-700 shadow-xs cursor-pointer transition-colors ${
               isUploadingImage ? 'opacity-50 cursor-not-allowed' : ''
             }`}
             title="Tải ảnh mới"
           >
             {isUploadingImage ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#1F4E43]" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0B7058]" />
             ) : (
               <Upload className="w-3.5 h-3.5" />
             )}
@@ -386,47 +386,47 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, onEdit, onDelete, onRefr
       <div className="p-5 flex-1 flex flex-col space-y-4">
         {/* Title & Price */}
         <div>
-          <h3 className="font-bold text-stone-900 text-base leading-snug">{pkg.title}</h3>
+          <h3 className="font-bold text-slate-900 text-base leading-snug">{pkg.title}</h3>
           <div className="mt-1.5 flex items-baseline gap-1.5">
-            <span className="text-lg font-bold text-[#1F4E43]">
+            <span className="text-lg font-bold text-[#0B7058]">
               {pkg.rentalPriceVnd != null ? formatVND(pkg.rentalPriceVnd) : 'Chưa thiết lập'}
             </span>
-            <span className="text-xs text-stone-500">/ trọn chuyến</span>
+            <span className="text-xs text-slate-500">/ trọn chuyến</span>
           </div>
         </div>
 
         {/* Items List Preview */}
         <div className="space-y-1.5 flex-1">
-          <p className="text-xs font-semibold text-stone-600 uppercase tracking-wider">
+          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
             Các món trong combo:
           </p>
           {pkg.items && pkg.items.length > 0 ? (
-            <div className="rounded-xl bg-stone-50 p-2.5 border border-stone-100 max-h-36 overflow-y-auto space-y-1.5 text-xs">
+            <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-100 max-h-36 overflow-y-auto space-y-1.5 text-xs">
               {pkg.items.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-stone-700">
+                <div key={idx} className="flex items-center justify-between text-slate-700">
                   <div className="flex items-center gap-1.5 truncate">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#1F4E43]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#0B7058]" />
                     <span className="truncate">{item.name || `Thiết bị #${item.equipmentId}`}</span>
                   </div>
-                  <span className="font-semibold text-stone-900 shrink-0 ml-2">
+                  <span className="font-semibold text-slate-900 shrink-0 ml-2">
                     x{item.quantityInPackage}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-xs italic text-stone-400">Chưa chọn món nào trong combo.</p>
+            <p className="text-xs italic text-slate-400">Chưa chọn món nào trong combo.</p>
           )}
         </div>
 
         {/* Actions */}
-        <div className="pt-2 border-t border-stone-100 flex items-center justify-end gap-2">
+        <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onEdit}
-            className="px-3 py-1.5 rounded-lg border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
           >
-            <Edit2 className="w-3.5 h-3.5 text-stone-500" />
+            <Edit2 className="w-3.5 h-3.5 text-slate-500" />
             <span>Chỉnh sửa</span>
           </button>
           <button
@@ -631,7 +631,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
           {/* Title & Price */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1 sm:col-span-2">
-              <label htmlFor="equipmentpackagestab-field-1" className="text-sm font-medium text-stone-700 flex items-center gap-1">
+              <label htmlFor="equipmentpackagestab-field-1" className="text-sm font-medium text-slate-700 flex items-center gap-1">
                 <span>Tên combo</span>
                 <span className="text-red-500">*</span>
               </label>
@@ -640,12 +640,12 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
                 placeholder="Ví dụ: Combo Trekking Chuyên Nghiệp (Lều + Túi ngủ + Gậy)..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3.5 py-2 text-sm rounded-xl border border-stone-200 bg-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#1F4E43] focus:border-transparent transition-all"
+                className="w-full px-3.5 py-2 text-sm rounded-xl border border-slate-200 bg-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#0B7058] focus:border-transparent transition-all"
               />
             </div>
 
             <div className="space-y-1 sm:col-span-2">
-              <label className="text-sm font-medium text-stone-700 flex items-center gap-1">
+              <label className="text-sm font-medium text-slate-700 flex items-center gap-1">
                 <span>Giá thuê cả combo (VND / chuyến)</span>
                 <span className="text-red-500">*</span>
               </label>
@@ -658,13 +658,13 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
                   placeholder="0 (Miễn phí hoặc nhập số tiền)"
                   value={rentalPriceVnd}
                   onChange={(e) => setRentalPriceVnd(e.target.value)}
-                  className="w-full pl-3.5 pr-12 py-2 text-sm rounded-xl border border-stone-200 bg-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#1F4E43] focus:border-transparent transition-all font-mono"
+                  className="w-full pl-3.5 pr-12 py-2 text-sm rounded-xl border border-slate-200 bg-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#0B7058] focus:border-transparent transition-all font-mono"
                 />
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-stone-500">
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">
                   VND
                 </span>
               </div>
-              <p className="text-xs text-stone-500">
+              <p className="text-xs text-slate-500">
                 Giá thuê trọn gói cho toàn bộ chuyến đi (0 VND là hợp lệ).
               </p>
             </div>
@@ -672,9 +672,9 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
 
           {/* Image Picker */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-stone-700">Ảnh đại diện combo</label>
+            <label className="text-sm font-medium text-slate-700">Ảnh đại diện combo</label>
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-xl border border-stone-200 bg-stone-50 overflow-hidden flex items-center justify-center relative shrink-0">
+              <div className="w-20 h-20 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center relative shrink-0">
                 {imagePreviewUrl ? (
                   <img
                     src={imagePreviewUrl}
@@ -682,11 +682,11 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <Package className="w-8 h-8 text-stone-300" />
+                  <Package className="w-8 h-8 text-slate-300" />
                 )}
               </div>
               <div className="space-y-1.5">
-                <label className="px-3.5 py-1.5 rounded-lg border border-stone-300 hover:bg-stone-50 text-stone-700 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs">
+                <label className="px-3.5 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs">
                   <Upload className="w-3.5 h-3.5" />
                   <span>{imagePreviewUrl ? 'Thay đổi ảnh' : 'Chọn ảnh từ máy'}</span>
                   <input
@@ -696,19 +696,19 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
                     className="hidden"
                   />
                 </label>
-                <p className="text-xs text-stone-500">Hỗ trợ JPG, PNG, WebP (tối đa 5MB)</p>
+                <p className="text-xs text-slate-500">Hỗ trợ JPG, PNG, WebP (tối đa 5MB)</p>
               </div>
             </div>
           </div>
 
           {/* Package Items Selector */}
-          <div className="space-y-3 pt-2 border-t border-stone-100">
+          <div className="space-y-3 pt-2 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-xs font-bold text-stone-900 uppercase tracking-wider block">
+                <label className="text-xs font-bold text-slate-900 uppercase tracking-wider block">
                   Danh sách món trong combo ({items.length})
                 </label>
-                <p className="text-xs text-stone-500">
+                <p className="text-xs text-slate-500">
                   Chọn các thiết bị lẻ có sẵn và gán số lượng tương ứng
                 </p>
               </div>
@@ -725,7 +725,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
                     }
                   }}
                   defaultValue=""
-                  className="text-xs px-3 py-1.5 rounded-lg border border-stone-200 bg-stone-50 hover:bg-white focus:outline-none focus:ring-1 focus:ring-[#1F4E43] font-medium"
+                  className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white focus:outline-none focus:ring-1 focus:ring-[#0B7058] font-medium"
                 >
                   <option value="" disabled>
                     + Thêm thiết bị vào combo...
@@ -740,14 +740,14 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
             </div>
 
             {items.length === 0 ? (
-              <div className="p-6 text-center rounded-xl bg-stone-50 border border-dashed border-stone-200 space-y-1">
-                <p className="text-xs text-stone-500">Chưa có thiết bị nào trong combo này.</p>
-                <p className="text-xs text-stone-400">
+              <div className="p-6 text-center rounded-xl bg-slate-50 border border-dashed border-slate-200 space-y-1">
+                <p className="text-xs text-slate-500">Chưa có thiết bị nào trong combo này.</p>
+                <p className="text-xs text-slate-400">
                   Dùng danh sách chọn ở góc trên bên phải để thêm món vào combo.
                 </p>
               </div>
             ) : (
-              <div className="rounded-xl border border-stone-200 divide-y divide-stone-100 overflow-hidden">
+              <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
                 {items.map((item, idx) => {
                   const catItem = catalog.find((c) => c.id === item.equipmentId);
                   return (
@@ -756,12 +756,12 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
                       className="p-3 bg-white flex items-center justify-between gap-3 text-xs"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-stone-900 truncate">
+                        <p className="font-semibold text-slate-900 truncate">
                           {catItem?.name || `Thiết bị #${item.equipmentId}`}
                         </p>
-                        <p className="text-xs text-stone-500">
+                        <p className="text-xs text-slate-500">
                           Giá thuê lẻ tham khảo:{' '}
-                          <span className="font-mono text-stone-700">
+                          <span className="font-mono text-slate-700">
                             {catItem?.individualRentalPriceVnd != null
                               ? formatVND(catItem.individualRentalPriceVnd)
                               : 'Chưa thiết lập'}
@@ -771,7 +771,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
 
                       {/* Quantity Input */}
                       <div className="flex items-center gap-2">
-                        <span className="text-stone-500 text-xs">Số lượng:</span>
+                        <span className="text-slate-500 text-xs">Số lượng:</span>
                         <input
                           type="number"
                           min="1"
@@ -780,7 +780,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
                           onChange={(e) =>
                             handleUpdateQuantity(idx, parseInt(e.target.value) || 1)
                           }
-                          className="w-16 px-2 py-1 text-center font-mono rounded-lg border border-stone-200 text-xs focus:ring-1 focus:ring-[#1F4E43] focus:outline-none"
+                          className="w-16 px-2 py-1 text-center font-mono rounded-lg border border-slate-200 text-xs focus:ring-1 focus:ring-[#0B7058] focus:outline-none"
                         />
                         <button
                           type="button"
@@ -800,12 +800,12 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
         </form>
 
         {/* Modal Footer */}
-        <div className="pt-3 border-t border-stone-200 flex items-center justify-end gap-3 shrink-0">
+        <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0">
           <button
             type="button"
             disabled={isSubmitting}
             onClick={onClose}
-            className="px-4 py-2 rounded-xl border border-stone-200 text-stone-700 hover:bg-stone-50 text-sm font-semibold transition-colors disabled:opacity-50"
+            className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-semibold transition-colors disabled:opacity-50"
           >
             Hủy
           </button>
@@ -813,7 +813,7 @@ const PackageFormModal: React.FC<PackageFormModalProps> = ({
             type="button"
             disabled={isSubmitting}
             onClick={handleSubmit}
-            className="px-5 py-2 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-sm font-semibold inline-flex items-center gap-2 shadow-2xs transition-colors disabled:opacity-50"
+            className="px-5 py-2 rounded-xl bg-[#0B7058] hover:bg-[#075743] text-white text-sm font-semibold inline-flex items-center gap-2 shadow-2xs transition-colors disabled:opacity-50"
           >
             {isSubmitting && <Loader2 className="w-4 h-4 animate-spin text-[#B9EADB]" />}
             <span>{isSubmitting ? 'Đang lưu combo...' : isEdit ? 'Lưu thay đổi' : 'Tạo combo'}</span>

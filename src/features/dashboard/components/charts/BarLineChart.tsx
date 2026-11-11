@@ -91,7 +91,7 @@ export const BarLineChart: React.FC<BarLineChartProps> = ({
   if (!categories || categories.length === 0 || !data || data.length === 0) {
     return (
       <div
-        className="flex items-center justify-center text-xs text-stone-500 bg-stone-50/50 rounded-xl border border-dashed border-stone-200"
+        className="flex items-center justify-center text-xs text-slate-500 bg-slate-50/50 rounded-xl border border-dashed border-slate-200"
         style={{ height }}
       >
         {emptyMessage}
@@ -308,7 +308,7 @@ export const BarLineChart: React.FC<BarLineChartProps> = ({
       {/* Tooltip Hover Box */}
       {hoverIndex !== null && data[hoverIndex] && (
         <div
-          className="absolute z-20 pointer-events-none bg-stone-900/90 text-white rounded-lg px-3 py-2 text-xs shadow-lg backdrop-blur-xs border border-stone-700 space-y-1"
+          className="absolute z-20 pointer-events-none bg-slate-900/90 text-white rounded-lg px-3 py-2 text-xs shadow-lg backdrop-blur-xs border border-slate-700 space-y-1"
           style={{
             left: `${Math.min(
               85,
@@ -321,7 +321,7 @@ export const BarLineChart: React.FC<BarLineChartProps> = ({
             transform: 'translateX(-50%)',
           }}
         >
-          <div className="font-semibold text-stone-200 border-b border-stone-700/60 pb-1 mb-1">
+          <div className="font-semibold text-slate-200 border-b border-slate-700/60 pb-1 mb-1">
             {categories[hoverIndex]}
           </div>
           {series.map((s) => {
@@ -333,7 +333,7 @@ export const BarLineChart: React.FC<BarLineChartProps> = ({
               : '—';
             return (
               <div key={s.key} className="flex items-center justify-between gap-4">
-                <span className="flex items-center gap-1.5 text-stone-300">
+                <span className="flex items-center gap-1.5 text-slate-300">
                   <span
                     className="w-2.5 h-2.5 rounded-xs shrink-0"
                     style={{ backgroundColor: s.color }}
@@ -348,9 +348,9 @@ export const BarLineChart: React.FC<BarLineChartProps> = ({
       )}
 
       {/* Chú thích Legend */}
-      <div className="flex flex-wrap items-center justify-center gap-6 mt-3 pt-2 border-t border-stone-100">
+      <div className="flex flex-wrap items-center justify-center gap-6 mt-3 pt-2 border-t border-slate-100">
         {series.map((s) => (
-          <div key={s.key} className="flex items-center gap-2 text-xs text-stone-600">
+          <div key={s.key} className="flex items-center gap-2 text-xs text-slate-600">
             {s.type === 'bar' ? (
               <span
                 className="w-3 h-3 rounded-xs"

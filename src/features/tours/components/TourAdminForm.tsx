@@ -152,7 +152,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
       setRouteFileUrl(initialData.routeFileUrl || '');
       setTourStatus(initialData.status || 'DRAFT');
       setPolicyId(initialData.cancellationPolicyVersionId ? String(initialData.cancellationPolicyVersionId) : '');
-      setCreatedTourId(initialData.id);
+      setCreatedTourId(mode === 'edit' ? initialData.id : null);
     }
   }, [initialData]);
 
@@ -549,7 +549,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
       {stepError && (
         <div
           role="alert"
-          className="rounded-2xl bg-amber-50 border border-amber-300 p-5 text-stone-800 space-y-2 shadow-xs"
+          className="rounded-2xl bg-amber-50 border border-amber-300 p-5 text-slate-800 space-y-2 shadow-xs"
         >
           <div className="flex items-start gap-3">
             <ShieldAlert className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
@@ -557,7 +557,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
               <h3 className="font-bold text-base text-amber-900">
                 {stepError.title || 'Thông báo xử lý từng bước'}
               </h3>
-              <p className="text-stone-700 leading-relaxed">{stepError.message}</p>
+              <p className="text-slate-700 leading-relaxed">{stepError.message}</p>
               {stepError.guidance && (
                 <p className="text-amber-800 font-medium bg-white/80 p-2.5 rounded-xl border border-amber-200 mt-2">
                   💡 {stepError.guidance}
@@ -569,7 +569,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
           {/* Quick Actions if tour was already created */}
           {createdTourId && (
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-amber-200/80">
-              <span className="text-xs text-stone-500 font-mono">
+              <span className="text-xs text-slate-500 font-mono">
                 Tour đã được tạo
               </span>
               <button
@@ -582,7 +582,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
               <button
                 type="button"
                 onClick={() => navigateTo(ROUTES.ADMIN.TOURS)}
-                className="px-3 py-1 rounded-lg bg-stone-100 text-stone-700 text-sm font-semibold hover:bg-stone-200 cursor-pointer"
+                className="px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200 cursor-pointer"
               >
                 Về danh sách tour
               </button>
@@ -610,13 +610,13 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
       )}
 
       {/* CARD 1: THÔNG TIN CƠ BẢN CỦA TOUR */}
-      <div id="tour-basic" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="border-b border-stone-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div id="tour-basic" className="scroll-mt-48 bg-white rounded-2xl border border-[#E0E6EE] p-6 sm:p-8 shadow-xs space-y-6">
+        <div className="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h2 className="font-editorial text-xl font-bold text-[#1C2526]">
+            <h2 className="font-sans text-xl font-bold text-[#172033]">
               1. Thông tin cơ bản của tour trekking
             </h2>
-            <p className="text-sm text-stone-500 mt-0.5">
+            <p className="text-sm text-slate-500 mt-0.5">
               Tên hành trình, độ khó, thời lượng chuyến đi và trạng thái mong muốn.
             </p>
           </div>
@@ -625,12 +625,12 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
         {/* Title */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label htmlFor="tour-title" className="text-sm font-bold text-[#1C2526]">
+            <label htmlFor="tour-title" className="text-sm font-bold text-[#172033]">
               Tên tour trekking <span className="text-rose-600">*</span>
             </label>
             <span
               className={`text-xs font-mono ${
-                title.length > 250 ? 'text-rose-600 font-bold' : 'text-stone-400'
+                title.length > 250 ? 'text-rose-600 font-bold' : 'text-slate-400'
               }`}
             >
               {title.length}/250 ký tự
@@ -654,9 +654,9 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
               }
             }}
             placeholder="Ví dụ: Chinh phục Tà Năng - Phan Dũng"
-            className={`w-full px-4 py-2.5 rounded-xl border text-base bg-[#FDFBF7] focus:bg-white text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 transition-all ${
-              clientErrors.title ? 'border-rose-500' : 'border-stone-300 focus:border-[#1F4E43]'
-            } ${createdTourId && mode === 'create' ? 'bg-stone-100 cursor-not-allowed' : ''}`}
+            className={`w-full px-4 py-2.5 rounded-xl border text-base bg-[#F3F6FA] focus:bg-white text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 transition-all ${
+              clientErrors.title ? 'border-rose-500' : 'border-slate-300 focus:border-[#0B7058]'
+            } ${createdTourId && mode === 'create' ? 'bg-slate-100 cursor-not-allowed' : ''}`}
           />
           {clientErrors.title && (
             <p className="text-sm text-rose-600 mt-1.5 flex items-center gap-1">
@@ -670,9 +670,9 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           {/* Difficulty */}
           <div>
-            <label htmlFor="tour-difficulty" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+            <label htmlFor="tour-difficulty" className="block text-sm font-bold text-[#172033] mb-1.5">
               <span className="inline-flex items-center gap-1.5">
-                <Mountain className="w-3.5 h-3.5 text-[#1F4E43]" />
+                <Mountain className="w-3.5 h-3.5 text-[#0B7058]" />
                 <span>Độ khó tour *</span>
               </span>
             </label>
@@ -681,7 +681,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
               disabled={isSubmitting || (mode === 'create' && createdTourId !== null)}
               value={difficulty}
               onChange={(e) => setDifficulty(e.target.value as DifficultyLevel)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-[#FDFBF7] focus:bg-white text-base text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 cursor-pointer disabled:bg-stone-100 disabled:cursor-not-allowed"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-[#F3F6FA] focus:bg-white text-base text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 cursor-pointer disabled:bg-slate-100 disabled:cursor-not-allowed"
             >
               {DIFFICULTY_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -693,9 +693,9 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
 
           {/* Duration Days */}
           <div>
-            <label htmlFor="tour-durationDays" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+            <label htmlFor="tour-durationDays" className="block text-sm font-bold text-[#172033] mb-1.5">
               <span className="inline-flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[#1F4E43]" />
+                <Calendar className="w-3.5 h-3.5 text-[#0B7058]" />
                 <span>Thời lượng tour (số ngày) *</span>
               </span>
             </label>
@@ -718,9 +718,9 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
                 }
               }}
               placeholder="Ví dụ: 2"
-              className={`w-full px-3.5 py-2.5 rounded-xl border text-base font-mono bg-[#FDFBF7] focus:bg-white text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 ${
-                clientErrors.durationDays ? 'border-rose-500' : 'border-stone-300 focus:border-[#1F4E43]'
-              } ${createdTourId && mode === 'create' ? 'bg-stone-100 cursor-not-allowed' : ''}`}
+              className={`w-full px-3.5 py-2.5 rounded-xl border text-base font-mono bg-[#F3F6FA] focus:bg-white text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 ${
+                clientErrors.durationDays ? 'border-rose-500' : 'border-slate-300 focus:border-[#0B7058]'
+              } ${createdTourId && mode === 'create' ? 'bg-slate-100 cursor-not-allowed' : ''}`}
             />
             {clientErrors.durationDays && (
               <p className="text-sm text-rose-600 mt-1.5">{clientErrors.durationDays}</p>
@@ -729,7 +729,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
 
           {/* Status Choice */}
           <div>
-            <label htmlFor="tour-status" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+            <label htmlFor="tour-status" className="block text-sm font-bold text-[#172033] mb-1.5">
               <span className="inline-flex items-center gap-1.5">
                 <Activity className="w-3.5 h-3.5 text-[#C2410C]" />
                 <span>Trạng thái tour *</span>
@@ -740,7 +740,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
               disabled={isSubmitting}
               value={tourStatus}
               onChange={(e) => setTourStatus(e.target.value as TourStatus)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-[#FDFBF7] focus:bg-white text-base text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 cursor-pointer"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-[#F3F6FA] focus:bg-white text-base text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 cursor-pointer"
             >
               {mode === 'create' ? (
                 <>
@@ -761,9 +761,9 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
 
         {/* Description */}
         <div>
-          <label htmlFor="tour-description" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+          <label htmlFor="tour-description" className="block text-sm font-bold text-[#172033] mb-1.5">
             <span className="inline-flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-[#1F4E43]" />
+              <FileText className="w-3.5 h-3.5 text-[#0B7058]" />
               <span>Giới thiệu tour</span>
             </span>
           </label>
@@ -774,7 +774,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Mô tả cảnh quan cung đường, những trải nghiệm ấn tượng và hoạt động chính..."
-            className="w-full px-4 py-3 rounded-xl border border-stone-300 bg-[#FDFBF7] focus:bg-white text-base text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 disabled:bg-stone-100 disabled:cursor-not-allowed"
+            className="w-full px-4 py-3 rounded-xl border border-slate-300 bg-[#F3F6FA] focus:bg-white text-base text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
           />
         </div>
       </div>
@@ -782,23 +782,23 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
       {mode === 'create' && <div id="tour-itinerary" className="scroll-mt-48"><TourItineraryDraftEditor days={itineraryDays} onChange={setItineraryDays} duration={Number(durationDays)} disabled={isSubmitting} /></div>}
       {clientErrors.itinerary && <p role="alert" className="text-sm text-rose-700">{clientErrors.itinerary}</p>}
 
-      {<section id="tour-terms" className="scroll-mt-48 space-y-3 rounded-2xl border border-[#E6E1D8] bg-white p-6"><h2 className="text-xl font-bold">Điều khoản & lưu ý</h2><p className="text-sm text-stone-600">Chọn các điều khoản áp dụng cho tour.</p>{termsError && <p role="alert" className="text-rose-700">{termsError}</p>}{clientErrors.terms && <p role="alert" className="text-rose-700">{clientErrors.terms}</p>}{existingTermsLoading && <p className="text-sm text-stone-500">Đang tải điều khoản của tour...</p>}{existingTermsError && <p role="alert" className="text-rose-700">Không tải được điều khoản của tour. Vui lòng tải lại trang.</p>}{existingTerms.filter(t => !termsOptions.some(o => o.id === t.versionId)).map(t => <label key={t.versionId} className="flex items-start gap-3 rounded-lg border border-amber-300 p-3"><input type="checkbox" disabled={isSubmitting} checked={t.primaryCancellation ? policyId === String(t.versionId) : selectedTerms.includes(t.versionId)} onChange={e => { if (t.primaryCancellation) setPolicyId(e.target.checked ? String(t.versionId) : ''); else setSelectedTerms(prev => e.target.checked ? [...prev,t.versionId] : prev.filter(id => id !== t.versionId)); }}/><span>{t.title} <span className="text-sm text-amber-800">(không còn hiệu lực)</span></span></label>)}{clientErrors.policyId && <p role="alert" className="text-rose-700">{clientErrors.policyId}</p>}{termsOptions.length === 0 && !termsError && <p className="text-sm text-stone-500">Chưa có điều khoản đang có hiệu lực.</p>}{termsOptions.map(t => <label key={t.id} className="flex items-start gap-3 rounded-lg border border-stone-200 p-3"><input type="checkbox" disabled={isSubmitting} checked={t.kind === 'cancellation' ? policyId === String(t.id) : selectedTerms.includes(t.id)} onChange={e => { if (t.kind === 'cancellation') setPolicyId(e.target.checked ? String(t.id) : ''); else setSelectedTerms(prev => e.target.checked ? [...prev,t.id] : prev.filter(id => id !== t.id)); }}/><span>{t.title} <span className="text-sm text-stone-500">(phiên bản {t.versionNumber}){t.kind === 'cancellation' ? ' · đổi/hủy' : ''}</span></span></label>)}<p className="text-sm text-stone-500">Chọn một chính sách đổi/hủy có hiệu lực để xuất bản tour. Chọn chính sách đổi/hủy khác sẽ thay thế lựa chọn cũ.</p><div className="flex flex-wrap gap-4"><a href={ROUTES.ADMIN.POLICIES} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-800 underline">Quản lý điều khoản & lưu ý (mở tab mới)</a><button type="button" onClick={loadTerms} className="text-sm text-emerald-800 underline">Tải lại danh sách</button></div></section>}
+      {<section id="tour-terms" className="scroll-mt-48 space-y-3 rounded-2xl border border-[#E0E6EE] bg-white p-6"><h2 className="text-xl font-bold">Điều khoản & lưu ý</h2><p className="text-sm text-slate-600">Chọn các điều khoản áp dụng cho tour.</p>{termsError && <p role="alert" className="text-rose-700">{termsError}</p>}{clientErrors.terms && <p role="alert" className="text-rose-700">{clientErrors.terms}</p>}{existingTermsLoading && <p className="text-sm text-slate-500">Đang tải điều khoản của tour...</p>}{existingTermsError && <p role="alert" className="text-rose-700">Không tải được điều khoản của tour. Vui lòng tải lại trang.</p>}{existingTerms.filter(t => !termsOptions.some(o => o.id === t.versionId)).map(t => <label key={t.versionId} className="flex items-start gap-3 rounded-lg border border-amber-300 p-3"><input type="checkbox" disabled={isSubmitting} checked={t.primaryCancellation ? policyId === String(t.versionId) : selectedTerms.includes(t.versionId)} onChange={e => { if (t.primaryCancellation) setPolicyId(e.target.checked ? String(t.versionId) : ''); else setSelectedTerms(prev => e.target.checked ? [...prev,t.versionId] : prev.filter(id => id !== t.versionId)); }}/><span>{t.title} <span className="text-sm text-amber-800">(không còn hiệu lực)</span></span></label>)}{clientErrors.policyId && <p role="alert" className="text-rose-700">{clientErrors.policyId}</p>}{termsOptions.length === 0 && !termsError && <p className="text-sm text-slate-500">Chưa có điều khoản đang có hiệu lực.</p>}{termsOptions.map(t => <label key={t.id} className="flex items-start gap-3 rounded-lg border border-slate-200 p-3"><input type="checkbox" disabled={isSubmitting} checked={t.kind === 'cancellation' ? policyId === String(t.id) : selectedTerms.includes(t.id)} onChange={e => { if (t.kind === 'cancellation') setPolicyId(e.target.checked ? String(t.id) : ''); else setSelectedTerms(prev => e.target.checked ? [...prev,t.id] : prev.filter(id => id !== t.id)); }}/><span>{t.title} <span className="text-sm text-slate-500">(phiên bản {t.versionNumber}){t.kind === 'cancellation' ? ' · đổi/hủy' : ''}</span></span></label>)}<p className="text-sm text-slate-500">Chọn một chính sách đổi/hủy có hiệu lực để xuất bản tour. Chọn chính sách đổi/hủy khác sẽ thay thế lựa chọn cũ.</p><div className="flex flex-wrap gap-4"><a href={ROUTES.ADMIN.POLICIES} target="_blank" rel="noopener noreferrer" className="text-sm text-emerald-800 underline">Quản lý điều khoản & lưu ý (mở tab mới)</a><button type="button" onClick={loadTerms} className="text-sm text-emerald-800 underline">Tải lại danh sách</button></div></section>}
 
-      {mode === 'edit' && initialData?.id && <div id="tour-equipment" className="scroll-mt-48"><TourEquipmentEditor tourId={initialData.id} /><p className="mt-3 text-sm text-stone-600">Thiết bị được lưu riêng bằng thao tác trong mục này.</p></div>}
+      {mode === 'edit' && initialData?.id && <div id="tour-equipment" className="scroll-mt-48"><TourEquipmentEditor tourId={initialData.id} /><p className="mt-3 text-sm text-slate-600">Thiết bị được lưu riêng bằng thao tác trong mục này.</p></div>}
       {/* CARD 2: DỊCH VỤ, YÊU CẦU & FILE CUNG ĐƯỜNG */}
-      <div id="tour-preparation" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="border-b border-stone-200 pb-4">
-          <h2 className="font-editorial text-xl font-bold text-[#1C2526]">
+      <div id="tour-preparation" className="scroll-mt-48 bg-white rounded-2xl border border-[#E0E6EE] p-6 sm:p-8 shadow-xs space-y-6">
+        <div className="border-b border-slate-200 pb-4">
+          <h2 className="font-sans text-xl font-bold text-[#172033]">
             2. Thể lực, dịch vụ & Tệp bản đồ cung đường
           </h2>
-          <p className="text-sm text-stone-500 mt-0.5">
+          <p className="text-sm text-slate-500 mt-0.5">
             Yêu cầu chuẩn bị và đường dẫn tệp GPS/GPX.
           </p>
         </div>
 
         {/* Required Experience */}
         <div>
-          <label htmlFor="tour-requiredExperience" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+          <label htmlFor="tour-requiredExperience" className="block text-sm font-bold text-[#172033] mb-1.5">
             <span className="inline-flex items-center gap-1.5">
               <Award className="w-3.5 h-3.5 text-[#C2410C]" />
               <span>Yêu cầu kinh nghiệm & thể lực</span>
@@ -811,14 +811,14 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
             value={requiredExperience}
             onChange={(e) => setRequiredExperience(e.target.value)}
             placeholder="Ví dụ: Thể lực tốt, có khả năng đi bộ 10-15km đường đồi dốc..."
-            className="w-full px-4 py-2.5 rounded-xl border border-stone-300 bg-[#FDFBF7] focus:bg-white text-base text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 disabled:bg-stone-100 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-[#F3F6FA] focus:bg-white text-base text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
           />
         </div>
 
         {/* Included & Excluded Services */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div>
-            <label htmlFor="tour-includedServices" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+            <label htmlFor="tour-includedServices" className="block text-sm font-bold text-[#172033] mb-1.5">
               <span className="inline-flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Dịch vụ bao gồm</span>
@@ -831,12 +831,12 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
               value={includedServices}
               onChange={(e) => setIncludedServices(e.target.value)}
               placeholder="Ví dụ: Xe đưa đón, hướng dẫn viên, porter, lều trại, bảo hiểm du lịch..."
-              className="w-full px-4 py-2.5 rounded-xl border border-stone-300 bg-[#FDFBF7] focus:bg-white text-base text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 disabled:bg-stone-100 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-[#F3F6FA] focus:bg-white text-base text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
             />
           </div>
 
           <div>
-            <label htmlFor="tour-excludedServices" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+            <label htmlFor="tour-excludedServices" className="block text-sm font-bold text-[#172033] mb-1.5">
               <span className="inline-flex items-center gap-1.5">
                 <XCircle className="w-3.5 h-3.5 text-rose-600" />
                 <span>Dịch vụ không bao gồm</span>
@@ -849,16 +849,16 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
               value={excludedServices}
               onChange={(e) => setExcludedServices(e.target.value)}
               placeholder="Ví dụ: Chi phí cá nhân, đồ uống ngoài chương trình, tiền tip..."
-              className="w-full px-4 py-2.5 rounded-xl border border-stone-300 bg-[#FDFBF7] focus:bg-white text-base text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 disabled:bg-stone-100 disabled:cursor-not-allowed"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-[#F3F6FA] focus:bg-white text-base text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
             />
           </div>
         </div>
 
         {/* Route File URL (Separated from image uploads) */}
         <div>
-          <label htmlFor="tour-routeFileUrl" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+          <label htmlFor="tour-routeFileUrl" className="block text-sm font-bold text-[#172033] mb-1.5">
             <span className="inline-flex items-center gap-1.5">
-              <Link2 className="w-3.5 h-3.5 text-[#1F4E43]" />
+              <Link2 className="w-3.5 h-3.5 text-[#0B7058]" />
               <span>Đường dẫn tệp bản đồ / cung đường GPS</span>
             </span>
           </label>
@@ -878,11 +878,11 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
               }
             }}
             placeholder="https://example.com/route.gpx"
-            className={`w-full px-4 py-2.5 rounded-xl border text-base font-mono bg-[#FDFBF7] focus:bg-white text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 ${
+            className={`w-full px-4 py-2.5 rounded-xl border text-base font-mono bg-[#F3F6FA] focus:bg-white text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 ${
               clientErrors.routeFileUrl
                 ? 'border-rose-500'
-                : 'border-stone-300 focus:border-[#1F4E43]'
-            } ${createdTourId && mode === 'create' ? 'bg-stone-100 cursor-not-allowed' : ''}`}
+                : 'border-slate-300 focus:border-[#0B7058]'
+            } ${createdTourId && mode === 'create' ? 'bg-slate-100 cursor-not-allowed' : ''}`}
           />
           {clientErrors.routeFileUrl ? (
             <p className="text-sm text-rose-600 mt-1.5 flex items-center gap-1">
@@ -894,12 +894,12 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
       </div>
 
       {/* CARD 3: ẢNH TOUR (TOUR MEDIA) */}
-      <div id="tour-media" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-xs space-y-4">
-        <div className="border-b border-stone-200 pb-4">
-          <h2 className="font-editorial text-xl font-bold text-[#1C2526]">
+      <div id="tour-media" className="scroll-mt-48 bg-white rounded-2xl border border-[#E0E6EE] p-6 sm:p-8 shadow-xs space-y-4">
+        <div className="border-b border-slate-200 pb-4">
+          <h2 className="font-sans text-xl font-bold text-[#172033]">
             3. Hình ảnh tour & Ảnh bìa
           </h2>
-          <p className="text-sm text-stone-500 mt-0.5">
+          <p className="text-sm text-slate-500 mt-0.5">
             Chọn ảnh từ máy tính, xem trước ảnh, chỉ định ảnh bìa và tải lên hệ thống lưu trữ.
           </p>
         </div>
@@ -913,13 +913,13 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
 
       {/* CARD 4: LỊCH KHỞI HÀNH ĐẦU TIÊN (FIRST DEPARTURE SCHEDULE) */}
       {mode === 'create' && (
-        <div id="tour-departure" className="scroll-mt-48 bg-white rounded-2xl border border-[#E6E1D8] p-6 sm:p-8 shadow-xs space-y-6">
-          <div className="border-b border-stone-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div id="tour-departure" className="scroll-mt-48 bg-white rounded-2xl border border-[#E0E6EE] p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h2 className="font-editorial text-xl font-bold text-[#1C2526]">
+              <h2 className="font-sans text-xl font-bold text-[#172033]">
                 4. Lịch khởi hành đầu tiên của tour
               </h2>
-              <p className="text-sm text-stone-500 mt-0.5">
+              <p className="text-sm text-slate-500 mt-0.5">
                 Lưu giá và thông tin dự kiến. Có thể bổ sung ngày khởi hành sau.
               </p>
             </div>
@@ -930,16 +930,16 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
             )}
           </div>
 
-          <label className="flex items-center gap-3 rounded-xl border border-stone-200 p-4 text-base font-semibold"><input type="checkbox" checked={dateKnown} disabled={isSubmitting || Boolean(createdScheduleId)} onChange={e => setDateKnown(e.target.checked)} /> Đã xác định ngày khởi hành</label>
-          {!dateKnown && <p className="text-sm text-stone-600">Chưa tạo lịch khởi hành. Bạn có thể thêm ngày sau tại mục Lịch khởi hành.</p>}
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 text-base font-semibold"><input type="checkbox" checked={dateKnown} disabled={isSubmitting || Boolean(createdScheduleId)} onChange={e => setDateKnown(e.target.checked)} /> Đã xác định ngày khởi hành</label>
+          {!dateKnown && <p className="text-sm text-slate-600">Chưa tạo lịch khởi hành. Bạn có thể thêm ngày sau tại mục Lịch khởi hành.</p>}
           {dateKnown && <>
           {/* StartsAt and EndsAt (auto-calculated, read-only) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* StartsAt */}
             <div>
-              <label htmlFor="schedule-startsAt" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+              <label htmlFor="schedule-startsAt" className="block text-sm font-bold text-[#172033] mb-1.5">
                 <span className="inline-flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-[#1F4E43]" />
+                  <Calendar className="w-3.5 h-3.5 text-[#0B7058]" />
                   <span>Ngày & giờ bắt đầu khởi hành *</span>
                 </span>
               </label>
@@ -955,9 +955,9 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
             {/* EndsAt (read-only, auto calculated = startsAt + durationDays) */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="schedule-endsAt" className="text-sm font-bold text-stone-600">
+                <label htmlFor="schedule-endsAt" className="text-sm font-bold text-slate-600">
                   <span className="inline-flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-stone-500" />
+                    <Clock className="w-3.5 h-3.5 text-slate-500" />
                     <span>Ngày & giờ kết thúc</span>
                   </span>
                 </label>
@@ -968,7 +968,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
                 readOnly
                 value={displayLocalDateTime(endsAt)}
                 placeholder="Chọn ngày bắt đầu"
-                className="mt-1.5 min-h-12 w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-base font-normal text-stone-800 cursor-not-allowed"
+                className="mt-1.5 min-h-12 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-base font-normal text-slate-800 cursor-not-allowed"
               />
             </div>
           </div>
@@ -978,7 +978,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {/* BalanceDueAt */}
             {dateKnown && <div>
-              <label htmlFor="schedule-balanceDueAt" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+              <label htmlFor="schedule-balanceDueAt" className="block text-sm font-bold text-[#172033] mb-1.5">
                 <span className="inline-flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5 text-[#C2410C]" />
                   <span>Hạn chót thanh toán số dư *</span>
@@ -991,16 +991,16 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
                   <span>{clientErrors.balanceDueAt}</span>
                 </p>
               ) : (
-                <p className="text-xs text-stone-500 mt-1">
+                <p className="text-xs text-slate-500 mt-1">
                   Phải trước hoặc cùng thời điểm ngày bắt đầu.
                 </p>
               )}
             </div>}
             {/* Capacity */}
             <div>
-              <label htmlFor="schedule-capacity" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+              <label htmlFor="schedule-capacity" className="block text-sm font-bold text-[#172033] mb-1.5">
                 <span className="inline-flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-[#1F4E43]" />
+                  <Users className="w-3.5 h-3.5 text-[#0B7058]" />
                   <span>Sức chứa đoàn (số chỗ) *</span>
                 </span>
               </label>
@@ -1023,9 +1023,9 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
                   }
                 }}
                 placeholder="Ví dụ: 15"
-                className={`w-full px-3.5 py-2.5 rounded-xl border text-base font-mono bg-[#FDFBF7] focus:bg-white text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 ${
-                  clientErrors.capacity ? 'border-rose-500' : 'border-stone-300 focus:border-[#1F4E43]'
-                } ${createdScheduleId ? 'bg-stone-100 cursor-not-allowed' : ''}`}
+                className={`w-full px-3.5 py-2.5 rounded-xl border text-base font-mono bg-[#F3F6FA] focus:bg-white text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 ${
+                  clientErrors.capacity ? 'border-rose-500' : 'border-slate-300 focus:border-[#0B7058]'
+                } ${createdScheduleId ? 'bg-slate-100 cursor-not-allowed' : ''}`}
               />
               {clientErrors.capacity ? (
                 <p className="text-sm text-rose-600 mt-1.5">{clientErrors.capacity}</p>
@@ -1034,7 +1034,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
 
             {/* Deposit Percent */}
             <div>
-              <label htmlFor="schedule-depositPercent" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+              <label htmlFor="schedule-depositPercent" className="block text-sm font-bold text-[#172033] mb-1.5">
                 <span className="inline-flex items-center gap-1.5">
                   <DollarSign className="w-3.5 h-3.5 text-[#C2410C]" />
                   <span>Tỷ lệ đặt cọc (%) *</span>
@@ -1060,14 +1060,14 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
                   }
                 }}
                 placeholder="Ví dụ: 30"
-                className={`w-full px-3.5 py-2.5 rounded-xl border text-base font-mono bg-[#FDFBF7] focus:bg-white text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 ${
-                  clientErrors.depositPercent ? 'border-rose-500' : 'border-stone-300 focus:border-[#1F4E43]'
-                } ${createdScheduleId ? 'bg-stone-100 cursor-not-allowed' : ''}`}
+                className={`w-full px-3.5 py-2.5 rounded-xl border text-base font-mono bg-[#F3F6FA] focus:bg-white text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 ${
+                  clientErrors.depositPercent ? 'border-rose-500' : 'border-slate-300 focus:border-[#0B7058]'
+                } ${createdScheduleId ? 'bg-slate-100 cursor-not-allowed' : ''}`}
               />
               {clientErrors.depositPercent ? (
                 <p className="text-sm text-rose-600 mt-1.5">{clientErrors.depositPercent}</p>
               ) : (
-                <p className="text-xs text-stone-500 mt-1">Từ 1% đến 100%</p>
+                <p className="text-xs text-slate-500 mt-1">Từ 1% đến 100%</p>
               )}
             </div>
           </div>
@@ -1077,10 +1077,10 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
             {/* Base Price */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="schedule-basePriceVnd" className="text-sm font-bold text-[#1C2526]">
+                <label htmlFor="schedule-basePriceVnd" className="text-sm font-bold text-[#172033]">
                   Giá tour cơ bản (VNĐ) *
                 </label>
-                <span className="text-xs font-mono text-[#1F4E43] font-semibold">
+                <span className="text-xs font-mono text-[#0B7058] font-semibold">
                   {formatVND(Number(basePriceVnd))}
                 </span>
               </div>
@@ -1103,9 +1103,9 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
                   }
                 }}
                 placeholder="Ví dụ: 2500000"
-                className={`w-full px-3.5 py-2.5 rounded-xl border text-base font-mono bg-[#FDFBF7] focus:bg-white text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 ${
-                  clientErrors.basePriceVnd ? 'border-rose-500' : 'border-stone-300 focus:border-[#1F4E43]'
-                } ${createdScheduleId ? 'bg-stone-100 cursor-not-allowed' : ''}`}
+                className={`w-full px-3.5 py-2.5 rounded-xl border text-base font-mono bg-[#F3F6FA] focus:bg-white text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 ${
+                  clientErrors.basePriceVnd ? 'border-rose-500' : 'border-slate-300 focus:border-[#0B7058]'
+                } ${createdScheduleId ? 'bg-slate-100 cursor-not-allowed' : ''}`}
               />
               {clientErrors.basePriceVnd && (
                 <p className="text-sm text-rose-600 mt-1.5">{clientErrors.basePriceVnd}</p>
@@ -1115,10 +1115,10 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
             {/* Equipment Fee */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label htmlFor="schedule-equipmentFeeVnd" className="text-sm font-bold text-[#1C2526]">
+                <label htmlFor="schedule-equipmentFeeVnd" className="text-sm font-bold text-[#172033]">
                   Phí thuê thiết bị (VNĐ) *
                 </label>
-                <span className="text-xs font-mono text-[#1F4E43] font-semibold">
+                <span className="text-xs font-mono text-[#0B7058] font-semibold">
                   {formatVND(Number(equipmentFeeVnd))}
                 </span>
               </div>
@@ -1141,9 +1141,9 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
                   }
                 }}
                 placeholder="Ví dụ: 200000"
-                className={`w-full px-3.5 py-2.5 rounded-xl border text-base font-mono bg-[#FDFBF7] focus:bg-white text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 ${
-                  clientErrors.equipmentFeeVnd ? 'border-rose-500' : 'border-stone-300 focus:border-[#1F4E43]'
-                } ${createdScheduleId ? 'bg-stone-100 cursor-not-allowed' : ''}`}
+                className={`w-full px-3.5 py-2.5 rounded-xl border text-base font-mono bg-[#F3F6FA] focus:bg-white text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 ${
+                  clientErrors.equipmentFeeVnd ? 'border-rose-500' : 'border-slate-300 focus:border-[#0B7058]'
+                } ${createdScheduleId ? 'bg-slate-100 cursor-not-allowed' : ''}`}
               />
               {clientErrors.equipmentFeeVnd && (
                 <p className="text-sm text-rose-600 mt-1.5">{clientErrors.equipmentFeeVnd}</p>
@@ -1155,9 +1155,9 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* Meeting Point */}
             <div>
-              <label htmlFor="schedule-meetingPoint" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+              <label htmlFor="schedule-meetingPoint" className="block text-sm font-bold text-[#172033] mb-1.5">
                 <span className="inline-flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#1F4E43]" />
+                  <MapPin className="w-3.5 h-3.5 text-[#0B7058]" />
                   <span>Điểm tập trung xuất phát</span>
                 </span>
               </label>
@@ -1168,15 +1168,15 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
                 value={meetingPoint}
                 onChange={(e) => setMeetingPoint(e.target.value)}
                 placeholder="Ví dụ: Cổng Bến xe Mỹ Đình, Hà Nội"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-stone-300 bg-[#FDFBF7] focus:bg-white text-base text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 disabled:bg-stone-100 disabled:cursor-not-allowed"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-[#F3F6FA] focus:bg-white text-base text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
               />
             </div>
 
             {/* Contact Phone */}
             <div>
-              <label htmlFor="schedule-contactPhone" className="block text-sm font-bold text-[#1C2526] mb-1.5">
+              <label htmlFor="schedule-contactPhone" className="block text-sm font-bold text-[#172033] mb-1.5">
                 <span className="inline-flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-[#1F4E43]" />
+                  <Phone className="w-3.5 h-3.5 text-[#0B7058]" />
                   <span>Số điện thoại liên hệ điều hành</span>
                 </span>
               </label>
@@ -1197,9 +1197,9 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
                   }
                 }}
                 placeholder="Ví dụ: 0912345678"
-                className={`w-full px-3.5 py-2.5 rounded-xl border text-base font-mono bg-[#FDFBF7] focus:bg-white text-[#1C2526] focus:outline-none focus:ring-2 focus:ring-[#1F4E43]/20 ${
-                  clientErrors.contactPhone ? 'border-rose-500' : 'border-stone-300 focus:border-[#1F4E43]'
-                } ${createdScheduleId ? 'bg-stone-100 cursor-not-allowed' : ''}`}
+                className={`w-full px-3.5 py-2.5 rounded-xl border text-base font-mono bg-[#F3F6FA] focus:bg-white text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#0B7058]/20 ${
+                  clientErrors.contactPhone ? 'border-rose-500' : 'border-slate-300 focus:border-[#0B7058]'
+                } ${createdScheduleId ? 'bg-slate-100 cursor-not-allowed' : ''}`}
               />
               {clientErrors.contactPhone && (
                 <p className="text-sm text-rose-600 mt-1.5">{clientErrors.contactPhone}</p>
@@ -1210,12 +1210,12 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
       )}
 
       {/* Form Action Footer */}
-      <div className="sticky bottom-0 z-30 flex flex-col-reverse items-stretch justify-between gap-3 rounded-xl border border-[#E6E1D8] bg-white/95 p-4 shadow-lg backdrop-blur-sm sm:flex-row sm:items-center">
+      <div className="sticky bottom-0 z-30 flex flex-col-reverse items-stretch justify-between gap-3 rounded-xl border border-[#E0E6EE] bg-white/95 p-4 shadow-lg backdrop-blur-sm sm:flex-row sm:items-center">
         <button
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="px-5 py-3 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 font-semibold text-sm sm:text-base inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
+          className="px-5 py-3 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm sm:text-base inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Hủy & Quay lại</span>
@@ -1224,7 +1224,7 @@ export const TourAdminForm: React.FC<TourAdminFormProps> = ({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-7 py-3 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white font-semibold text-sm sm:text-base inline-flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer disabled:opacity-60"
+          className="px-7 py-3 rounded-xl bg-[#0B7058] hover:bg-[#075743] text-white font-semibold text-sm sm:text-base inline-flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer disabled:opacity-60"
         >
           {isSubmitting ? (
             <>

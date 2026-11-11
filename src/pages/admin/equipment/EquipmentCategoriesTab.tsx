@@ -141,15 +141,15 @@ export const EquipmentCategoriesTab: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top action bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-4 border border-[#E6E1D8] shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-4 border border-[#E0E6EE] shadow-2xs">
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder="Tìm kiếm theo tên nhóm..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-stone-200 text-sm focus:border-[#1F4E43] focus:ring-1 focus:ring-[#1F4E43] outline-none"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0B7058] focus:ring-1 focus:ring-[#0B7058] outline-none"
           />
         </div>
 
@@ -157,7 +157,7 @@ export const EquipmentCategoriesTab: React.FC = () => {
           <button
             type="button"
             onClick={fetchCategories}
-            className="p-2.5 rounded-xl border border-stone-200 text-stone-600 hover:bg-[#F7F4EE] transition-colors cursor-pointer"
+            className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-[#F3F6FA] transition-colors cursor-pointer"
             title="Tải lại danh sách"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -166,7 +166,7 @@ export const EquipmentCategoriesTab: React.FC = () => {
           <button
             type="button"
             onClick={handleOpenCreateModal}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs sm:text-sm font-semibold transition-colors cursor-pointer shadow-2xs"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0B7058] hover:bg-[#075743] text-white text-xs sm:text-sm font-semibold transition-colors cursor-pointer shadow-2xs"
           >
             <Plus className="w-4 h-4" />
             <span>Thêm nhóm mới</span>
@@ -176,9 +176,9 @@ export const EquipmentCategoriesTab: React.FC = () => {
 
       {/* Loading state */}
       {isLoading && (
-        <div className="bg-white rounded-2xl border border-[#E6E1D8] p-12 text-center space-y-3">
-          <Loader2 className="w-8 h-8 animate-spin text-[#1F4E43] mx-auto" />
-          <p className="text-sm text-stone-500 font-medium">Đang tải danh sách nhóm thiết bị...</p>
+        <div className="bg-white rounded-2xl border border-[#E0E6EE] p-12 text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-[#0B7058] mx-auto" />
+          <p className="text-sm text-slate-500 font-medium">Đang tải danh sách nhóm thiết bị...</p>
         </div>
       )}
 
@@ -190,7 +190,7 @@ export const EquipmentCategoriesTab: React.FC = () => {
           <button
             type="button"
             onClick={fetchCategories}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1F4E43] text-white text-xs font-semibold hover:bg-[#15372F] transition-colors"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0B7058] text-white text-xs font-semibold hover:bg-[#075743] transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Thử lại</span>
@@ -200,16 +200,16 @@ export const EquipmentCategoriesTab: React.FC = () => {
 
       {/* Categories table */}
       {!isLoading && !error && (
-        <div className="bg-white rounded-2xl border border-[#E6E1D8] overflow-hidden shadow-2xs">
+        <div className="bg-white rounded-2xl border border-[#E0E6EE] overflow-hidden shadow-2xs">
           {filteredCategories.length === 0 ? (
             <div className="p-12 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#F7F4EE] border border-[#E6E1D8] flex items-center justify-center text-[#1F4E43] mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-[#F3F6FA] border border-[#E0E6EE] flex items-center justify-center text-[#0B7058] mx-auto">
                 <FolderTree className="w-6 h-6" />
               </div>
-              <h4 className="font-bold text-base text-[#1C2526]">
+              <h4 className="font-bold text-base text-[#172033]">
                 {searchQuery ? 'Không tìm thấy nhóm phù hợp' : 'Chưa có nhóm thiết bị nào'}
               </h4>
-              <p className="text-xs text-stone-500 max-w-sm mx-auto">
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
                 {searchQuery
                   ? 'Thử thay đổi từ khóa tìm kiếm.'
                   : 'Hãy tạo nhóm thiết bị đầu tiên để phân loại các món đồ trekking trong kho.'}
@@ -218,7 +218,7 @@ export const EquipmentCategoriesTab: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleOpenCreateModal}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1F4E43] text-white text-xs font-semibold cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0B7058] text-white text-xs font-semibold cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Tạo nhóm ngay</span>
@@ -228,7 +228,7 @@ export const EquipmentCategoriesTab: React.FC = () => {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-[#FAF8F5] border-b border-[#E6E1D8] text-xs font-semibold uppercase tracking-wider text-stone-600">
+                <thead className="bg-[#FAF8F5] border-b border-[#E0E6EE] text-xs font-semibold uppercase tracking-wider text-slate-600">
                   <tr>
                     <th className="py-3.5 px-6">Tên nhóm</th>
                     <th className="py-3.5 px-6">Mô tả</th>
@@ -236,20 +236,20 @@ export const EquipmentCategoriesTab: React.FC = () => {
                     <th className="py-3.5 px-6 text-right">Thao tác</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-stone-100">
+                <tbody className="divide-y divide-slate-100">
                   {filteredCategories.map((cat) => (
                     <tr key={cat.id} className="hover:bg-[#FAF8F5]/60 transition-colors">
-                      <td className="py-4 px-6 font-bold text-[#1C2526]">
+                      <td className="py-4 px-6 font-bold text-[#172033]">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-[#1F4E43]/10 text-[#1F4E43] flex items-center justify-center shrink-0">
+                          <div className="w-8 h-8 rounded-lg bg-[#0B7058]/10 text-[#0B7058] flex items-center justify-center shrink-0">
                             <FolderTree className="w-4 h-4" />
                           </div>
                           <span>{cat.name}</span>
                         </div>
                       </td>
-                      <td className="py-4 px-6 text-stone-600 max-w-md">
+                      <td className="py-4 px-6 text-slate-600 max-w-md">
                         {cat.description || (
-                          <span className="text-stone-400 italic">Chưa có mô tả</span>
+                          <span className="text-slate-400 italic">Chưa có mô tả</span>
                         )}
                       </td>
                       <td className="py-4 px-6">
@@ -259,7 +259,7 @@ export const EquipmentCategoriesTab: React.FC = () => {
                             <span>Hoạt động</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-stone-100 text-stone-600 border border-stone-200">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
                             <XCircle className="w-3.5 h-3.5" />
                             <span>Tạm ngưng</span>
                           </span>
@@ -270,7 +270,7 @@ export const EquipmentCategoriesTab: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(cat)}
-                            className="p-1.5 rounded-lg text-stone-500 hover:text-[#1F4E43] hover:bg-[#F7F4EE] transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-[#0B7058] hover:bg-[#F3F6FA] transition-colors cursor-pointer"
                             title="Chỉnh sửa"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -281,7 +281,7 @@ export const EquipmentCategoriesTab: React.FC = () => {
                               setDeletingCategory(cat);
                               setDeleteError(null);
                             }}
-                            className="p-1.5 rounded-lg text-stone-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                             title="Xóa nhóm"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -311,7 +311,7 @@ export const EquipmentCategoriesTab: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="equipmentcategoriestab-field-1" className="block text-sm font-medium text-[#1C2526] mb-2">
+                <label htmlFor="equipmentcategoriestab-field-1" className="block text-sm font-medium text-[#172033] mb-2">
                   Tên nhóm <span className="text-red-500">*</span>
                 </label>
               <input id="equipmentcategoriestab-field-1"                   type="text"
@@ -320,26 +320,26 @@ export const EquipmentCategoriesTab: React.FC = () => {
                   placeholder="Ví dụ: Lều trại & Túi ngủ, Dụng cụ nấu ăn..."
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:border-[#1F4E43] focus:ring-1 focus:ring-[#1F4E43] outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0B7058] focus:ring-1 focus:ring-[#0B7058] outline-none"
                 />
               </div>
 
               <div>
-                <label htmlFor="equipmentcategoriestab-field-2" className="block text-sm font-medium text-[#1C2526] mb-2">
+                <label htmlFor="equipmentcategoriestab-field-2" className="block text-sm font-medium text-[#172033] mb-2">
                   Mô tả nhóm
                 </label>
               <textarea id="equipmentcategoriestab-field-2"                   rows={3}
                   placeholder="Mô tả công dụng hoặc phạm vi của nhóm thiết bị này..."
                   value={formData.description || ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-sm focus:border-[#1F4E43] focus:ring-1 focus:ring-[#1F4E43] outline-none resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0B7058] focus:ring-1 focus:ring-[#0B7058] outline-none resize-none"
                 />
               </div>
 
-              <div className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] border border-[#E6E1D8]">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[#FAF8F5] border border-[#E0E6EE]">
                 <div>
-                  <span className="text-xs font-bold text-[#1C2526] block">Trạng thái hoạt động</span>
-                  <span className="text-xs text-stone-500 block">
+                  <span className="text-xs font-bold text-[#172033] block">Trạng thái hoạt động</span>
+                  <span className="text-xs text-slate-500 block">
                     Cho phép chọn nhóm này khi tạo thiết bị mới
                   </span>
                 </div>
@@ -350,22 +350,22 @@ export const EquipmentCategoriesTab: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
                     aria-label="Active" className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-stone-300 peer-focus-visible:ring-2 peer-focus-visible:ring-[#1F4E43] peer-focus-visible:ring-offset-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1F4E43]"></div>
+                  <div className="w-11 h-6 bg-slate-300 peer-focus-visible:ring-2 peer-focus-visible:ring-[#0B7058] peer-focus-visible:ring-offset-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0B7058]"></div>
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-100">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   disabled={isSubmitting} onClick={() => { if (!isSubmitting) setIsModalOpen(false); }}
-                  className="px-4 py-2.5 rounded-xl border border-stone-200 text-stone-600 text-xs font-semibold hover:bg-stone-50 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#0B7058] hover:bg-[#075743] text-white text-xs font-semibold cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{editingCategory ? 'Lưu thay đổi' : 'Tạo nhóm'}</span>
@@ -384,8 +384,8 @@ export const EquipmentCategoriesTab: React.FC = () => {
 
             <div className="text-center space-y-2">
 
-              <p className="text-xs text-stone-600">
-                Bạn có chắc chắn muốn xóa nhóm <strong className="text-stone-900">"{deletingCategory.name}"</strong>?
+              <p className="text-xs text-slate-600">
+                Bạn có chắc chắn muốn xóa nhóm <strong className="text-slate-900">"{deletingCategory.name}"</strong>?
               </p>
             </div>
 
@@ -401,7 +401,7 @@ export const EquipmentCategoriesTab: React.FC = () => {
                 type="button"
                 onClick={() => setDeletingCategory(null)}
                 disabled={isDeleting}
-                className="flex-1 py-2.5 rounded-xl border border-stone-200 text-stone-700 text-xs font-semibold hover:bg-stone-50 cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
               >
                 Hủy
               </button>

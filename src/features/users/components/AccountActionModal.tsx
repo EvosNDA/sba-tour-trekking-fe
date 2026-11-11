@@ -50,18 +50,18 @@ export const AccountActionModal: React.FC<AccountActionModalProps> = ({
       <div className="space-y-5">
 
         {/* Thông tin đối tượng */}
-        <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 text-sm text-stone-700 space-y-1.5">
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 space-y-1.5">
           <div className="flex justify-between">
-            <span className="text-stone-500">Người dùng:</span>
-            <strong className="text-stone-900">{account.fullName}</strong>
+            <span className="text-slate-500">Người dùng:</span>
+            <strong className="text-slate-900">{account.fullName}</strong>
           </div>
           <div className="flex justify-between">
-            <span className="text-stone-500">Email:</span>
-            <span className="font-mono text-stone-800">{account.email}</span>
+            <span className="text-slate-500">Email:</span>
+            <span className="font-mono text-slate-800">{account.email}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-stone-500">Mã tài khoản:</span>
-            <span className="font-mono text-stone-800">#{account.id}</span>
+            <span className="text-slate-500">Mã tài khoản:</span>
+            <span className="font-mono text-slate-800">#{account.id}</span>
           </div>
         </div>
 
@@ -71,14 +71,14 @@ export const AccountActionModal: React.FC<AccountActionModalProps> = ({
             <div className="flex items-center justify-between mb-1.5">
               <label
                 htmlFor="action-reason"
-                className="text-sm font-semibold text-stone-700"
+                className="text-sm font-semibold text-slate-700"
               >
                 Lý do {isBlock ? 'khóa' : 'mở khóa'}{' '}
                 <span className="text-rose-500">*</span>
               </label>
               <span
                 className={`text-xs font-mono ${
-                  reason.length > 2000 ? 'text-rose-600 font-bold' : 'text-stone-400'
+                  reason.length > 2000 ? 'text-rose-600 font-bold' : 'text-slate-400'
                 }`}
               >
                 {reason.length} / 2000
@@ -100,7 +100,7 @@ export const AccountActionModal: React.FC<AccountActionModalProps> = ({
               }
               maxLength={2000}
               disabled={isSubmitting}
-              className="w-full text-sm p-3 bg-white border border-stone-300 rounded-xl focus:outline-hidden focus:border-stone-800 transition-colors resize-none disabled:bg-stone-100 text-stone-800"
+              className="w-full text-sm p-3 bg-white border border-slate-300 rounded-xl focus:outline-hidden focus:border-slate-800 transition-colors resize-none disabled:bg-slate-100 text-slate-800"
             />
 
             {error?.fieldErrors?.reason && (
@@ -129,7 +129,7 @@ export const AccountActionModal: React.FC<AccountActionModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl border border-stone-200 text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors disabled:opacity-50 cursor-pointer"
+              className="px-4 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
             >
               Hủy
             </button>

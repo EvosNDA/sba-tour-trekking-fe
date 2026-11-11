@@ -1,6 +1,5 @@
 import { AdminPageHeader } from '../../../components/ui/AdminPageHeader';
 import { FilterToolbar } from '../../../components/ui/FilterToolbar';
-import { Pagination } from '../../../components/ui/Pagination';
 import { DataTable } from '../../../components/ui/DataTable';
 import { DataState } from '../../../components/ui/DataState';
 import React, { useState, useEffect, useCallback } from 'react';
@@ -19,6 +18,8 @@ import {
   Filter,
   RotateCcw,
   ShieldCheck,
+  Copy,
+  MoreVertical,
 } from 'lucide-react';
 import { toursApi } from '../../../features/tours/api/tours.api';
 import {
@@ -46,7 +47,7 @@ export const AdminTourListPage: React.FC = () => {
   const [durationDays, setDurationDays] = useState<string>('');
   const [status, setStatus] = useState<TourStatus | ''>('');
   const [page, setPage] = useState<number>(0);
-  const [size, setSize] = useState<number>(20);
+  const [size] = useState<number>(4);
 
   // Data state from Spring Page response
   const [tours, setTours] = useState<TourSummaryResponse[]>([]);
@@ -60,6 +61,7 @@ export const AdminTourListPage: React.FC = () => {
   const [tourToDelete, setTourToDelete] = useState<TourSummaryResponse | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<ApiError | null>(null);
+  const [activeTourMenuId, setActiveTourMenuId] = useState<number | null>(null);
 
   const fetchTours = useCallback(async () => {
     setIsLoading(true);
@@ -71,16 +73,20 @@ export const AdminTourListPage: React.FC = () => {
           ? Number(durationDays)
           : '';
 
-      const res = await toursApi.listTours({
+      const [res, scheduleOverview] = await Promise.all([
+        toursApi.listTours({
         page,
         size,
         query: appliedQuery,
         difficulty,
         durationDays: parsedDuration,
         status,
-      });
+        }),
+        toursApi.listScheduleOverview({ page: 0, size: 100, query: appliedQuery }).catch(() => null),
+      ]);
 
-      setTours(res.content || []);
+      const scheduleCounts = new Map((scheduleOverview?.content || []).map(item => [item.tourId, item.scheduleCount]));
+      setTours((res.content || []).map(tour => ({ ...tour, scheduleCount: scheduleCounts.get(tour.id) ?? 0 })));
       setTotalElements(res.totalElements ?? 0);
       setTotalPages(res.totalPages ?? 0);
       setCurrentPage(res.number ?? page);
@@ -156,186 +162,45 @@ export const AdminTourListPage: React.FC = () => {
 
   return (
     <AdminAccessGuard forbiddenError={error?.status === 403}>
-      <div className="min-h-screen bg-[#FDFBF7] text-[#1C2526] py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <div className="min-h-full px-4 py-6 text-[#172033] sm:px-7 lg:px-8">
+        <div className="mx-auto max-w-[1500px] space-y-5">
           {/* Top Dashboard Header */}
-          <AdminPageHeader title="Danh sách Tour Trekking" description="Quản lý danh mục cung đường, trạng thái xuất bản, độ khó và thời lượng hành trình." actions={<div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              <button
-                type="button"
-                onClick={fetchTours}
-                disabled={isLoading}
-                className="px-4 py-2.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <RefreshCw
-                  className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#1F4E43]' : ''}`}
-                />
-                <span>Làm mới</span>
-              </button>
-
+          <AdminPageHeader className="admin-tour-list-header" title="Tour trekking" actions={<div className="flex flex-wrap items-center gap-2.5 shrink-0">
               <button
                 type="button"
                 onClick={() => navigateTo(ROUTES.ADMIN.TOUR_NEW)}
-                className="px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs sm:text-sm font-semibold inline-flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+                className="rounded-xl bg-[#0B7058] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#075743]"
               >
                 <Plus className="w-4 h-4" />
-                <span>Tạo tour mới</span>
+                <span>Tạo tour</span>
               </button>
             </div>} />
 
-          {/* Search & Filter Bar */}
-          <FilterToolbar>
-          <form
-            onSubmit={handleSearchSubmit}
-            className="space-y-4"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
-                <Filter className="w-3.5 h-3.5 text-[#1F4E43]" />
-                <span>Bộ lọc & Tìm kiếm quản trị</span>
-              </span>
-
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={handleResetFilters}
-                  className="text-xs font-semibold text-[#C2410C] hover:underline inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Đặt lại bộ lọc</span>
-                </button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end">
-              {/* Query input */}
-              <div className="lg:col-span-4">
-                <label
-                  htmlFor="admin-filter-query"
-                  className="block text-xs font-semibold text-stone-700 mb-1"
-                >
-                  Tìm theo tên tour
-                </label>
-                <div className="relative">
-                  <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    id="admin-filter-query"
-                    type="text"
-                    value={queryInput}
-                    onChange={(e) => setQueryInput(e.target.value)}
-                    placeholder="Nhập tên tour (VD: Tà Năng, Fansipan...)"
-                    className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-stone-300 bg-[#FDFBF7] focus:bg-white focus:outline-none focus:border-[#1F4E43]"
-                  />
-                </div>
-              </div>
-
-              {/* Difficulty select */}
-              <div className="lg:col-span-2">
-                <label
-                  htmlFor="admin-filter-difficulty"
-                  className="block text-xs font-semibold text-stone-700 mb-1"
-                >
-                  Độ khó
-                </label>
-                <select
-                  id="admin-filter-difficulty"
-                  value={difficulty}
-                  onChange={(e) => {
-                    setDifficulty(e.target.value as DifficultyLevel | '');
-                    setPage(0);
-                  }}
-                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-stone-300 bg-[#FDFBF7] focus:bg-white focus:outline-none focus:border-[#1F4E43] cursor-pointer"
-                >
-                  <option value="">Tất cả độ khó</option>
-                  {DIFFICULTY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* DurationDays input */}
-              <div className="lg:col-span-2">
-                <label
-                  htmlFor="admin-filter-duration"
-                  className="block text-xs font-semibold text-stone-700 mb-1"
-                >
-                  Thời lượng (ngày)
-                </label>
-                <input
-                  id="admin-filter-duration"
-                  type="number"
-                  min={1}
-                  value={durationDays}
-                  onChange={(e) => {
-                    setDurationDays(e.target.value);
-                    setPage(0);
-                  }}
-                  placeholder="Tất cả"
-                  className="w-full px-3 py-2 text-xs sm:text-sm font-mono rounded-xl border border-stone-300 bg-[#FDFBF7] focus:bg-white focus:outline-none focus:border-[#1F4E43]"
-                />
-              </div>
-
-              {/* Status select */}
-              <div className="lg:col-span-2">
-                <label
-                  htmlFor="admin-filter-status"
-                  className="block text-xs font-semibold text-stone-700 mb-1"
-                >
-                  Trạng thái
-                </label>
-                <select
-                  id="admin-filter-status"
-                  value={status}
-                  onChange={(e) => {
-                    setStatus(e.target.value as TourStatus | '');
-                    setPage(0);
-                  }}
-                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-stone-300 bg-[#FDFBF7] focus:bg-white focus:outline-none focus:border-[#1F4E43] cursor-pointer"
-                >
-                  <option value="">Tất cả trạng thái</option>
-                  {TOUR_STATUS_OPTIONS.filter((option) => option.value === 'DRAFT' || option.value === 'PUBLISHED').map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Submit button */}
-              <div className="lg:col-span-2 flex gap-2">
-                <button
-                  type="submit"
-                  className="w-full py-2 px-4 rounded-xl bg-[#C2410C] hover:bg-[#9B2F00] text-white text-xs sm:text-sm font-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Search className="w-4 h-4" />
-                  <span>Tìm kiếm</span>
-                </button>
-              </div>
-            </div>
+          <form onSubmit={handleSearchSubmit} className="grid gap-3 md:grid-cols-[1.55fr_.75fr_.8fr]">
+            <label className="relative block"><Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"/><input id="admin-filter-query" type="search" value={queryInput} onChange={e => setQueryInput(e.target.value)} placeholder="Tìm theo tên cung đường..." className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-12 pr-4 text-base"/></label>
+            <select id="admin-filter-difficulty" aria-label="Độ khó" value={difficulty} onChange={e => {setDifficulty(e.target.value as DifficultyLevel | '');setPage(0);}} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base"><option value="">Độ khó</option>{DIFFICULTY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+            <select id="admin-filter-status" aria-label="Trạng thái" value={status} onChange={e => {setStatus(e.target.value as TourStatus | '');setPage(0);}} className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base"><option value="">Trạng thái</option>{TOUR_STATUS_OPTIONS.filter(option => option.value === 'DRAFT' || option.value === 'PUBLISHED').map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
           </form>
-          </FilterToolbar>
-
           {/* Table / Loading / Empty / Error States */}
           {isLoading ? (
-            <div className="bg-white rounded-2xl border border-[#E6E1D8] overflow-hidden shadow-2xs">
+            <div className="bg-white rounded-2xl border border-[#E0E6EE] overflow-hidden shadow-2xs">
               <div className="p-6 space-y-4 animate-pulse">
                 {[1, 2, 3, 4, 5].map((row) => (
                   <div
                     key={row}
-                    className="flex items-center justify-between gap-4 py-3 border-b border-stone-100 last:border-0"
+                    className="flex items-center justify-between gap-4 py-3 border-b border-slate-100 last:border-0"
                   >
                     <div className="flex items-center gap-4 flex-1">
-                      <div className="w-16 h-12 rounded-xl bg-stone-200 shrink-0" />
+                      <div className="w-16 h-12 rounded-xl bg-slate-200 shrink-0" />
                       <div className="space-y-2 flex-1">
-                        <div className="h-4 bg-stone-200 rounded w-1/3" />
-                        <div className="h-3 bg-stone-200 rounded w-24" />
+                        <div className="h-4 bg-slate-200 rounded w-1/3" />
+                        <div className="h-3 bg-slate-200 rounded w-24" />
                       </div>
                     </div>
-                    <div className="h-6 bg-stone-200 rounded-full w-24" />
-                    <div className="h-6 bg-stone-200 rounded w-16" />
-                    <div className="h-6 bg-stone-200 rounded-full w-24" />
-                    <div className="h-8 bg-stone-200 rounded-xl w-32" />
+                    <div className="h-6 bg-slate-200 rounded-full w-24" />
+                    <div className="h-6 bg-slate-200 rounded w-16" />
+                    <div className="h-6 bg-slate-200 rounded-full w-24" />
+                    <div className="h-8 bg-slate-200 rounded-xl w-32" />
                   </div>
                 ))}
               </div>
@@ -349,10 +214,10 @@ export const AdminTourListPage: React.FC = () => {
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div className="max-w-md mx-auto space-y-1">
-                <h2 className="text-lg font-bold text-stone-900">
+                <h2 className="text-lg font-bold text-slate-900">
                   Không thể tải danh sách tour từ máy chủ
                 </h2>
-                <p className="text-xs sm:text-sm text-stone-600">{error.message}</p>
+                <p className="text-xs sm:text-sm text-slate-600">{error.message}</p>
                 {error.code && (
                   <p className="text-xs font-mono text-rose-600">Mã lỗi: {error.code}</p>
                 )}
@@ -360,22 +225,22 @@ export const AdminTourListPage: React.FC = () => {
               <button
                 type="button"
                 onClick={fetchTours}
-                className="px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-[#0B7058] hover:bg-[#075743] text-white text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>Thử lại</span>
               </button>
             </div>
           ) : tours.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-[#E6E1D8] p-12 text-center space-y-4 shadow-2xs">
-              <div className="w-14 h-14 rounded-2xl bg-[#1F4E43]/10 text-[#1F4E43] flex items-center justify-center mx-auto">
+            <div className="bg-white rounded-2xl border border-[#E0E6EE] p-12 text-center space-y-4 shadow-2xs">
+              <div className="w-14 h-14 rounded-2xl bg-[#0B7058]/10 text-[#0B7058] flex items-center justify-center mx-auto">
                 <Compass className="w-7 h-7" />
               </div>
               <div className="max-w-md mx-auto space-y-1">
-                <h2 className="font-editorial text-2xl font-bold text-[#1C2526]">
+                <h2 className="font-sans text-2xl font-bold text-[#172033]">
                   Không tìm thấy tour nào
                 </h2>
-                <p className="text-xs sm:text-sm text-stone-600">
+                <p className="text-xs sm:text-sm text-slate-600">
                   {hasActiveFilters
                     ? 'Không có tour nào khớp với điều kiện tìm kiếm và bộ lọc hiện tại.'
                     : 'Hệ thống hiện chưa có dữ liệu tour trekking nào. Hãy bắt đầu bằng cách tạo tour đầu tiên.'}
@@ -386,7 +251,7 @@ export const AdminTourListPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleResetFilters}
-                    className="px-4 py-2.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 cursor-pointer"
                   >
                     Xóa bộ lọc
                   </button>
@@ -394,7 +259,7 @@ export const AdminTourListPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => navigateTo(ROUTES.ADMIN.TOUR_NEW)}
-                  className="px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-[#0B7058] hover:bg-[#075743] text-white text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Tạo tour mới</span>
@@ -402,155 +267,52 @@ export const AdminTourListPage: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-[#E6E1D8] overflow-hidden shadow-2xs">
-              <div className="divide-y divide-[#E6E1D8] md:hidden">
+            <div className="bg-white rounded-2xl border border-[#E0E6EE] overflow-hidden shadow-2xs">
+              <div className="divide-y divide-[#E0E6EE] md:hidden">
                 {tours.map((item) => (
                   <article key={item.id} className="space-y-4 p-5">
                     <div className="flex items-start gap-3">
                       {item.coverImageUrl && <img src={item.coverImageUrl} alt="" loading="lazy" className="h-20 w-20 shrink-0 rounded-xl object-cover" />}
                       <div className="min-w-0 space-y-2">
-                        <button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_DETAIL(item.id))} className="text-left text-base font-semibold text-[#1C2526] hover:text-[#C2410C]">{item.title}</button>
-                        <p className="text-sm text-stone-600">{item.durationDays} ngày</p>
+                        <button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_DETAIL(item.id))} className="text-left text-base font-semibold text-[#172033] hover:text-[#C2410C]">{item.title}</button>
+                        <p className="text-sm text-slate-600">{item.durationDays} ngày</p>
                         <div className="flex flex-wrap gap-2"><StatusBadge difficulty={item.difficulty} /><StatusBadge tourStatus={item.status} /></div>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-4">
-                      <button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_DETAIL(item.id))} className="min-h-11 rounded-lg border border-stone-200 px-3 text-sm font-medium">Chi tiết</button>
-                      <button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_EDIT(item.id))} className="min-h-11 rounded-lg border border-stone-200 px-3 text-sm font-medium">Chỉnh sửa</button>
-                      {item.status === 'DRAFT' && <button type="button" onClick={() => setPublishTourId(item.id)} className="min-h-11 rounded-lg bg-[#1F4E43] px-3 text-sm font-medium text-white">Xuất bản</button>}
+                    <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                      <button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_DETAIL(item.id))} className="min-h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium">Chi tiết</button>
+                      <button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_EDIT(item.id))} className="min-h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium">Chỉnh sửa</button>
+                      {item.status === 'DRAFT' && <button type="button" onClick={() => setPublishTourId(item.id)} className="min-h-11 rounded-lg bg-[#0B7058] px-3 text-sm font-medium text-white">Xuất bản</button>}
                       <button type="button" onClick={() => { setDeleteError(null); setTourToDelete(item); }} className="min-h-11 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700">Xóa</button>
                     </div>
                   </article>
                 ))}
               </div>
               {/* Responsive Table for Desktop & Tablet */}
-              <DataTable className="hidden md:block" tableClassName="w-full text-left border-collapse min-w-[760px]">
-                  <thead>
-                    <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-xs font-mono uppercase tracking-wider text-stone-600">
-                      <th className="py-3.5 px-4 font-bold w-24">Ảnh bìa</th>
-                      <th className="py-3.5 px-4 font-bold">Tên tour</th>
-                      <th className="py-3.5 px-4 font-bold w-40">Độ khó</th>
-                      <th className="py-3.5 px-4 font-bold w-28 text-center">Thời lượng</th>
-                      <th className="py-3.5 px-4 font-bold w-40">Trạng thái</th>
-                      <th className="py-3.5 px-4 font-bold w-56 text-right">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-200 text-sm">
-                    {tours.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="hover:bg-[#FDFBF7] transition-colors group"
-                      >
-                        {/* Cover Image */}
-                        <td className="py-3.5 px-4">
-                          <div className="w-16 h-12 rounded-xl overflow-hidden bg-stone-100 border border-stone-200 flex items-center justify-center shrink-0">
-                            {item.coverImageUrl ? (
-                              <img
-                                src={item.coverImageUrl}
-                                alt={item.title}
-                                loading="lazy"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <ImageOff
-                                className="w-4 h-4 text-stone-400"
-                                aria-label="Chưa có ảnh đại diện"
-                              />
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Title & ID */}
-                        <td className="py-3.5 px-4">
-                          <button
-                            type="button"
-                            onClick={() => navigateTo(ROUTES.ADMIN.TOUR_DETAIL(item.id))}
-                            className="font-semibold text-[#1C2526] hover:text-[#C2410C] text-left transition-colors block cursor-pointer"
-                          >
-                            {item.title}
-                          </button>
-                        </td>
-
-                        {/* Difficulty */}
-                        <td className="py-3.5 px-4">
-                          <StatusBadge difficulty={item.difficulty} size="sm" />
-                        </td>
-
-                        {/* Duration Days */}
-                        <td className="py-3.5 px-4 text-center">
-                          <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-lg bg-stone-100 text-stone-800 font-mono text-xs font-bold">
-                            {item.durationDays} ngày
-                          </span>
-                        </td>
-
-                        {/* Status */}
-                        <td className="py-3.5 px-4">
-                          <StatusBadge tourStatus={item.status} size="sm" />
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-3.5 px-4 text-right">
-                          <div className="inline-flex items-center justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => navigateTo(ROUTES.ADMIN.TOUR_DETAIL(item.id))}
-                              title="Xem chi tiết"
-                              className="px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-100 text-xs font-semibold text-stone-700 inline-flex items-center gap-1 transition-colors cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5 text-[#1F4E43]" />
-                              <span>Chi tiết</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => navigateTo(ROUTES.ADMIN.TOUR_EDIT(item.id))}
-                              title="Chỉnh sửa"
-                              className="px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-100 text-xs font-semibold text-stone-700 inline-flex items-center gap-1 transition-colors cursor-pointer"
-                            >
-                              <Edit3 className="w-3.5 h-3.5 text-[#C2410C]" />
-                              <span>Sửa</span>
-                            </button>
-
-                            {item.status === 'DRAFT' && <button type="button" onClick={() => setPublishTourId(item.id)} className="rounded-lg bg-[#1F4E43] px-2.5 py-1.5 text-xs font-semibold text-white">Xuất bản</button>}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDeleteError(null);
-                                setTourToDelete(item);
-                              }}
-                              title="Xóa tour"
-                              className="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50/60 hover:bg-rose-100 text-xs font-semibold text-rose-700 inline-flex items-center gap-1 transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Xóa</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </DataTable>
+              <DataTable className="hidden md:block" tableClassName="w-full min-w-[900px] border-collapse text-left">
+                <thead><tr className="bg-[#F0F1F0] text-sm text-slate-800"><th className="rounded-l-lg px-4 py-3 font-semibold">Cung đường</th><th className="px-4 py-3 font-semibold">Độ khó</th><th className="px-4 py-3 font-semibold">Thời lượng</th><th className="px-4 py-3 font-semibold">Trạng thái</th><th className="px-4 py-3 text-center font-semibold">Số lịch khởi hành</th><th className="rounded-r-lg px-4 py-3 text-right font-semibold">Thao tác</th></tr></thead>
+                <tbody className="divide-y divide-[#E4E7E5] text-sm">
+                  {tours.map(item => <tr key={item.id} className="transition-colors hover:bg-[#F7F8F6]">
+                    <td className="px-4 py-5"><button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_DETAIL(item.id))} className="block cursor-pointer text-left font-semibold text-[#172033] hover:text-[#0B7058]">{item.title}</button></td>
+                    <td className="px-4 py-5"><StatusBadge difficulty={item.difficulty} size="sm"/></td>
+                    <td className="whitespace-nowrap px-4 py-5">{item.durationDays} ngày{item.durationDays > 1 ? ` ${item.durationDays - 1} đêm` : ''}</td>
+                    <td className="px-4 py-5"><StatusBadge tourStatus={item.status} size="sm"/></td>
+                    <td className="px-4 py-5 text-center tabular-nums">{item.scheduleCount ?? 0}</td>
+                    <td className="px-4 py-5 text-right"><div className="inline-flex items-center justify-end gap-1">
+                      <button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_EDIT(item.id))} title="Chỉnh sửa" aria-label={`Chỉnh sửa ${item.title}`} className="rounded-lg p-2 text-[#164536] hover:bg-[#E7F1EB]"><Edit3 className="h-5 w-5"/></button>
+                      <button type="button" onClick={() => navigateTo(`${ROUTES.ADMIN.TOUR_NEW}?duplicate=${item.id}`)} title="Nhân bản tour" aria-label={`Nhân bản ${item.title}`} className="rounded-lg p-2 text-[#164536] hover:bg-[#E7F1EB]"><Copy className="h-5 w-5"/></button>
+                      <div className="relative"><button type="button" title="Thao tác khác" aria-label={`Thao tác khác: ${item.title}`} aria-expanded={activeTourMenuId === item.id} onClick={() => setActiveTourMenuId(id => id === item.id ? null : item.id)} className="rounded-lg p-2 text-[#164536] hover:bg-[#E7F1EB]"><MoreVertical className="h-5 w-5"/></button>{activeTourMenuId === item.id && <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-lg border border-slate-200 bg-white p-1 text-left shadow-lg"><button type="button" onClick={() => navigateTo(ROUTES.ADMIN.TOUR_DETAIL(item.id))} className="block w-full rounded-md px-3 py-2 text-left hover:bg-slate-50">Xem chi tiết</button>{item.status === 'DRAFT' && <button type="button" onClick={() => {setActiveTourMenuId(null);setPublishTourId(item.id);}} className="block w-full rounded-md px-3 py-2 text-left hover:bg-slate-50">Xuất bản</button>}<button type="button" onClick={() => {setActiveTourMenuId(null);setDeleteError(null);setTourToDelete(item);}} className="block w-full rounded-md px-3 py-2 text-left text-rose-700 hover:bg-rose-50">Xóa tour</button></div>}</div>
+                    </div></td>
+                  </tr>)}
+                </tbody>
+              </DataTable>
 
               {/* Pagination Footer */}
-              <div className="border-t border-[#E6E1D8] px-5 pt-4 text-sm text-stone-600"><label className="inline-flex items-center gap-1.5">
-                    <span>Số dòng/trang:</span>
-                    <select
-                      value={size}
-                      onChange={(e) => {
-                        setSize(Number(e.target.value));
-                        setPage(0);
-                      }}
-                      className="px-2 py-1 rounded-lg border border-stone-300 bg-white font-mono text-xs text-stone-800 focus:outline-none focus:border-[#1F4E43] cursor-pointer"
-                    >
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                      <option value={50}>50</option>
-                    </select>
-                  </label></div>
-<Pagination page={currentPage} totalPages={totalPages} totalElements={totalElements} pageSize={size} onPageChange={(next) => { if (!isLoading) setPage(next); }} />
+              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#E0E6EE] px-5 py-4 text-sm text-slate-600"><span>Hiển thị {totalElements ? currentPage * size + 1 : 0}–{Math.min((currentPage + 1) * size, totalElements)} trong {totalElements} tour</span><nav aria-label="Phân trang tour" className="flex items-center gap-2"><button type="button" disabled={currentPage === 0 || isLoading} onClick={() => setPage(p => Math.max(0,p-1))} aria-label="Trang trước" className="rounded-lg border border-slate-300 p-2 disabled:opacity-40"><ChevronLeft className="h-4 w-4"/></button>{Array.from({length: Math.min(totalPages, 6)}, (_,index) => index).map(index => <button type="button" key={index} onClick={() => setPage(index)} aria-current={currentPage === index ? 'page' : undefined} className={`h-10 min-w-10 rounded-lg border border-slate-300 px-3 ${currentPage === index ? 'bg-[#0B7058] text-white' : 'bg-white hover:bg-slate-50'}`}>{index+1}</button>)}{totalPages > 6 && <><span>…</span><button type="button" onClick={() => setPage(totalPages-1)} className="h-10 min-w-10 rounded-lg border border-slate-300 bg-white px-3">{totalPages}</button></>}<button type="button" disabled={currentPage + 1 >= totalPages || isLoading} onClick={() => setPage(p => Math.min(totalPages-1,p+1))} aria-label="Trang sau" className="rounded-lg border border-slate-300 p-2 disabled:opacity-40"><ChevronRight className="h-4 w-4"/></button></nav></div>
             </div>
           )}
         </div>
+        <p className="mt-2 text-right text-sm italic text-slate-500">Dữ liệu minh họa</p>
       </div>
 
       {publishTourId !== null && <TourPublishModal tourId={publishTourId} onClose={() => setPublishTourId(null)} onPublished={() => { setPublishTourId(null); toast.success('Đã xuất bản tour.'); void fetchTours(); }} />}
