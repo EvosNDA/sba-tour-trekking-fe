@@ -6,7 +6,6 @@ import { useLocation, navigateTo } from '../../lib/navigation';
 import { ROUTES } from '../../constants/routes';
 import { toast } from '../../components/ui/Toast';
 import { Modal } from '../../components/ui/Modal';
-import sidebarTrekker from '../../assets/images/admin/sidebar-trekker.png';
 
 export interface AdminPortalLayoutProps { children: React.ReactNode; }
 
@@ -67,7 +66,6 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
   </>;
   return <div data-x-role={xRole} data-admin-portal data-admin-page={adminPage} className="flex h-dvh w-full overflow-hidden bg-[#F8F6F1] font-sans text-[#172033]">
     <aside data-admin-sidebar aria-label="Thanh điều hướng quản trị" className="relative hidden w-[286px] shrink-0 flex-col overflow-hidden border-r border-[#DCE3D9] bg-[#FBF8F1] text-[#263A37] lg:flex">
-      <img data-admin-sidebar-art src={sidebarTrekker} alt="" aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-[108px] z-0 h-[42%] w-full object-cover object-bottom [mask-image:linear-gradient(to_bottom,transparent_0%,black_44%)]" />
       {renderBrand()}
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">{renderNavigation()}</div>
       {renderAccountFooter()}
