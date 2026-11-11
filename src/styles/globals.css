@@ -109,26 +109,6 @@
   font-size: 16px;
 }
 
-[data-admin-page] [data-admin-sidebar] {
-  width: 286px;
-}
-
-[data-admin-page="schedule-detail"] [data-admin-sidebar] { width: 293px; }
-[data-admin-page="policies"] [data-admin-sidebar] { width: 230px; }
-[data-admin-page="equipment"] [data-admin-sidebar] { width: 276px; }
-[data-admin-page="bookings"] [data-admin-sidebar] { width: 264px; }
-[data-admin-page="schedules"] [data-admin-sidebar] { width: 255px; }
-[data-admin-page="tours"] [data-admin-sidebar] { width: 318px; }
-
-[data-admin-page] [data-admin-sidebar-brand] { min-height: 120px; }
-[data-admin-page="dashboard"] [data-admin-sidebar-brand] { min-height: 104px; }
-[data-admin-page="dashboard"] [data-admin-sidebar] nav { padding-top: 32px; }
-[data-admin-page="equipment"] [data-admin-sidebar-brand] { min-height: 164px; }
-
-[data-admin-page] [data-admin-sidebar-art] { display: none; }
-[data-admin-page="users"] [data-admin-sidebar-art],
-[data-admin-page="tours"] [data-admin-sidebar-art] { display: block; }
-
 @media (min-width: 1536px) {
   .admin-booking-page-header h1 {
     font-size: 48px;
