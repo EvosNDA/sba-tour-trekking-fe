@@ -75,3 +75,229 @@
   background-image: radial-gradient(#D6CEBE 1.5px, transparent 1.5px);
   background-size: 8px 8px;
 }
+
+/* Admin workspace: navy field notes shell with a cool, clear operations canvas. */
+[data-admin-portal] {
+  --admin-ink: #172033;
+  --admin-muted: #586579;
+  --admin-line: #E0E6EE;
+  --admin-surface: #FFFFFF;
+  --admin-canvas: #F8F6F1;
+  --admin-green: #0B7058;
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--admin-ink);
+}
+
+[data-admin-portal] h1,
+[data-admin-portal] h2,
+[data-admin-portal] h3 {
+  font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+@media (max-width: 1535px) {
+  .admin-dashboard-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.admin-booking-page-header h1 {
+  font-size: 40px;
+}
+
+.admin-booking-page-header > div > div {
+  font-size: 16px;
+}
+
+[data-admin-page] [data-admin-sidebar] {
+  width: 286px;
+}
+
+[data-admin-page="schedule-detail"] [data-admin-sidebar] { width: 293px; }
+[data-admin-page="policies"] [data-admin-sidebar] { width: 230px; }
+[data-admin-page="equipment"] [data-admin-sidebar] { width: 276px; }
+[data-admin-page="bookings"] [data-admin-sidebar] { width: 264px; }
+[data-admin-page="schedules"] [data-admin-sidebar] { width: 255px; }
+[data-admin-page="tours"] [data-admin-sidebar] { width: 318px; }
+
+[data-admin-page] [data-admin-sidebar-brand] { min-height: 120px; }
+[data-admin-page="dashboard"] [data-admin-sidebar-brand] { min-height: 104px; }
+[data-admin-page="dashboard"] [data-admin-sidebar] nav { padding-top: 32px; }
+[data-admin-page="equipment"] [data-admin-sidebar-brand] { min-height: 164px; }
+
+[data-admin-page] [data-admin-sidebar-art] { display: none; }
+[data-admin-page="users"] [data-admin-sidebar-art],
+[data-admin-page="tours"] [data-admin-sidebar-art] { display: block; }
+
+@media (min-width: 1536px) {
+  .admin-booking-page-header h1 {
+    font-size: 48px;
+  }
+
+  .admin-booking-page-header > div > div {
+    font-size: 20px;
+  }
+}
+
+.admin-tour-list-header h1::after {
+  display: block;
+  width: 100px;
+  height: 6px;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: #0B7058;
+  content: "";
+}
+
+@media (min-width: 1536px) {
+  .admin-tour-list-header h1 {
+    font-size: 56px;
+  }
+}
+
+main[data-admin-content] {
+  background-color: #F4F7FB;
+  background-image: none;
+  background-position: right top;
+  background-repeat: no-repeat;
+  background-size: min(56vw, 640px) auto;
+  color: var(--admin-ink);
+}
+
+main[data-admin-page="policies"],
+main[data-admin-page="schedules"],
+main[data-admin-page="tours"],
+main[data-admin-page="dashboard"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='460' viewBox='0 0 640 460'%3E%3Cg fill='none' stroke='%23c9c7bd' stroke-opacity='.34' stroke-width='1'%3E%3Cpath d='M155-20c90 45 117 97 211 109s151-4 294 41 145 96 10 122-189-34-310-1-127 111-5 151 195 40 285 72'/%3E%3Cpath d='M175-37c90 45 117 97 211 109s151-4 294 41 145 96 10 122-189-34-310-1-127 111-5 151 195 40 285 72'/%3E%3Cpath d='M195-54c90 45 117 97 211 109s151-4 294 41 145 96 10 122-189-34-310-1-127 111-5 151 195 40 285 72'/%3E%3Cpath d='M215-71c90 45 117 97 211 109s151-4 294 41 145 96 10 122-189-34-310-1-127 111-5 151 195 40 285 72'/%3E%3Cpath d='M235-88c90 45 117 97 211 109s151-4 294 41 145 96 10 122-189-34-310-1-127 111-5 151 195 40 285 72'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+main[data-admin-page="equipment"],
+main[data-admin-page="schedules"] {
+  background-color: #F8F5EE;
+}
+
+main[data-admin-page="policies"],
+main[data-admin-page="tours"],
+main[data-admin-page="dashboard"] {
+  background-color: #F8F6F1;
+}
+
+main[data-admin-page="schedule-detail"] {
+  background-color: #F8FAFC;
+}
+
+main[data-admin-content] button[class*="bg-[#C2410C]"],
+main[data-admin-content] button[class*="bg-emerald-600"] {
+  background-color: var(--admin-green) !important;
+  color: #fff !important;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 12%);
+}
+
+main[data-admin-content] button[class*="hover:bg-[#9B2F00]"]:hover,
+main[data-admin-content] button[class*="hover:bg-emerald-700"]:hover {
+  background-color: #075743 !important;
+}
+
+main[data-admin-content] div[class*="bg-[#C2410C]"] {
+  background-color: #D8EFE8 !important;
+  color: #126A55 !important;
+  box-shadow: none;
+}
+
+main[data-admin-content] input,
+main[data-admin-content] select,
+main[data-admin-content] textarea {
+  border-color: #CCD5E1;
+  border-radius: 9px;
+  color: #172033;
+}
+
+main[data-admin-content] input:focus,
+main[data-admin-content] select:focus,
+main[data-admin-content] textarea:focus {
+  border-color: #15836A;
+  outline-color: #15836A;
+}
+
+main[data-admin-content] [class*="border-[#E6E1D8]"],
+main[data-admin-content] [class*="border-stone-200"] {
+  border-color: var(--admin-line) !important;
+}
+
+main[data-admin-content] [class*="text-stone-"] {
+  color: var(--admin-muted) !important;
+}
+
+main[data-admin-content] [class*="bg-stone-50"] {
+  background-color: #F7F9FC !important;
+}
+
+main[data-admin-content] [class*="bg-stone-100"] {
+  background-color: #EEF2F7 !important;
+}
+
+main[data-admin-content] [class*="rounded-xl"][class*="bg-white"],
+main[data-admin-content] [class*="rounded-2xl"][class*="bg-white"] {
+  box-shadow: 0 1px 2px rgb(16 24 40 / 5%);
+}
+
+main[data-admin-content] table {
+  font-variant-numeric: tabular-nums;
+}
+
+main[data-admin-content] ::selection {
+  background: #CDEADF;
+  color: #102235;
+}
+
+main[data-admin-content]::-webkit-scrollbar-track {
+  background: #EDF1F6;
+}
+
+main[data-admin-content]::-webkit-scrollbar-thumb {
+  background: #BEC9D6;
+}
+
+dialog.admin-invite-drawer[open] {
+  margin: 12px 12px 12px auto;
+  width: min(480px, calc(100% - 24px));
+  max-width: none;
+  max-height: calc(100dvh - 24px);
+  border-color: #DFE5EC;
+  border-radius: 18px;
+  box-shadow: 0 18px 50px rgb(16 24 40 / 16%);
+}
+
+dialog.admin-invite-drawer::backdrop {
+  background: rgb(16 34 53 / 14%);
+  backdrop-filter: none;
+}
+
+dialog.admin-invite-drawer[open] > div > header {
+  background: #fff;
+  border-color: #E0E6EE;
+}
+
+dialog.admin-invite-drawer input,
+dialog.admin-invite-drawer select,
+dialog.admin-invite-drawer textarea {
+  min-height: 46px;
+  border-color: #CCD5E1;
+  border-radius: 9px;
+  background: #fff;
+  color: #172033;
+}
+
+dialog.admin-invite-drawer :focus-visible {
+  outline-color: #15836A;
+}
+
+.equipment-catalog-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1500px) {
+  .equipment-catalog-layout {
+    grid-template-columns: minmax(0, 2.3fr) minmax(300px, 1fr);
+  }
+}

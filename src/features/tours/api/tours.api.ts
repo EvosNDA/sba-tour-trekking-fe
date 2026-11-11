@@ -19,7 +19,28 @@ import {
 import { EXPLORE_TOURS, POPULAR_DESTINATIONS, TOUR_COMPANIES } from '../../../data/mockData';
 import { Tour, Destination, TourCompany } from '../../../types/expedition';
 
+export interface LocationOption {
+  id: number;
+  name: string;
+  provinceName: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  visitOrder: number | null;
+}
+
 export const toursApi = {
+  listLocations: async (): Promise<LocationOption[]> =>
+    apiClient.get<LocationOption[]>('/api/v1/admin/tour-locations'),
+
+  createLocation: async (payload: { name: string; provinceName?: string }): Promise<LocationOption> =>
+    apiClient.post<LocationOption>('/api/v1/admin/tour-locations', payload),
+
+  getTourLocations: async (tourId: number | string): Promise<LocationOption[]> =>
+    apiClient.get<LocationOption[]>(`/api/v1/tours/${tourId}/locations`),
+
+  saveTourLocations: async (tourId: number | string, locationIds: number[]): Promise<LocationOption[]> =>
+    apiClient.put<LocationOption[]>(`/api/v1/tours/${tourId}/locations`, { locationIds }),
+
   listScheduleOverview: async (
     params: { page: number; size: number; query?: string },
     signal?: AbortSignal
@@ -163,6 +184,17 @@ export const toursApi = {
       }
     );
   },
+
+  updateSchedule: async (
+    tourId: number | string,
+    scheduleId: number | string,
+    payload: CreateScheduleRequest,
+    signal?: AbortSignal
+  ): Promise<ScheduleDetailResponse> => apiClient.put<ScheduleDetailResponse>(
+    `/api/v1/tours/${tourId}/schedules/${scheduleId}`,
+    payload,
+    { signal }
+  ),
 
   listSchedulesInRange: async (
     start: string,
