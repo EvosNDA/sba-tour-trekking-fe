@@ -138,7 +138,7 @@ export const AccountDetailModal: React.FC<AccountDetailModalProps> = ({
                       ? 'Hoạt động'
                       : detail.status === 'blocked'
                       ? 'Đã khóa'
-                      : 'Vô hiệu'}
+                      : 'Chờ kích hoạt'}
                   </span>
                 </div>
               </div>

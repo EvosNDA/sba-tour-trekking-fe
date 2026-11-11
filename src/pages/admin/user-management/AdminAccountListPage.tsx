@@ -183,7 +183,7 @@ export const AdminAccountListPage: React.FC = () => {
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
             <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-            Vô hiệu
+            Chờ kích hoạt
           </span>
         );
     }
@@ -295,7 +295,7 @@ export const AdminAccountListPage: React.FC = () => {
                 <option value="">Tất cả trạng thái</option>
                 <option value="ACTIVE">Hoạt động (ACTIVE)</option>
                 <option value="BLOCKED">Đã khóa (BLOCKED)</option>
-                <option value="DISABLED">Vô hiệu (DISABLED)</option>
+                <option value="DISABLED">Chờ kích hoạt</option>
               </select>
 
             </div>
@@ -335,7 +335,7 @@ export const AdminAccountListPage: React.FC = () => {
                   <button type="button" onClick={() => openRoleEditor(acc)} disabled={isSelf} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-[#0B7058] disabled:cursor-not-allowed disabled:opacity-50"><ArrowLeftRight className="h-4 w-4" />Đổi vai trò</button>
                   {(acc.status === 'active' || acc.status === 'blocked') && <button type="button" disabled={!canMutate} onClick={() => handleOpenAction(acc, acc.status === 'active' ? 'block' : 'unblock')} className="min-h-11 rounded-lg border border-slate-200 px-3 text-sm font-medium text-[#0B7058] disabled:cursor-not-allowed disabled:opacity-50">{acc.status === 'active' ? 'Khóa tài khoản' : 'Mở khóa'}</button>}
                 </div>
-                {!canMutate && <p className="text-xs text-slate-500">{isSelf ? 'Bạn không thể thay đổi trạng thái tài khoản của mình.' : isAdminRole ? 'Không thể thay đổi trạng thái tài khoản quản trị viên.' : 'Tài khoản đã vô hiệu.'}</p>}
+                {!canMutate && <p className="text-xs text-slate-500">{isSelf ? 'Bạn không thể thay đổi trạng thái tài khoản của mình.' : isAdminRole ? 'Không thể thay đổi trạng thái tài khoản quản trị viên.' : 'Tài khoản đang chờ người được mời kích hoạt.'}</p>}
               </article>;
             })}
           </div>
