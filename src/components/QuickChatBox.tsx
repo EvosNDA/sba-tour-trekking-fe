@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, User, Loader2, Sparkles, Maximize2, Minimize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { APP_CONFIG } from '../constants/config';
 
@@ -19,6 +19,7 @@ interface Message {
 
 export const QuickChatBox: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId] = useState(() => 'session-' + Math.random().toString(36).substring(2, 9));
@@ -139,29 +140,64 @@ export const QuickChatBox: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-      {/* Chat Window */}
-      {isOpen && (
-        <div className="mb-3 w-[360px] sm:w-[400px] h-[520px] bg-white rounded-xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
-          {/* Header */}
-          <div className="bg-emerald-800 text-white px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 bg-emerald-700 rounded-lg">
-                <Sparkles className="w-4 h-4 text-emerald-200" />
+    <>
+      {/* Background Backdrop Blur when Maximized */}
+      {isOpen && isMaximized && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-md transition-opacity duration-300"
+          onClick={() => setIsMaximized(false)}
+        />
+      )}
+
+      <div
+        className={
+          isMaximized && isOpen
+            ? 'fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-10 pointer-events-none'
+            : 'fixed bottom-6 right-6 z-50 flex flex-col items-end'
+        }
+      >
+        {/* Chat Window */}
+        {isOpen && (
+          <div
+            className={`bg-white rounded-2xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden pointer-events-auto transition-all duration-300 ${
+              isMaximized
+                ? 'w-full h-full max-w-5xl max-h-[92vh] animate-in zoom-in-95'
+                : 'mb-3 w-[360px] sm:w-[420px] h-[540px] rounded-xl animate-in fade-in slide-in-from-bottom-5'
+            }`}
+          >
+            {/* Header */}
+            <div className="bg-emerald-800 text-white px-4 py-3 flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-emerald-700 rounded-lg">
+                  <Sparkles className="w-4 h-4 text-emerald-200" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">RAG AI Assistant</h3>
+                  <p className="text-[11px] text-emerald-200">Streaming /api/v1/ai/chat/stream</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-sm">RAG AI Assistant</h3>
-                <p className="text-[11px] text-emerald-200">Streaming /api/v1/ai/chat/stream</p>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setIsMaximized((prev) => !prev)}
+                  className="p-1.5 rounded-lg hover:bg-emerald-700/70 transition-colors text-emerald-100 hover:text-white"
+                  title={isMaximized ? 'Thu nhỏ cửa sổ' : 'Phóng to toàn màn hình'}
+                >
+                  {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    setIsMaximized(false);
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-emerald-700/70 transition-colors text-emerald-100 hover:text-white"
+                  title="Đóng chat"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="p-1 rounded-lg hover:bg-emerald-700/60 transition-colors"
-              title="Đóng chat"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
 
           {/* Messages list */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-stone-50 text-sm">
@@ -330,14 +366,17 @@ export const QuickChatBox: React.FC = () => {
         </div>
       )}
 
-      {/* Floating Toggle Button */}
-      <button
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="h-14 w-14 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 focus:outline-hidden focus:ring-4 focus:ring-emerald-700/30"
-        title={isOpen ? 'Đóng RAG Chat' : 'Mở RAG Chat Test'}
-      >
-        {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
-      </button>
+      {/* Floating Toggle Button (hidden when maximized) */}
+      {!isMaximized && (
+        <button
+          onClick={() => setIsOpen((prev) => !prev)}
+          className="h-14 w-14 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95 focus:outline-hidden focus:ring-4 focus:ring-emerald-700/30"
+          title={isOpen ? 'Đóng RAG Chat' : 'Mở RAG Chat Test'}
+        >
+          {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
+        </button>
+      )}
     </div>
-  );
+  </>
+);
 };
