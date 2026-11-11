@@ -64,6 +64,9 @@ export const toursApi = {
     if (params.durationDays !== undefined && params.durationDays !== '') {
       queryParams.durationDays = Number(params.durationDays);
     }
+    if (params.departureDate) {
+      queryParams.departureDate = params.departureDate;
+    }
     if (params.status) {
       queryParams.status = params.status;
     }

@@ -27,11 +27,13 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
   const initialQuery = searchParams.get('query') || '';
   const initialDifficulty = (searchParams.get('difficulty') as DifficultyLevel) || '';
   const initialDuration = searchParams.get('durationDays') || '';
+  const initialDepartureDate = searchParams.get('departureDate') || '';
   const initialPage = Number(searchParams.get('page') || 0);
 
   const [query, setQuery] = useState(initialQuery);
   const [difficulty, setDifficulty] = useState<DifficultyLevel | ''>(initialDifficulty);
   const [durationDays, setDurationDays] = useState<string>(initialDuration);
+  const [departureDate, setDepartureDate] = useState<string>(initialDepartureDate);
   const [page, setPage] = useState<number>(isNaN(initialPage) || initialPage < 0 ? 0 : initialPage);
   const pageSize = 20;
 
@@ -51,11 +53,12 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
         query: debouncedQuery || null,
         difficulty: difficulty || null,
         durationDays: durationDays || null,
+        departureDate: departureDate || null,
         page: page > 0 ? page : null,
       },
       true
     );
-  }, [debouncedQuery, difficulty, durationDays, page, setSearchParams]);
+  }, [debouncedQuery, difficulty, durationDays, departureDate, page, setSearchParams]);
 
   // Fetch tours from GET /api/v1/tours
   useEffect(() => {
@@ -71,6 +74,7 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
           query: debouncedQuery,
           difficulty,
           durationDays: durationDays ? Number(durationDays) : '',
+          departureDate,
         },
         controller.signal
       )
@@ -92,16 +96,17 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
     return () => {
       controller.abort();
     };
-  }, [page, pageSize, debouncedQuery, difficulty, durationDays, reloadTrigger]);
+  }, [page, pageSize, debouncedQuery, difficulty, durationDays, departureDate, reloadTrigger]);
 
   const handleResetFilters = () => {
     setQuery('');
     setDifficulty('');
     setDurationDays('');
+    setDepartureDate('');
     setPage(0);
   };
 
-  const hasActiveFilters = Boolean(query || difficulty || durationDays);
+  const hasActiveFilters = Boolean(query || difficulty || durationDays || departureDate);
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-10 space-y-8">
@@ -115,7 +120,7 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
             Khám phá các cung đường núi & rừng quốc gia
           </h1>
           <p className="text-xs sm:text-sm text-[#64748B] mt-1">
-            Tìm kiếm theo tên tuyến, lọc theo cấp độ thể lực và thời lượng chuyến đi.
+            Tìm theo cung đường, độ khó, thời lượng và ngày khởi hành.
           </p>
         </div>
 
@@ -131,7 +136,7 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
       >
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 items-end">
           {/* Keyword Search */}
-          <div className="md:col-span-5">
+          <div className="md:col-span-4">
             <label
               htmlFor="tours-filter-query"
               className="block text-xs font-semibold text-[#1C2526] mb-1.5"
@@ -208,8 +213,13 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
             </div>
           </div>
 
+          <div className="md:col-span-2">
+            <label htmlFor="tours-filter-departure-date" className="block text-xs font-semibold text-[#1C2526] mb-1.5">Ngày khởi hành</label>
+            <input id="tours-filter-departure-date" type="date" value={departureDate} onChange={(e) => { setDepartureDate(e.target.value); setPage(0); }} className="w-full px-3 py-2.5 text-base bg-[#F7F4EE] focus:bg-white border border-[#E6E1D8] rounded-xl text-[#1C2526] focus:outline-none focus:border-[#C2410C]" />
+          </div>
+
           {/* Clear / Refresh Buttons */}
-          <div className="md:col-span-2 flex items-center gap-2">
+          <div className="md:col-span-1 flex items-center gap-2">
             {hasActiveFilters ? (
               <button
                 type="button"
@@ -315,7 +325,7 @@ export const TourListPage: React.FC<TourListPageProps> = () => {
             Không tìm thấy hành trình phù hợp
           </h3>
           <p className="text-xs sm:text-sm text-[#64748B]">
-            Không có tuyến tour nào khớp với bộ lọc hiện tại của bạn. Hãy thử thay đổi từ khóa, độ khó hoặc số ngày.
+            Không có tuyến tour nào khớp với bộ lọc hiện tại. Hãy thử đổi từ khóa, độ khó, thời lượng hoặc ngày khởi hành.
           </p>
           {hasActiveFilters && (
             <button

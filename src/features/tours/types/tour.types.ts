@@ -166,6 +166,7 @@ export interface TourQueryParams {
   query?: string;
   difficulty?: DifficultyLevel | '';
   durationDays?: number | '';
+  departureDate?: string;
   status?: TourStatus | '';
 }
 
