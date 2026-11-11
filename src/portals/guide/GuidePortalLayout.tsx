@@ -70,19 +70,19 @@ export const GuidePortalLayout: React.FC<GuidePortalLayoutProps> = ({ children }
             </button>
 
             {/* Desktop Navigation */}
-            <nav aria-label="Menu Hướng dẫn viên" className="hidden xl:flex items-center gap-1.5 shrink-0">
+            <nav aria-label="Menu Hướng dẫn viên" className="hidden md:flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => navigateTo(ROUTES.GUIDE.SCHEDULES)}
                 aria-current={pathname.startsWith('/guide/schedules') || pathname === '/guide' ? 'page' : undefined}
-                className={`min-h-11 px-3 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
+                className={`h-9 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
                   pathname.startsWith('/guide/schedules') || pathname === '/guide'
                     ? 'bg-[#1F4E43] text-white shadow-2xs'
                     : 'text-stone-700 hover:bg-stone-100'
                 }`}
               >
                 <Calendar className="w-3.5 h-3.5 shrink-0" />
-                <span>Lịch được phân công</span>
+                <span>Bàn làm việc & Lịch dẫn đoàn</span>
               </button>
             </nav>
           </div>
@@ -97,7 +97,7 @@ export const GuidePortalLayout: React.FC<GuidePortalLayoutProps> = ({ children }
                   navigateTo(ROUTES.ADMIN.DASHBOARD);
                 }}
                 title="Chuyển sang quyền Quản trị (Admin Portal)"
-                className="hidden sm:inline-flex min-h-11 items-center gap-1.5 px-3 py-2 rounded-lg border border-[#D6CEBE] bg-white hover:bg-[#F7F4EE] text-[#1F4E43] text-sm font-semibold whitespace-nowrap transition-colors cursor-pointer"
+                className="hidden sm:inline-flex h-9 items-center gap-1.5 px-3 rounded-xl border border-[#D6CEBE] bg-white hover:bg-[#F7F4EE] text-[#1F4E43] text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer shadow-2xs"
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-[#1F4E43] shrink-0" />
                 <span>Admin Portal</span>
@@ -124,7 +124,7 @@ export const GuidePortalLayout: React.FC<GuidePortalLayoutProps> = ({ children }
               onClick={handleLogout}
               title="Đăng xuất"
               aria-label="Đăng xuất"
-              className="flex h-11 w-11 items-center justify-center rounded-lg text-stone-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-stone-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
             </button>

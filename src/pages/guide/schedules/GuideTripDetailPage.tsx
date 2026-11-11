@@ -1463,7 +1463,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
         <button
           type="button"
           onClick={handleBackNavigation}
-          className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-stone-600 hover:text-[#1F4E43] transition-colors cursor-pointer"
+          className="h-8 px-2.5 -ml-2.5 rounded-lg inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-stone-600 hover:text-[#1F4E43] hover:bg-stone-100/70 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Quay lại Lịch được phân công</span>
@@ -1471,7 +1471,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
 
         <div className="flex items-center gap-2">
           {hasUnconfirmedChanges && (
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-900">
+            <span className="h-8 inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 text-[11px] font-semibold text-amber-900">
               <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
               <span>Còn thay đổi nháp chưa bấm xác nhận</span>
             </span>
@@ -1479,7 +1479,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
           <button
             type="button"
             onClick={() => loadTripData()}
-            className="px-3 py-1.5 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="h-8 px-3 rounded-xl border border-stone-300 bg-white hover:bg-stone-50 text-xs font-semibold text-stone-700 inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Làm mới</span>
@@ -1648,8 +1648,14 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
           </div>
 
           {/* Time Windows Status Card */}
-          <details className="bg-white rounded-2xl border border-[#E6E1D8] p-4 space-y-3 text-sm">
-            <summary className="cursor-pointer font-semibold text-[#1F4E43]">Khung giờ thao tác</summary>
+          <details className="group bg-white rounded-2xl border border-[#E6E1D8] p-4 shadow-2xs space-y-3 text-xs">
+            <summary className="cursor-pointer list-none flex items-center justify-between font-mono font-bold uppercase tracking-wider text-stone-500">
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#1F4E43]" />
+                <span>Khung giờ thao tác</span>
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-stone-400 transition-transform group-open:rotate-180" />
+            </summary>
 
             <div
               className={cn(
@@ -1724,9 +1730,9 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                       key={bId}
                       className="rounded-xl border border-stone-200 bg-stone-50/70 p-2.5 space-y-1.5"
                     >
-                      <div className="flex items-center justify-between text-[11px] font-bold text-stone-800">
-                        <span>Đơn #{bObj?.bookingCode || bId}</span>
-                        <span className="text-stone-500 font-normal">
+                      <div className="flex items-center justify-between gap-2 text-[11px] font-bold text-stone-800">
+                        <span className="truncate">Đơn #{bObj?.bookingCode || bId}</span>
+                        <span className="text-stone-500 font-normal shrink-0">
                           {bObj?.passengers.length || 0} khách
                         </span>
                       </div>
@@ -1744,7 +1750,7 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                               </span>
                               <span
                                 className={cn(
-                                  'font-mono font-bold px-1.5 py-0.2 rounded',
+                                  'font-mono font-bold px-1.5 py-0.5 rounded-md',
                                   allocated === meta.orderedQuantity
                                     ? 'bg-emerald-100 text-emerald-800'
                                     : 'bg-amber-100 text-amber-800'
@@ -1767,27 +1773,27 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
         {/* RIGHT MAIN WORKSPACE: Stage Switcher + Passenger Table + Batch Confirmation */}
         <section className="order-1 lg:order-2 lg:col-span-9 min-w-0 space-y-4">
           {/* Stage Tabs & Quick Action Bar */}
-          <div className="bg-white rounded-2xl border border-[#E6E1D8] p-3.5 shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          <div className="bg-white rounded-2xl border border-[#E6E1D8] p-3 shadow-2xs flex flex-col xl:flex-row xl:items-center justify-between gap-3">
             {/* Round Switcher */}
-            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:flex sm:items-center gap-2">
+            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:inline-flex sm:items-center gap-1 rounded-xl bg-[#F7F4EE] p-1 border border-[#E6E1D8]">
               <button
                 type="button"
                 aria-pressed={activeStage === 'CHECK_IN'}
                 onClick={() => setActiveStage('CHECK_IN')}
                 className={cn(
-                  'px-2.5 sm:px-3.5 min-h-11 py-2 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer',
+                  'h-9 px-3 rounded-lg text-xs sm:text-sm font-semibold inline-flex items-center justify-center gap-2 whitespace-nowrap transition-all cursor-pointer',
                   activeStage === 'CHECK_IN'
                     ? 'bg-[#1F4E43] text-white shadow-2xs'
-                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200/70'
+                    : 'text-stone-700 hover:bg-white/80'
                 )}
               >
                 <span>1. Check-in & Giao đồ</span>
                 <span
                   className={cn(
-                    'px-1.5 py-0.5 rounded text-[10px] font-mono',
+                    'px-1.5 py-0.5 rounded-md text-[11px] font-mono font-bold',
                     activeStage === 'CHECK_IN'
                       ? 'bg-white/20 text-white'
-                      : 'bg-white text-stone-700'
+                      : 'bg-stone-200/80 text-stone-700'
                   )}
                 >
                   {checkInReadiness.presentCount + checkInReadiness.absentCount}/
@@ -1800,19 +1806,19 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                 aria-pressed={activeStage === 'CHECK_OUT'}
                 onClick={() => setActiveStage('CHECK_OUT')}
                 className={cn(
-                  'px-2.5 sm:px-3.5 min-h-11 py-2 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer',
+                  'h-9 px-3 rounded-lg text-xs sm:text-sm font-semibold inline-flex items-center justify-center gap-2 whitespace-nowrap transition-all cursor-pointer',
                   activeStage === 'CHECK_OUT'
                     ? 'bg-[#1F4E43] text-white shadow-2xs'
-                    : 'bg-stone-100 text-stone-700 hover:bg-stone-200/70'
+                    : 'text-stone-700 hover:bg-white/80'
                 )}
               >
                 <span>2. Check-out & Thu đồ</span>
                 <span
                   className={cn(
-                    'px-1.5 py-0.5 rounded text-[10px] font-mono',
+                    'px-1.5 py-0.5 rounded-md text-[11px] font-mono font-bold',
                     activeStage === 'CHECK_OUT'
                       ? 'bg-white/20 text-white'
-                      : 'bg-white text-stone-700'
+                      : 'bg-stone-200/80 text-stone-700'
                   )}
                 >
                   {checkOutReadiness.totalGuests - checkOutReadiness.pendingGuests.length}/
@@ -1823,15 +1829,16 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
 
             {/* Search & Quick Mark All */}
             <div className="flex flex-wrap items-center gap-2">
-              <div className="relative flex-1 sm:w-52">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
+              <div className="relative flex-1 sm:w-56">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" />
                 <input
                   type="text"
-                  id="guide-guest-search" aria-label="Tìm hành khách theo tên, số điện thoại hoặc mã đặt chỗ"
+                  id="guide-guest-search"
+                  aria-label="Tìm hành khách theo tên, số điện thoại hoặc mã đặt chỗ"
                   value={guestSearch}
                   onChange={(e) => setGuestSearch(e.target.value)}
                   placeholder="Tìm tên khách, mã đơn..."
-                  className="w-full rounded-xl border border-stone-300 bg-white py-1.5 pl-8 pr-2.5 text-xs text-stone-800 outline-none focus:border-[#1F4E43]"
+                  className="h-9 w-full rounded-xl border border-stone-300 bg-white pl-8 pr-3 text-xs text-stone-800 outline-none transition-colors focus:border-[#1F4E43]"
                 />
               </div>
 
@@ -1841,9 +1848,9 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                   <button
                     type="button"
                     onClick={handleMarkAllRemainingCheckInPresent}
-                    className="px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-[#1F4E43] text-xs font-semibold inline-flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                    className="h-9 px-3 rounded-xl border border-[#1F4E43]/30 bg-emerald-50/80 hover:bg-[#1F4E43] text-[#1F4E43] hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                   >
-                    <UserCheck className="w-3.5 h-3.5" />
+                    <UserCheck className="w-3.5 h-3.5 shrink-0" />
                     <span>Chọn tất cả Có mặt ({checkInReadiness.pendingGuests.length})</span>
                   </button>
                 )}
@@ -1854,9 +1861,9 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                   <button
                     type="button"
                     onClick={handleMarkAllRemainingCheckOutCompleted}
-                    className="px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-[#1F4E43] text-xs font-semibold inline-flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                    className="h-9 px-3 rounded-xl border border-[#1F4E43]/30 bg-emerald-50/80 hover:bg-[#1F4E43] text-[#1F4E43] hover:text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                     <span>Chọn tất cả Hoàn thành ({checkOutReadiness.pendingGuests.length})</span>
                   </button>
                 )}
@@ -1900,10 +1907,10 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                 <table className="w-full text-left border-collapse text-sm">
                   <thead>
                     <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-[11px] font-mono uppercase tracking-wider text-stone-600">
-                      <th className="py-3 px-4 font-bold w-[22%]">Hành khách & Đơn</th>
-                      <th className="py-3 px-3 font-bold w-[22%]">Trạng thái Check-in</th>
-                      <th className="py-3 px-3 font-bold w-[30%]">Thiết bị bàn giao</th>
-                      <th className="py-3 px-3 font-bold w-[14%]">Ảnh hiện trạng</th>
+                      <th className="py-3 px-4 font-bold w-[25%]">Hành khách & Đơn</th>
+                      <th className="py-3 px-3 font-bold w-[20%]">Trạng thái Check-in</th>
+                      <th className="py-3 px-3 font-bold w-[33%]">Thiết bị bàn giao</th>
+                      <th className="py-3 px-3 font-bold w-[10%]">Ảnh hiện trạng</th>
                       <th className="py-3 px-4 font-bold w-[12%]">Ghi chú</th>
                     </tr>
                   </thead>
@@ -1912,6 +1919,10 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                       const hasBookingEquipment = participant.equipmentItems.length > 0;
                       const allocatedItems = participant.equipmentItems.filter(
                         (eq) => eq.allocatedQuantity > 0
+                      );
+                      const totalAllocatedQty = allocatedItems.reduce(
+                        (sum, eq) => sum + eq.allocatedQuantity,
+                        0
                       );
                       const hasDamagedOrMissing = allocatedItems.some(
                         (eq) =>
@@ -1941,8 +1952,8 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                             )}
                           >
                             {/* 1. Passenger Info */}
-                            <td className="py-3 px-4">
-                              <div className="flex items-start gap-2">
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-start gap-2.5">
                                 <span className="w-5 h-5 rounded-full bg-stone-100 text-stone-600 font-mono text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                                   {idx + 1}
                                 </span>
@@ -1950,12 +1961,12 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                                   <div className="font-bold text-stone-900 text-xs sm:text-sm leading-snug flex items-center gap-1.5 flex-wrap">
                                     <span>{participant.fullName}</span>
                                     {participant.bookingCustomer && (
-                                      <span className="px-1.5 py-0.2 rounded bg-stone-100 text-stone-600 text-[10px] font-semibold">
+                                      <span className="px-1.5 py-0.5 rounded bg-stone-100 text-stone-600 text-[10px] font-semibold">
                                         Đại diện
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-[11px] text-stone-500 font-mono mt-0.5">
+                                  <div className="text-[11px] text-stone-500 font-mono mt-0.5 leading-relaxed">
                                     Đơn #{participant.bookingCode}
                                     {participant.phone ? ` • ${participant.phone}` : ''}
                                   </div>
@@ -1964,55 +1975,57 @@ export const GuideTripDetailPage: React.FC<GuideTripDetailPageProps> = ({ schedu
                             </td>
 
                             {/* 2. Check-in Status */}
-                            <td className="py-3 px-3">
+                            <td className="py-3.5 px-3">
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <button
-                                  type="button" aria-pressed={participant.status === 'PRESENT'}
-disabled={isCheckInLocked}
+                                  type="button"
+                                  aria-pressed={participant.status === 'PRESENT'}
+                                  disabled={isCheckInLocked}
                                   onClick={() =>
                                     handleMarkGuestCheckIn(participant.participantId, 'PRESENT')
                                   }
                                   className={cn(
-                                    'px-2.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1 border transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed',
+                                    'h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap',
                                     participant.status === 'PRESENT'
                                       ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                                      : 'bg-white text-stone-700 border-stone-300 hover:bg-emerald-50'
+                                      : 'bg-white text-stone-700 border-stone-300 hover:border-emerald-400 hover:bg-emerald-50/70'
                                   )}
                                 >
-                                  <UserCheck className="w-3.5 h-3.5" />
+                                  <UserCheck className="w-3.5 h-3.5 shrink-0" />
                                   <span>Có mặt</span>
                                 </button>
 
                                 <button
-                                  type="button" aria-pressed={participant.status === 'ABSENT'}
-disabled={isCheckInLocked}
+                                  type="button"
+                                  aria-pressed={participant.status === 'ABSENT'}
+                                  disabled={isCheckInLocked}
                                   onClick={() =>
                                     handleMarkGuestCheckIn(participant.participantId, 'ABSENT')
                                   }
                                   className={cn(
-                                    'px-2.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1 border transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed',
+                                    'h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap',
                                     participant.status === 'ABSENT'
                                       ? 'bg-rose-600 text-white border-rose-600 shadow-2xs'
-                                      : 'bg-white text-stone-700 border-stone-300 hover:bg-rose-50'
+                                      : 'bg-white text-stone-700 border-stone-300 hover:border-rose-400 hover:bg-rose-50/70'
                                   )}
                                 >
-                                  <UserX className="w-3.5 h-3.5" />
+                                  <UserX className="w-3.5 h-3.5 shrink-0" />
                                   <span>Vắng</span>
                                 </button>
                               </div>
                               {participant.markedAt ? (
-                                <div className="text-[10px] font-mono text-stone-500 mt-1">
+                                <div className="text-[10px] font-mono text-stone-500 mt-1.5">
                                   Đánh dấu: {formatVietnamTimeOnly(participant.markedAt, true)}
                                 </div>
                               ) : (
-                                <div className="text-[10px] font-semibold text-amber-700 mt-1">
+                                <div className="text-[10px] font-semibold text-amber-700 mt-1.5">
                                   Chưa đánh dấu
                                 </div>
                               )}
                             </td>
 
                             {/* 3. Equipment Handover Summary + Expand Toggle */}
-                            <td className="py-3 px-3">
+                            <td className="py-3.5 px-3">
                               {!hasBookingEquipment ? (
                                 <span className="text-[11px] text-stone-400 italic">
                                   Tự chuẩn bị / Không thuê
@@ -2022,71 +2035,110 @@ disabled={isCheckInLocked}
                                   Khách vắng mặt (0 món)
                                 </span>
                               ) : (
-                                <div className="space-y-1.5">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div className="flex flex-wrap items-center gap-1">
-                                      {allocatedItems.length === 0 ? (
-                                        <span className="text-[11px] text-stone-500">
-                                          Chưa giao món nào ({participant.equipmentItems.length} loại
-                                          đơn đặt)
-                                        </span>
-                                      ) : (
-                                        allocatedItems.map((eq) => (
+                                <div className="flex items-start justify-between gap-2.5">
+                                  <div className="min-w-0 flex-1 space-y-1">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      {participant.equipmentItems.map((eq) => {
+                                        const ordered =
+                                          bookingOrderedEquipmentMap[participant.bookingId]?.[
+                                            eq.equipmentId
+                                          ]?.orderedQuantity ??
+                                          eq.bookingOrderedQuantity ??
+                                          0;
+                                        const isAllocated = eq.allocatedQuantity > 0;
+                                        return (
                                           <span
                                             key={eq.equipmentId}
                                             className={cn(
-                                              'inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-semibold',
-                                              CONDITION_LABELS[eq.condition].badgeClass
+                                              'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors',
+                                              isAllocated
+                                                ? CONDITION_LABELS[eq.condition].badgeClass
+                                                : 'border-amber-200 bg-amber-50/80 text-amber-900'
                                             )}
                                           >
-                                            <span>{eq.equipmentName}:</span>
+                                            <Package className="w-3 h-3 shrink-0 opacity-75" />
+                                            <span className="truncate max-w-[140px]">
+                                              {eq.equipmentName}
+                                            </span>
                                             <span className="font-mono font-bold">
-                                              {eq.allocatedQuantity}
+                                              {eq.allocatedQuantity}/{ordered}
                                             </span>
                                           </span>
-                                        ))
+                                        );
+                                      })}
+                                    </div>
+                                    <div className="text-[10px] text-stone-500">
+                                      {allocatedItems.length === 0 ? (
+                                        <span>
+                                          Chưa bàn giao · Đơn đặt {participant.equipmentItems.length}{' '}
+                                          loại thiết bị
+                                        </span>
+                                      ) : (
+                                        <span className="text-emerald-700 font-medium">
+                                          Đã giao {totalAllocatedQty} món ({allocatedItems.length}/
+                                          {participant.equipmentItems.length} loại)
+                                        </span>
                                       )}
                                     </div>
-
-                                    <button
-                                      type="button"
-                                      aria-expanded={isEqExpanded}
-                                      onClick={() => toggleEquipmentRow(participant.participantId)}
-                                      className="min-h-11 px-3 py-2 rounded-lg border border-stone-200 bg-stone-50 hover:bg-stone-100 text-sm font-semibold text-[#1F4E43] inline-flex items-center gap-1 shrink-0 cursor-pointer"
-                                    >
-                                      <span>{isEqExpanded ? 'Thu gọn' : 'Giao đồ'}</span>
-                                      {isEqExpanded ? (
-                                        <ChevronUp className="w-3 h-3" />
-                                      ) : (
-                                        <ChevronDown className="w-3 h-3" />
-                                      )}
-                                    </button>
                                   </div>
+
+                                  <button
+                                    type="button"
+                                    aria-expanded={isEqExpanded}
+                                    onClick={() => toggleEquipmentRow(participant.participantId)}
+                                    className={cn(
+                                      'h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1 shrink-0 transition-colors cursor-pointer',
+                                      isEqExpanded
+                                        ? 'border border-stone-300 bg-stone-100 text-stone-700 hover:bg-stone-200'
+                                        : 'border border-[#1F4E43]/30 bg-[#1F4E43]/5 text-[#1F4E43] hover:bg-[#1F4E43] hover:text-white'
+                                    )}
+                                  >
+                                    <span>{isEqExpanded ? 'Thu gọn' : 'Giao đồ'}</span>
+                                    {isEqExpanded ? (
+                                      <ChevronUp className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
                                 </div>
                               )}
                             </td>
 
                             {/* 4. Compact Photos Column */}
-                            <td className="px-3 py-4">
-                              <div className="flex flex-wrap gap-2">
-                                {allPhotos.map((photo) => <button type="button" key={photo.id}
-                                  aria-label={`Xem ảnh ${photo.fileName}`} onClick={() => setPreviewPhotoUrl(photo.url)}
-                                  className="h-11 w-11 overflow-hidden rounded-lg border border-[#D6CEBE]">
-                                  <img src={photo.url} alt="" className="h-full w-full object-cover" />
-                                </button>)}
-                              </div>
+                            <td className="py-3.5 px-3">
+                              {allPhotos.length === 0 ? (
+                                <span className="text-[11px] text-stone-400 italic">Chưa có</span>
+                              ) : (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {allPhotos.map((photo) => (
+                                    <button
+                                      type="button"
+                                      key={photo.id}
+                                      aria-label={`Xem ảnh ${photo.fileName}`}
+                                      onClick={() => setPreviewPhotoUrl(photo.url)}
+                                      className="h-9 w-9 overflow-hidden rounded-lg border border-[#D6CEBE] hover:border-[#1F4E43] transition-colors cursor-pointer"
+                                    >
+                                      <img
+                                        src={photo.url}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                      />
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </td>
 
                             {/* 5. Compact Optional Note Column */}
-                            <td className="py-3 px-4">
+                            <td className="py-3.5 px-4">
                               {!isNoteExpanded ? (
                                 <button
                                   type="button"
                                   aria-expanded={isNoteExpanded}
                                   onClick={() => toggleNoteRow(noteRowKey)}
-                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-500 hover:text-[#1F4E43] cursor-pointer"
+                                  className="h-8 px-2.5 rounded-lg border border-dashed border-stone-300 bg-stone-50/60 hover:border-[#1F4E43]/40 hover:bg-[#1F4E43]/5 text-xs font-medium text-stone-600 hover:text-[#1F4E43] inline-flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
                                 >
-                                  <Plus className="w-3 h-3" />
+                                  <Plus className="w-3 h-3 shrink-0" />
                                   <span>Ghi chú</span>
                                 </button>
                               ) : (
@@ -2102,7 +2154,7 @@ disabled={isCheckInLocked}
                                     )
                                   }
                                   placeholder="Ghi chú khách..."
-                                  className="w-full rounded-lg border border-stone-300 bg-white px-2 min-h-11 py-2 text-base sm:text-sm text-stone-800 outline-none focus:border-[#1F4E43]"
+                                  className="h-8 w-full rounded-lg border border-stone-300 bg-white px-2.5 text-xs text-stone-800 outline-none focus:border-[#1F4E43]"
                                 />
                               )}
                             </td>
@@ -2113,9 +2165,9 @@ disabled={isCheckInLocked}
                             participant.status !== 'ABSENT' &&
                             isEqExpanded && (
                               <tr className="bg-[#F7F4EE]/60">
-                                <td colSpan={5} className="px-4 py-3 border-t border-stone-200/70">
-                                  <div className="space-y-2">
-                                    <div className="flex items-center justify-between text-[11px] text-stone-600">
+                                <td colSpan={5} className="px-4 py-3.5 border-t border-stone-200/70">
+                                  <div className="space-y-2.5">
+                                    <div className="flex items-center justify-between text-xs text-stone-600">
                                       <span className="font-bold text-stone-800">
                                         Phân bổ thiết bị thực tế cho khách: {participant.fullName}
                                       </span>
@@ -2124,14 +2176,16 @@ disabled={isCheckInLocked}
                                         onClick={() =>
                                           toggleEquipmentRow(participant.participantId)
                                         }
-                                        className="text-stone-500 hover:text-stone-800 underline cursor-pointer"
+                                        className="text-xs font-medium text-stone-500 hover:text-stone-800 underline cursor-pointer"
                                       >
                                         Đóng chi tiết
                                       </button>
                                     </div>
 
                                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
-                                      {participant.equipmentItems.map((eq) => renderCheckInEquipment(participant, eq))}
+                                      {participant.equipmentItems.map((eq) =>
+                                        renderCheckInEquipment(participant, eq)
+                                      )}
                                     </div>
                                   </div>
                                 </td>
@@ -2184,13 +2238,14 @@ disabled={isCheckInLocked}
 
                       <div className="grid grid-cols-2 gap-2">
                         <button
-                          type="button" aria-pressed={participant.status === 'PRESENT'}
+                          type="button"
+                          aria-pressed={participant.status === 'PRESENT'}
                           disabled={isCheckInLocked}
                           onClick={() =>
                             handleMarkGuestCheckIn(participant.participantId, 'PRESENT')
                           }
                           className={cn(
-                            'min-h-11 py-2 rounded-xl text-sm font-semibold border inline-flex items-center justify-center gap-1.5',
+                            'h-9 rounded-xl text-xs font-semibold border inline-flex items-center justify-center gap-1.5 transition-colors',
                             participant.status === 'PRESENT'
                               ? 'bg-emerald-600 text-white border-emerald-600'
                               : 'bg-white text-stone-700 border-stone-300'
@@ -2200,13 +2255,14 @@ disabled={isCheckInLocked}
                           <span>Có mặt</span>
                         </button>
                         <button
-                          type="button" aria-pressed={participant.status === 'ABSENT'}
+                          type="button"
+                          aria-pressed={participant.status === 'ABSENT'}
                           disabled={isCheckInLocked}
                           onClick={() =>
                             handleMarkGuestCheckIn(participant.participantId, 'ABSENT')
                           }
                           className={cn(
-                            'min-h-11 py-2 rounded-xl text-sm font-semibold border inline-flex items-center justify-center gap-1.5',
+                            'h-9 rounded-xl text-xs font-semibold border inline-flex items-center justify-center gap-1.5 transition-colors',
                             participant.status === 'ABSENT'
                               ? 'bg-rose-600 text-white border-rose-600'
                               : 'bg-white text-stone-700 border-stone-300'
@@ -2217,18 +2273,50 @@ disabled={isCheckInLocked}
                         </button>
                       </div>
 
+                      {hasBookingEquipment && participant.status !== 'ABSENT' && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                          {participant.equipmentItems.map((eq) => {
+                            const ordered =
+                              bookingOrderedEquipmentMap[participant.bookingId]?.[eq.equipmentId]
+                                ?.orderedQuantity ??
+                              eq.bookingOrderedQuantity ??
+                              0;
+                            const isAllocated = eq.allocatedQuantity > 0;
+                            return (
+                              <span
+                                key={eq.equipmentId}
+                                className={cn(
+                                  'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium',
+                                  isAllocated
+                                    ? CONDITION_LABELS[eq.condition].badgeClass
+                                    : 'border-amber-200 bg-amber-50/80 text-amber-900'
+                                )}
+                              >
+                                <Package className="w-3 h-3 shrink-0 opacity-75" />
+                                <span>{eq.equipmentName}</span>
+                                <span className="font-mono font-bold">
+                                  {eq.allocatedQuantity}/{ordered}
+                                </span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+
                       {/* Equipment & Note Actions */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                         {hasBookingEquipment && participant.status !== 'ABSENT' ? (
                           <button
                             type="button"
                             aria-expanded={isEqExpanded}
                             onClick={() => toggleEquipmentRow(participant.participantId)}
-                            className="px-2.5 py-1.5 rounded-lg border border-stone-200 bg-stone-50 text-xs font-semibold text-[#1F4E43] inline-flex items-center gap-1"
+                            className="h-8 px-2.5 rounded-lg border border-[#1F4E43]/30 bg-[#1F4E43]/5 text-xs font-semibold text-[#1F4E43] inline-flex items-center gap-1"
                           >
                             <Package className="w-3.5 h-3.5" />
                             <span>
-                              Thiết bị ({allocatedItems.length}/{participant.equipmentItems.length})
+                              {isEqExpanded
+                                ? 'Thu gọn'
+                                : `Giao đồ (${allocatedItems.length}/${participant.equipmentItems.length})`}
                             </span>
                             {isEqExpanded ? (
                               <ChevronUp className="w-3.5 h-3.5" />
@@ -2244,9 +2332,10 @@ disabled={isCheckInLocked}
                           type="button"
                           aria-expanded={isNoteExpanded}
                           onClick={() => toggleNoteRow(noteRowKey)}
-                          className="text-xs font-semibold text-stone-600 underline"
+                          className="h-8 px-2.5 rounded-lg border border-dashed border-stone-300 bg-stone-50/60 text-xs font-medium text-stone-600 inline-flex items-center gap-1"
                         >
-                          {isNoteExpanded ? 'Ẩn ghi chú' : '+ Ghi chú'}
+                          <Plus className="w-3 h-3" />
+                          <span>{isNoteExpanded ? 'Ẩn ghi chú' : 'Ghi chú'}</span>
                         </button>
                       </div>
 
@@ -2263,20 +2352,30 @@ disabled={isCheckInLocked}
                             )
                           }
                           placeholder="Nhập ghi chú check-in cho khách..."
-                          className="w-full rounded-xl border border-stone-300 px-3 min-h-11 py-2 text-base sm:text-sm"
+                          className="w-full rounded-xl border border-stone-300 px-3 h-9 text-xs sm:text-sm"
                         />
                       )}
 
                       {hasBookingEquipment && participant.status !== 'ABSENT' && isEqExpanded && (
                         <div className="space-y-2 rounded-xl bg-stone-50 p-2.5 border border-stone-200">
-                          {participant.equipmentItems.map((eq) => renderCheckInEquipment(participant, eq))}
+                          {participant.equipmentItems.map((eq) =>
+                            renderCheckInEquipment(participant, eq)
+                          )}
                         </div>
                       )}
 
                       {allPhotos.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
                           {allPhotos.map((ph) => (
-                            <button type="button" key={ph.id} aria-label={`Xem ảnh ${ph.fileName}`} onClick={() => setPreviewPhotoUrl(ph.url)} className="w-11 h-11 rounded-lg object-cover border border-stone-300"><img src={ph.url} alt="" className="h-full w-full object-cover" /></button>
+                            <button
+                              type="button"
+                              key={ph.id}
+                              aria-label={`Xem ảnh ${ph.fileName}`}
+                              onClick={() => setPreviewPhotoUrl(ph.url)}
+                              className="w-9 h-9 rounded-lg overflow-hidden border border-stone-300"
+                            >
+                              <img src={ph.url} alt="" className="h-full w-full object-cover" />
+                            </button>
                           ))}
                         </div>
                       )}
@@ -2338,9 +2437,9 @@ disabled={isCheckInLocked}
                       <button
                         type="button"
                         onClick={() => setShowGeneralNoteInput(true)}
-                        className="text-xs font-semibold text-stone-600 hover:text-[#1F4E43] inline-flex items-center gap-1 cursor-pointer"
+                        className="h-9 px-3 rounded-xl border border-stone-300 bg-white hover:border-[#1F4E43] text-xs font-semibold text-stone-700 hover:text-[#1F4E43] inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                       >
-                        <FileText className="w-3.5 h-3.5" />
+                        <FileText className="w-3.5 h-3.5 text-stone-500" />
                         <span>+ Thêm ghi chú chung toàn đoàn (tùy chọn)</span>
                       </button>
                     ) : (
@@ -2348,7 +2447,7 @@ disabled={isCheckInLocked}
                         type="text"
                         disabled={isCheckInLocked}
                         aria-label="Ghi chú chung lượt check-in"
-                          value={checkInReport.generalNote || ''}
+                        value={checkInReport.generalNote || ''}
                         onChange={(e) =>
                           updateCheckInDraft((prev) => ({
                             ...prev,
@@ -2356,7 +2455,7 @@ disabled={isCheckInLocked}
                           }))
                         }
                         placeholder="Ghi chú chung lượt Check-in toàn đoàn..."
-                        className="w-full max-w-md rounded-xl border border-stone-300 bg-white px-3 min-h-11 py-2 text-base sm:text-sm text-stone-800 outline-none focus:border-[#1F4E43]"
+                        className="h-9 w-full max-w-md rounded-xl border border-stone-300 bg-white px-3 text-xs sm:text-sm text-stone-800 outline-none focus:border-[#1F4E43]"
                       />
                     )}
                   </div>
@@ -2366,7 +2465,7 @@ disabled={isCheckInLocked}
                       type="button"
                       disabled={isCheckInLocked || !checkInReadiness.canSubmit}
                       onClick={handleConfirmCheckInBatch}
-                      className="px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                      className="h-10 px-5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                     >
                       {isSubmittingCheckIn ? (
                         <>
@@ -2409,7 +2508,7 @@ disabled={isCheckInLocked}
                   <button
                     type="button"
                     onClick={() => setActiveStage('CHECK_IN')}
-                    className="px-4 py-2 rounded-xl bg-[#1F4E43] text-white text-xs font-semibold cursor-pointer"
+                    className="h-9 px-4 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs font-semibold transition-colors cursor-pointer"
                   >
                     Chuyển sang lượt Check-in
                   </button>
@@ -2449,10 +2548,10 @@ disabled={isCheckInLocked}
                     <table className="w-full text-left border-collapse text-sm">
                       <thead>
                         <tr className="bg-[#F7F4EE] border-b border-[#E6E1D8] text-[11px] font-mono uppercase tracking-wider text-stone-600">
-                          <th className="py-3 px-4 font-bold w-[22%]">Hành khách & Đơn</th>
-                          <th className="py-3 px-3 font-bold w-[24%]">Trạng thái kết thúc</th>
-                          <th className="py-3 px-3 font-bold w-[28%]">Đối chiếu thiết bị trả</th>
-                          <th className="py-3 px-3 font-bold w-[14%]">Ảnh nhận lại</th>
+                          <th className="py-3 px-4 font-bold w-[25%]">Hành khách & Đơn</th>
+                          <th className="py-3 px-3 font-bold w-[22%]">Trạng thái kết thúc</th>
+                          <th className="py-3 px-3 font-bold w-[31%]">Đối chiếu thiết bị trả</th>
+                          <th className="py-3 px-3 font-bold w-[10%]">Ảnh nhận lại</th>
                           <th className="py-3 px-4 font-bold w-[12%]">Ghi chú</th>
                         </tr>
                       </thead>
@@ -2486,16 +2585,16 @@ disabled={isCheckInLocked}
                                 )}
                               >
                                 {/* 1. Passenger */}
-                                <td className="py-3 px-4">
-                                  <div className="flex items-start gap-2">
+                                <td className="py-3.5 px-4">
+                                  <div className="flex items-start gap-2.5">
                                     <span className="w-5 h-5 rounded-full bg-stone-100 text-stone-600 font-mono text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                                       {idx + 1}
                                     </span>
                                     <div className="min-w-0">
-                                      <div className="font-bold text-stone-900 text-xs sm:text-sm">
+                                      <div className="font-bold text-stone-900 text-xs sm:text-sm leading-snug">
                                         {participant.fullName}
                                       </div>
-                                      <div className="text-[11px] text-stone-500 font-mono mt-0.5">
+                                      <div className="text-[11px] text-stone-500 font-mono mt-0.5 leading-relaxed">
                                         Đơn #{participant.bookingCode} • CI:{' '}
                                         {participant.checkInStatus === 'PRESENT'
                                           ? 'Có mặt'
@@ -2506,7 +2605,7 @@ disabled={isCheckInLocked}
                                 </td>
 
                                 {/* 2. Check-out Status */}
-                                <td className="py-3 px-3">
+                                <td className="py-3.5 px-3">
                                   {participant.checkInStatus === 'ABSENT' ? (
                                     <span className="inline-flex items-center gap-1 rounded-md border border-stone-200 bg-stone-100 px-2.5 py-1 text-[11px] font-semibold text-stone-600">
                                       Vắng từ lúc Check-in
@@ -2514,7 +2613,8 @@ disabled={isCheckInLocked}
                                   ) : (
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       <button
-                                        type="button" aria-pressed={participant.status === 'COMPLETED'}
+                                        type="button"
+                                        aria-pressed={participant.status === 'COMPLETED'}
                                         disabled={isCheckOutLocked}
                                         onClick={() =>
                                           handleMarkGuestCheckOut(
@@ -2523,18 +2623,19 @@ disabled={isCheckInLocked}
                                           )
                                         }
                                         className={cn(
-                                          'px-2.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1 border transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed',
+                                          'h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap',
                                           participant.status === 'COMPLETED'
                                             ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                                            : 'bg-white text-stone-700 border-stone-300 hover:bg-emerald-50'
+                                            : 'bg-white text-stone-700 border-stone-300 hover:border-emerald-400 hover:bg-emerald-50/70'
                                         )}
                                       >
-                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                                         <span>Hoàn thành</span>
                                       </button>
 
                                       <button
-                                        type="button" aria-pressed={participant.status === 'EARLY_DEPARTURE'}
+                                        type="button"
+                                        aria-pressed={participant.status === 'EARLY_DEPARTURE'}
                                         disabled={isCheckOutLocked}
                                         onClick={() =>
                                           handleMarkGuestCheckOut(
@@ -2543,10 +2644,10 @@ disabled={isCheckInLocked}
                                           )
                                         }
                                         className={cn(
-                                          'px-2.5 py-1.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1 border transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed',
+                                          'h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap',
                                           participant.status === 'EARLY_DEPARTURE'
                                             ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
-                                            : 'bg-white text-stone-700 border-stone-300 hover:bg-amber-50'
+                                            : 'bg-white text-stone-700 border-stone-300 hover:border-amber-400 hover:bg-amber-50/70'
                                         )}
                                       >
                                         <span>Về sớm / Tách đoàn</span>
@@ -2554,33 +2655,34 @@ disabled={isCheckInLocked}
                                     </div>
                                   )}
                                   {participant.markedAt && (
-                                    <div className="text-[10px] font-mono text-stone-500 mt-1">
+                                    <div className="text-[10px] font-mono text-stone-500 mt-1.5">
                                       Đánh dấu: {formatVietnamTimeOnly(participant.markedAt, true)}
                                     </div>
                                   )}
                                 </td>
 
                                 {/* 3. Returned Equipment Summary */}
-                                <td className="py-3 px-3">
+                                <td className="py-3.5 px-3">
                                   {!hasIssuedEquipment ? (
                                     <span className="text-[11px] text-stone-400 italic">
                                       Không nhận thiết bị lúc Check-in
                                     </span>
                                   ) : (
-                                    <div className="flex items-center justify-between gap-2">
-                                      <div className="flex flex-wrap items-center gap-1">
+                                    <div className="flex items-start justify-between gap-2.5">
+                                      <div className="flex flex-wrap items-center gap-1.5">
                                         {participant.equipmentItems.map((eq) => (
                                           <span
                                             key={eq.equipmentId}
                                             className={cn(
-                                              'inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-semibold',
+                                              'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium',
                                               eq.returnedQuantity < eq.issuedQuantity ||
                                                 eq.condition !== 'GOOD'
                                                 ? 'bg-rose-50 text-rose-800 border-rose-200'
                                                 : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                             )}
                                           >
-                                            <span>{eq.equipmentName}:</span>
+                                            <Package className="w-3 h-3 shrink-0 opacity-75" />
+                                            <span>{eq.equipmentName}</span>
                                             <span className="font-mono font-bold">
                                               {eq.returnedQuantity}/{eq.issuedQuantity}
                                             </span>
@@ -2593,13 +2695,18 @@ disabled={isCheckInLocked}
                                         onClick={() =>
                                           toggleEquipmentRow(participant.participantId)
                                         }
-                                        className="min-h-11 px-3 py-2 rounded-lg border border-stone-200 bg-stone-50 hover:bg-stone-100 text-sm font-semibold text-[#1F4E43] inline-flex items-center gap-1 shrink-0 cursor-pointer"
+                                        className={cn(
+                                          'h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1 shrink-0 transition-colors cursor-pointer',
+                                          isEqExpanded
+                                            ? 'border border-stone-300 bg-stone-100 text-stone-700 hover:bg-stone-200'
+                                            : 'border border-[#1F4E43]/30 bg-[#1F4E43]/5 text-[#1F4E43] hover:bg-[#1F4E43] hover:text-white'
+                                        )}
                                       >
                                         <span>{isEqExpanded ? 'Thu gọn' : 'Thu đồ'}</span>
                                         {isEqExpanded ? (
-                                          <ChevronUp className="w-3 h-3" />
+                                          <ChevronUp className="w-3.5 h-3.5" />
                                         ) : (
-                                          <ChevronDown className="w-3 h-3" />
+                                          <ChevronDown className="w-3.5 h-3.5" />
                                         )}
                                       </button>
                                     </div>
@@ -2607,26 +2714,42 @@ disabled={isCheckInLocked}
                                 </td>
 
                                 {/* 4. Return Photos */}
-                                <td className="px-3 py-4">
-                              <div className="flex flex-wrap gap-2">
-                                {allPhotos.map((photo) => <button type="button" key={photo.id}
-                                  aria-label={`Xem ảnh ${photo.fileName}`} onClick={() => setPreviewPhotoUrl(photo.url)}
-                                  className="h-11 w-11 overflow-hidden rounded-lg border border-[#D6CEBE]">
-                                  <img src={photo.url} alt="" className="h-full w-full object-cover" />
-                                </button>)}
-                              </div>
-                            </td>
+                                <td className="py-3.5 px-3">
+                                  {allPhotos.length === 0 ? (
+                                    <span className="text-[11px] text-stone-400 italic">
+                                      Chưa có
+                                    </span>
+                                  ) : (
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {allPhotos.map((photo) => (
+                                        <button
+                                          type="button"
+                                          key={photo.id}
+                                          aria-label={`Xem ảnh ${photo.fileName}`}
+                                          onClick={() => setPreviewPhotoUrl(photo.url)}
+                                          className="h-9 w-9 overflow-hidden rounded-lg border border-[#D6CEBE] hover:border-[#1F4E43] transition-colors cursor-pointer"
+                                        >
+                                          <img
+                                            src={photo.url}
+                                            alt=""
+                                            className="h-full w-full object-cover"
+                                          />
+                                        </button>
+                                      ))}
+                                    </div>
+                                  )}
+                                </td>
 
                                 {/* 5. Optional Note */}
-                                <td className="py-3 px-4">
+                                <td className="py-3.5 px-4">
                                   {!isNoteExpanded ? (
                                     <button
                                       type="button"
                                       aria-expanded={isNoteExpanded}
                                       onClick={() => toggleNoteRow(noteRowKey)}
-                                      className="inline-flex items-center gap-1 text-[11px] font-medium text-stone-500 hover:text-[#1F4E43] cursor-pointer"
+                                      className="h-8 px-2.5 rounded-lg border border-dashed border-stone-300 bg-stone-50/60 hover:border-[#1F4E43]/40 hover:bg-[#1F4E43]/5 text-xs font-medium text-stone-600 hover:text-[#1F4E43] inline-flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap"
                                     >
-                                      <Plus className="w-3 h-3" />
+                                      <Plus className="w-3 h-3 shrink-0" />
                                       <span>Ghi chú</span>
                                     </button>
                                   ) : (
@@ -2642,7 +2765,7 @@ disabled={isCheckInLocked}
                                         )
                                       }
                                       placeholder="Ghi chú kết thúc..."
-                                      className="w-full rounded-lg border border-stone-300 bg-white px-2 min-h-11 py-2 text-base sm:text-sm text-stone-800 outline-none focus:border-[#1F4E43]"
+                                      className="h-8 w-full rounded-lg border border-stone-300 bg-white px-2.5 text-xs text-stone-800 outline-none focus:border-[#1F4E43]"
                                     />
                                   )}
                                 </td>
@@ -2651,9 +2774,11 @@ disabled={isCheckInLocked}
                               {/* EXPANDED CHECK-OUT EQUIPMENT DRAWER */}
                               {hasIssuedEquipment && isEqExpanded && (
                                 <tr className="bg-[#F7F4EE]/60">
-                                  <td colSpan={5} className="px-4 py-3 border-t border-stone-200/70">
+                                  <td colSpan={5} className="px-4 py-3.5 border-t border-stone-200/70">
                                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-2.5">
-                                      {participant.equipmentItems.map((eq) => renderCheckOutEquipment(participant, eq))}
+                                      {participant.equipmentItems.map((eq) =>
+                                        renderCheckOutEquipment(participant, eq)
+                                      )}
                                     </div>
                                   </td>
                                 </tr>
@@ -2690,19 +2815,20 @@ disabled={isCheckInLocked}
                           </div>
 
                           {participant.checkInStatus === 'ABSENT' ? (
-                            <div className="rounded-lg bg-stone-100 px-3 min-h-11 py-2 text-base sm:text-sm text-stone-600 font-semibold">
+                            <div className="rounded-lg bg-stone-100 px-3 py-2 text-xs text-stone-600 font-semibold">
                               Khách vắng mặt từ lượt Check-in
                             </div>
                           ) : (
                             <div className="grid grid-cols-2 gap-2">
                               <button
-                                type="button" aria-pressed={participant.status === 'COMPLETED'}
+                                type="button"
+                                aria-pressed={participant.status === 'COMPLETED'}
                                 disabled={isCheckOutLocked}
                                 onClick={() =>
                                   handleMarkGuestCheckOut(participant.participantId, 'COMPLETED')
                                 }
                                 className={cn(
-                                  'min-h-11 py-2 rounded-xl text-sm font-semibold border inline-flex items-center justify-center gap-1.5',
+                                  'h-9 rounded-xl text-xs font-semibold border inline-flex items-center justify-center gap-1.5 transition-colors',
                                   participant.status === 'COMPLETED'
                                     ? 'bg-emerald-600 text-white border-emerald-600'
                                     : 'bg-white text-stone-700 border-stone-300'
@@ -2712,7 +2838,8 @@ disabled={isCheckInLocked}
                                 <span>Hoàn thành</span>
                               </button>
                               <button
-                                type="button" aria-pressed={participant.status === 'EARLY_DEPARTURE'}
+                                type="button"
+                                aria-pressed={participant.status === 'EARLY_DEPARTURE'}
                                 disabled={isCheckOutLocked}
                                 onClick={() =>
                                   handleMarkGuestCheckOut(
@@ -2721,7 +2848,7 @@ disabled={isCheckInLocked}
                                   )
                                 }
                                 className={cn(
-                                  'min-h-11 py-2 rounded-xl text-sm font-semibold border inline-flex items-center justify-center gap-1.5',
+                                  'h-9 rounded-xl text-xs font-semibold border inline-flex items-center justify-center gap-1.5 transition-colors',
                                   participant.status === 'EARLY_DEPARTURE'
                                     ? 'bg-amber-600 text-white border-amber-600'
                                     : 'bg-white text-stone-700 border-stone-300'
@@ -2732,52 +2859,64 @@ disabled={isCheckInLocked}
                             </div>
                           )}
 
-                          <div className="space-y-2">
-                            {!isNoteExpanded ? (
-                              <button
-                                type="button"
-                                aria-expanded={isNoteExpanded}
-                                onClick={() => toggleNoteRow(noteRowKey)}
-                                className="min-h-11 inline-flex items-center gap-2 text-sm font-medium text-stone-600"
-                              >
-                                <Plus className="h-4 w-4" />
-                                <span>{participant.note ? 'Xem ghi chú' : 'Thêm ghi chú'}</span>
-                              </button>
-                            ) : (
-                              <input
-                                type="text"
-                                disabled={isCheckOutLocked}
-                                aria-label={`Ghi chú kết thúc cho ${participant.fullName}`}
-                                value={participant.note || ''}
-                                onChange={(e) =>
-                                  handleGuestCheckOutNoteChange(
-                                    participant.participantId,
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Ghi chú kết thúc..."
-                                className="w-full min-h-11 rounded-lg border border-stone-300 bg-white px-3 py-2 text-base text-stone-800 outline-none focus:border-[#1F4E43]"
-                              />
-                            )}
-                          </div>
-
-                          {hasIssuedEquipment && (
-                            <div className="space-y-2">
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                            {hasIssuedEquipment ? (
                               <button
                                 type="button"
                                 aria-expanded={isEqExpanded}
                                 onClick={() => toggleEquipmentRow(participant.participantId)}
-                                className="px-2.5 py-1.5 rounded-lg border border-stone-200 bg-stone-50 text-xs font-semibold text-[#1F4E43] inline-flex items-center gap-1"
+                                className="h-8 px-2.5 rounded-lg border border-[#1F4E43]/30 bg-[#1F4E43]/5 text-xs font-semibold text-[#1F4E43] inline-flex items-center gap-1"
                               >
                                 <Package className="w-3.5 h-3.5" />
                                 <span>
-                                  Thu hồi thiết bị ({participant.equipmentItems.length} món)
+                                  {isEqExpanded
+                                    ? 'Thu gọn'
+                                    : `Thu đồ (${participant.equipmentItems.length} món)`}
                                 </span>
+                                {isEqExpanded ? (
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                ) : (
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                )}
                               </button>
-                              {isEqExpanded && (
-                                <div className="space-y-2 rounded-xl bg-stone-50 p-2.5 border border-stone-200">
-                                  {participant.equipmentItems.map((eq) => renderCheckOutEquipment(participant, eq))}
-                                </div>
+                            ) : (
+                              <span className="text-[11px] text-stone-400">
+                                Không nhận thiết bị
+                              </span>
+                            )}
+
+                            <button
+                              type="button"
+                              aria-expanded={isNoteExpanded}
+                              onClick={() => toggleNoteRow(noteRowKey)}
+                              className="h-8 px-2.5 rounded-lg border border-dashed border-stone-300 bg-stone-50/60 text-xs font-medium text-stone-600 inline-flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>{isNoteExpanded ? 'Ẩn ghi chú' : 'Ghi chú'}</span>
+                            </button>
+                          </div>
+
+                          {isNoteExpanded && (
+                            <input
+                              type="text"
+                              disabled={isCheckOutLocked}
+                              aria-label={`Ghi chú kết thúc cho ${participant.fullName}`}
+                              value={participant.note || ''}
+                              onChange={(e) =>
+                                handleGuestCheckOutNoteChange(
+                                  participant.participantId,
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Ghi chú kết thúc..."
+                              className="w-full h-9 rounded-xl border border-stone-300 bg-white px-3 text-xs sm:text-sm text-stone-800 outline-none focus:border-[#1F4E43]"
+                            />
+                          )}
+
+                          {hasIssuedEquipment && isEqExpanded && (
+                            <div className="space-y-2 rounded-xl bg-stone-50 p-2.5 border border-stone-200">
+                              {participant.equipmentItems.map((eq) =>
+                                renderCheckOutEquipment(participant, eq)
                               )}
                             </div>
                           )}
@@ -2825,7 +2964,7 @@ disabled={isCheckInLocked}
                             }))
                           }
                           placeholder="Ghi chú tổng kết cuối hành trình (tùy chọn)..."
-                          className="w-full max-w-md rounded-xl border border-stone-300 bg-white px-3 min-h-11 py-2 text-base sm:text-sm text-stone-800 outline-none focus:border-[#1F4E43]"
+                          className="h-9 w-full max-w-md rounded-xl border border-stone-300 bg-white px-3 text-xs sm:text-sm text-stone-800 outline-none focus:border-[#1F4E43]"
                         />
                       </div>
 
@@ -2834,7 +2973,7 @@ disabled={isCheckInLocked}
                           type="button"
                           disabled={isCheckOutLocked || !checkOutReadiness.canSubmit}
                           onClick={handleConfirmCheckOutBatch}
-                          className="px-5 py-2.5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                          className="h-10 px-5 rounded-xl bg-[#1F4E43] hover:bg-[#15372F] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                         >
                           {isSubmittingCheckOut ? (
                             <>
