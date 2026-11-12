@@ -1,3 +1,4 @@
+import type { RefundAccountRequest, RefundResponse } from '../../payments/types/payment.types';
 export type { Booking, Traveler } from '../../../types/expedition';
 
 export type BookingStatus =
@@ -45,26 +46,11 @@ export interface UpdatePassengerRequest {
 
 export interface CancelBookingRequest {
   reason: string;
-  refundRequest?: RefundSubmissionRequest;
+  /** Required when the refund preview says refundAccountRequired; must be omitted when the account is locked. */
+  refundAccount?: RefundAccountRequest;
 }
 
-export interface RefundSubmissionRequest {
-  bankBin: string;
-  accountNumber: string;
-  accountHolderName: string;
-}
-
-export interface RefundResponse {
-  id: number;
-  bookingId: number;
-  requestedAmountVnd: number;
-  approvedAmountVnd: number | null;
-  status: 'requested' | 'approved' | 'processing' | 'completed' | 'failed' | 'rejected';
-  recipientAccountLast4: string | null;
-  recipientVerification: 'verified' | 'manual_review';
-  createdAt: string;
-  payoutReferenceId: string | null;
-}
+export type { RefundAccountRequest, RefundResponse };
 
 export interface BookingPassengerResponse {
   id: number;
@@ -183,7 +169,8 @@ export interface BookingCancellationResponse {
   paidAmountVnd: number;
   refundedAmountVnd: number;
   refundRequired: boolean;
-  refundRequest: RefundResponse | null;
+  /** Refund request created by the cancellation; null when nothing is refundable. */
+  refund: RefundResponse | null;
 }
 
 /** Filters for GET /api/v1/bookings. All optional; createdFrom/createdTo are ISO date-time, interval [from, to). */

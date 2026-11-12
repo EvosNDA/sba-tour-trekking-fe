@@ -4,11 +4,15 @@ import {
   PaymentLinkResponse,
   PaymentTransaction,
   PaymentMethod,
-  RefundRequestSummary,
-  RefundRequestDetail,
-  RefundRules,
-  SaveRefundRulesRequest,
+  RefundApproveRequest,
+  RefundDetailResponse,
+  RefundManualTransferRequest,
+  RefundResponse,
+  RefundStatus,
 } from '../types/payment.types';
+import type { SpringPage } from '../../../types/api.types';
+
+const REFUNDS = '/api/v1/admin/refunds';
 
 export const paymentsApi = {
   createPaymentLink: async (
@@ -23,23 +27,32 @@ export const paymentsApi = {
     );
   },
 
-  getRefundRequests: async (signal?: AbortSignal): Promise<RefundRequestSummary[]> =>
-    apiClient.get<RefundRequestSummary[]>('/api/v1/admin/refunds', { signal }),
+  listRefunds: async (
+    params: { status?: RefundStatus; page?: number; size?: number } = {},
+    signal?: AbortSignal
+  ): Promise<SpringPage<RefundResponse>> =>
+    apiClient.get<SpringPage<RefundResponse>>(REFUNDS, {
+      params: { status: params.status, page: params.page ?? 0, size: params.size ?? 20 },
+      signal,
+    }),
 
-  getRefundRequest: async (refundId: number, signal?: AbortSignal): Promise<RefundRequestDetail> =>
-    apiClient.get<RefundRequestDetail>(`/api/v1/admin/refunds/${refundId}`, { signal }),
+  getRefund: async (refundId: number, signal?: AbortSignal): Promise<RefundDetailResponse> =>
+    apiClient.get<RefundDetailResponse>(`${REFUNDS}/${refundId}`, { signal }),
 
-  approveRefund: async (refundId: number): Promise<RefundRequestSummary> =>
-    apiClient.post<RefundRequestSummary>(`/api/v1/admin/refunds/${refundId}/approve`, {}),
+  approveRefund: async (refundId: number, payload: RefundApproveRequest = {}): Promise<RefundResponse> =>
+    apiClient.post<RefundResponse>(`${REFUNDS}/${refundId}/approve`, payload),
 
-  rejectRefund: async (refundId: number, note: string): Promise<RefundRequestSummary> =>
-    apiClient.post<RefundRequestSummary>(`/api/v1/admin/refunds/${refundId}/reject`, { note }),
+  rejectRefund: async (refundId: number, note: string): Promise<RefundResponse> =>
+    apiClient.post<RefundResponse>(`${REFUNDS}/${refundId}/reject`, { note }),
 
-  getRefundRules: async (signal?: AbortSignal): Promise<RefundRules | null> =>
-    apiClient.get<RefundRules | null>('/api/v1/admin/refund-rules', { signal }),
+  recordManualTransfer: async (refundId: number, payload: RefundManualTransferRequest): Promise<RefundResponse> =>
+    apiClient.post<RefundResponse>(`${REFUNDS}/${refundId}/manual-transfer`, payload),
 
-  saveRefundRules: async (payload: SaveRefundRulesRequest): Promise<RefundRules> =>
-    apiClient.post<RefundRules>('/api/v1/admin/refund-rules', payload),
+  startPayOsPayout: async (refundId: number): Promise<RefundResponse> =>
+    apiClient.post<RefundResponse>(`${REFUNDS}/${refundId}/payos-payout`, {}),
+
+  syncPayOsPayout: async (refundId: number): Promise<RefundResponse> =>
+    apiClient.post<RefundResponse>(`${REFUNDS}/${refundId}/payos-sync`, {}),
 
   // Legacy helper kept for compatibility
   createTransaction: async (

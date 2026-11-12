@@ -22,6 +22,7 @@ import type {
 import type { ApiError } from '../../../types/api.types';
 import { BookingCard } from '../../../features/bookings/components/BookingCard';
 import { RefundDestinationFields } from '../../../features/bookings/components/RefundDestinationFields';
+import { cancelErrorMessage, useRefundCancellation } from '../../../features/bookings/hooks/useRefundCancellation';
 import { formatVND } from '../../../lib/utils';
 import { toast } from '../../../components/ui/Toast';
 
@@ -68,10 +69,7 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = () => {
   const [bookingToCancel, setBookingToCancel] = useState<BookingSummaryResponse | null>(null);
   const [cancelReason, setCancelReason] = useState<string>('');
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
-  const [requestRefund, setRequestRefund] = useState<boolean>(true);
-  const [refundBankBin, setRefundBankBin] = useState('');
-  const [refundAccountNumber, setRefundAccountNumber] = useState('');
-  const [refundAccountHolder, setRefundAccountHolder] = useState('');
+  const refundState = useRefundCancellation(bookingToCancel?.id ?? null);
   const [lastCancellationResult, setLastCancellationResult] =
     useState<BookingCancellationResponse | null>(null);
 
@@ -114,30 +112,26 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = () => {
   const handleConfirmCancel = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bookingToCancel) return;
+    const refundError = refundState.validate();
+    if (refundError) {
+      toast.error(refundError);
+      return;
+    }
 
     setIsCancelling(true);
     try {
       const res = await bookingsApi.cancelBooking(bookingToCancel.id, {
         reason: cancelReason.trim() || 'Khách hàng yêu cầu hủy đặt chỗ',
-        ...(requestRefund && new Date(bookingToCancel.startsAt).getTime() > Date.now() && bookingToCancel.paidAmountVnd > 0 && bookingToCancel.paymentState !== 'FULLY_REFUNDED'
-          ? { refundRequest: {
-              bankBin: refundBankBin.trim(),
-              accountNumber: refundAccountNumber.trim(),
-              accountHolderName: refundAccountHolder.trim(),
-            } }
-          : {}),
+        ...(refundState.refundAccount ? { refundAccount: refundState.refundAccount } : {}),
       });
       setLastCancellationResult(res);
       setBookingToCancel(null);
       setCancelReason('');
-      setRefundBankBin('');
-      setRefundAccountNumber('');
-      setRefundAccountHolder('');
       toast.info(`Đã hủy đặt chỗ #${bookingToCancel.bookingCode}.`);
       await fetchMyBookings();
     } catch (err) {
       const apiErr = err as ApiError;
-      toast.error(apiErr.message || 'Không thể hủy đặt chỗ.');
+      toast.error(cancelErrorMessage(apiErr, 'Không thể hủy đặt chỗ.'));
     } finally {
       setIsCancelling(false);
     }
@@ -183,7 +177,7 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = () => {
                 Yêu cầu hoàn tiền:{' '}
                 <strong>
                   {lastCancellationResult.refundRequired
-                    ? lastCancellationResult.refundRequest ? 'Đã gửi yêu cầu hoàn tiền' : 'Đã thanh toán nhưng chưa gửi yêu cầu hoàn tiền'
+                    ? lastCancellationResult.refund ? 'Đã gửi yêu cầu hoàn tiền' : 'Đã thanh toán nhưng chưa gửi yêu cầu hoàn tiền'
                     : 'Không phát sinh hoàn tiền'}
                 </strong>{' '}
                 • Số tiền đã trả: <strong>{formatVND(lastCancellationResult.paidAmountVnd)}</strong>.
@@ -193,11 +187,14 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = () => {
                   Nhân viên sẽ kiểm tra yêu cầu và liên hệ với bạn qua email hoặc số điện thoại đăng ký.
                 </p>
               )}
-              {lastCancellationResult.refundRequest && (
+              {lastCancellationResult.refund && (
                 <p className="text-stone-700">
-                  Yêu cầu #{lastCancellationResult.refundRequest.id} đang ở trạng thái{' '}
-                  <strong>{REFUND_STATUS_LABEL[lastCancellationResult.refundRequest.status] || lastCancellationResult.refundRequest.status}</strong>; số tiền dự kiến{' '}
-                  <strong>{formatVND(lastCancellationResult.refundRequest.requestedAmountVnd)}</strong>, tài khoản ····{lastCancellationResult.refundRequest.recipientAccountLast4 || '—'}.
+                  Yêu cầu #{lastCancellationResult.refund.id} đang ở trạng thái{' '}
+                  <strong>{REFUND_STATUS_LABEL[lastCancellationResult.refund.status] || lastCancellationResult.refund.status}</strong>; số tiền dự kiến{' '}
+                  <strong>{formatVND(lastCancellationResult.refund.requestedAmountVnd)}</strong>
+                  {lastCancellationResult.refund.accountNumberMasked
+                    ? `, chuyển về ${lastCancellationResult.refund.bankName || 'tài khoản'} ${lastCancellationResult.refund.accountNumberMasked}`
+                    : ''}.
                 </p>
               )}
             </div>
@@ -330,10 +327,6 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = () => {
                 onCancel={(item) => {
                   setBookingToCancel(item);
                   setCancelReason('');
-                  setRequestRefund(true);
-                  setRefundBankBin('');
-                  setRefundAccountNumber('');
-                  setRefundAccountHolder('');
                 }}
               />
             ))}
@@ -379,19 +372,7 @@ export const MyBookingsPage: React.FC<MyBookingsPageProps> = () => {
         onSubmit={handleConfirmCancel}
         isSubmitting={isCancelling}
       >
-        {bookingToCancel && bookingToCancel.paidAmountVnd > 0 && bookingToCancel.paymentState !== 'FULLY_REFUNDED' && new Date(bookingToCancel.startsAt).getTime() > Date.now() && (
-          <RefundDestinationFields
-            idPrefix="booking-list-refund"
-            enabled={requestRefund}
-            setEnabled={setRequestRefund}
-            bankBin={refundBankBin}
-            setBankBin={setRefundBankBin}
-            accountNumber={refundAccountNumber}
-            setAccountNumber={setRefundAccountNumber}
-            accountHolderName={refundAccountHolder}
-            setAccountHolderName={setRefundAccountHolder}
-          />
-        )}
+        {bookingToCancel && <RefundDestinationFields idPrefix="booking-list-refund" state={refundState} />}
       </CancelBookingDialog>
     </div>
   );

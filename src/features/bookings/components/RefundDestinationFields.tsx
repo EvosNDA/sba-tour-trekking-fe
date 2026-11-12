@@ -1,44 +1,99 @@
 import React from 'react';
-import { Landmark } from 'lucide-react';
+import { Landmark, Loader2, Lock } from 'lucide-react';
+import { formatVND } from '../../../lib/utils';
+import type { RefundCancellationState } from '../hooks/useRefundCancellation';
 
 interface Props {
   idPrefix: string;
-  enabled: boolean;
-  setEnabled: (value: boolean) => void;
-  bankBin: string;
-  setBankBin: (value: string) => void;
-  accountNumber: string;
-  setAccountNumber: (value: string) => void;
-  accountHolderName: string;
-  setAccountHolderName: (value: string) => void;
+  state: RefundCancellationState;
 }
 
-export const RefundDestinationFields: React.FC<Props> = ({
-  idPrefix, enabled, setEnabled, bankBin, setBankBin, accountNumber, setAccountNumber,
-  accountHolderName, setAccountHolderName,
-}) => (
-  <section className="space-y-3 rounded-xl border border-[#B7D2C8] bg-[#F5F9F6] p-4">
-    <label className="flex items-start gap-2 text-xs font-semibold text-stone-800">
-      <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="mt-0.5 accent-[#1F4E43]" />
-      Gửi yêu cầu hoàn tiền cùng lúc hủy đặt chỗ
-    </label>
-    {enabled && <>
-      <p className="text-[11px] leading-relaxed text-stone-600">Số tiền sẽ được tính theo chính sách đã lưu khi bạn đặt tour và số tiền đã thanh toán. Nhân viên xác minh tài khoản trước khi duyệt.</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label htmlFor={`${idPrefix}-bank-bin`} className="mb-1 block text-[11px] font-semibold text-stone-700">Mã ngân hàng</label>
-          <input id={`${idPrefix}-bank-bin`} inputMode="numeric" pattern="[0-9]{6,20}" minLength={6} maxLength={20} required value={bankBin} onChange={(e) => setBankBin(e.target.value.replace(/\D/g, ''))} placeholder="Ví dụ: 970418" className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-xs focus:border-[#1F4E43] focus:outline-none" />
-        </div>
-        <div>
-          <label htmlFor={`${idPrefix}-account-number`} className="mb-1 block text-[11px] font-semibold text-stone-700">Số tài khoản nhận</label>
-          <input id={`${idPrefix}-account-number`} inputMode="numeric" pattern="[0-9]{5,30}" minLength={5} maxLength={30} required value={accountNumber} onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))} placeholder="Nhập số tài khoản" className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-xs focus:border-[#1F4E43] focus:outline-none" />
-        </div>
-        <div className="sm:col-span-2">
-          <label htmlFor={`${idPrefix}-account-holder`} className="mb-1 block text-[11px] font-semibold text-stone-700">Tên chủ tài khoản</label>
-          <input id={`${idPrefix}-account-holder`} autoComplete="name" maxLength={120} required value={accountHolderName} onChange={(e) => setAccountHolderName(e.target.value.toLocaleUpperCase('vi-VN'))} placeholder="Nhập chính xác tên trên tài khoản ngân hàng" className="w-full rounded-lg border border-stone-300 px-3 py-2.5 text-xs uppercase focus:border-[#1F4E43] focus:outline-none" />
-        </div>
+const inputClass =
+  'w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm focus:border-[#1F4E43] focus:outline-none';
+
+/** Refund estimate and destination inside the cancel dialog, driven by GET /bookings/{id}/refund-preview. */
+export const RefundDestinationFields: React.FC<Props> = ({ idPrefix, state }) => {
+  const { preview, loading, error, account, setAccount, needsAccount } = state;
+  const update = (patch: Partial<typeof account>) => setAccount({ ...account, ...patch });
+
+  if (loading) {
+    return (
+      <p className="flex items-center gap-2 rounded-xl bg-stone-50 p-3 text-xs text-stone-600">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Đang tính số tiền được hoàn…
+      </p>
+    );
+  }
+
+  if (error) {
+    return (
+      <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
+        {error} Bạn vẫn có thể huỷ; nếu đã thanh toán, nhân viên sẽ liên hệ để xử lý hoàn tiền.
+      </p>
+    );
+  }
+
+  if (!preview || preview.paidAmountVnd <= 0) return null;
+
+  const refundable = preview.estimatedRefundVnd > 0;
+
+  return (
+    <section className="space-y-3 rounded-xl border border-[#B7D2C8] bg-[#F5F9F6] p-4" aria-label="Hoàn tiền khi huỷ">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="text-xs font-semibold text-stone-800">Dự kiến được hoàn</span>
+        <strong className="text-lg text-[#1F4E43] tabular-nums">{formatVND(preview.estimatedRefundVnd)}</strong>
       </div>
-      <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] leading-relaxed text-amber-900"><Landmark className="mt-0.5 h-4 w-4 shrink-0" />Nhân viên sẽ kiểm tra tên và số tài khoản trước khi duyệt. Thông tin này chỉ dùng để xử lý yêu cầu hoàn tiền.</div>
-    </>}
-  </section>
-);
+      <p className="text-[11px] leading-relaxed text-stone-600">
+        {preview.policyTiersConfigured && preview.refundPercent != null
+          ? `Hoàn ${preview.refundPercent}% số tiền đã trả vì huỷ trước khởi hành ${Math.max(0, preview.hoursBeforeDeparture)} giờ.`
+          : 'Tour chưa có bậc hoàn tiền tự động, nhân viên sẽ xét số tiền hoàn theo chính sách huỷ của tour.'}{' '}
+        Đã trả {formatVND(preview.paidAmountVnd)}
+        {preview.alreadyRefundedVnd > 0 ? `, đã hoàn trước đó ${formatVND(preview.alreadyRefundedVnd)}` : ''}.
+      </p>
+
+      {!refundable && (
+        <p className="rounded-lg bg-white p-3 text-[11px] text-stone-700">Theo chính sách huỷ, lần huỷ này không được hoàn tiền.</p>
+      )}
+
+      {refundable && preview.refundAccountLocked && (
+        <p className="flex items-start gap-2 rounded-lg border border-stone-200 bg-white p-3 text-[11px] leading-relaxed text-stone-700">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[#1F4E43]" aria-hidden="true" />
+          <span>
+            Tiền hoàn sẽ chuyển về đúng tài khoản đã thanh toán:{' '}
+            <strong>
+              {preview.lockedBankName || 'Ngân hàng'} {preview.lockedAccountMasked || ''}
+            </strong>
+            . Bạn không cần nhập tài khoản.
+          </span>
+        </p>
+      )}
+
+      {refundable && needsAccount && (
+        <>
+          <p className="text-[11px] font-semibold text-stone-800">Tài khoản nhận tiền hoàn</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor={`${idPrefix}-bank-name`} className="mb-1 block text-[11px] font-semibold text-stone-700">Ngân hàng</label>
+              <input id={`${idPrefix}-bank-name`} maxLength={120} required value={account.bankName} onChange={(e) => update({ bankName: e.target.value })} placeholder="Ví dụ: Vietcombank" className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor={`${idPrefix}-bank-bin`} className="mb-1 block text-[11px] font-semibold text-stone-700">Mã ngân hàng (BIN)</label>
+              <input id={`${idPrefix}-bank-bin`} inputMode="numeric" maxLength={8} required value={account.bankBin} onChange={(e) => update({ bankBin: e.target.value.replace(/\D/g, '') })} placeholder="Ví dụ: 970436" className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor={`${idPrefix}-account-number`} className="mb-1 block text-[11px] font-semibold text-stone-700">Số tài khoản</label>
+              <input id={`${idPrefix}-account-number`} inputMode="numeric" maxLength={19} required value={account.accountNumber} onChange={(e) => update({ accountNumber: e.target.value.replace(/\D/g, '') })} placeholder="6–19 chữ số" className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor={`${idPrefix}-account-holder`} className="mb-1 block text-[11px] font-semibold text-stone-700">Tên chủ tài khoản</label>
+              <input id={`${idPrefix}-account-holder`} autoComplete="name" maxLength={120} required value={account.accountHolderName} onChange={(e) => update({ accountHolderName: e.target.value.toLocaleUpperCase('vi-VN') })} placeholder="NGUYEN VAN A" className={`${inputClass} uppercase`} />
+            </div>
+          </div>
+          <p className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[11px] leading-relaxed text-amber-900">
+            <Landmark className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            Nhân viên kiểm tra tên và số tài khoản trước khi chuyển. Thông tin được mã hoá và chỉ dùng để hoàn tiền.
+          </p>
+        </>
+      )}
+    </section>
+  );
+};

@@ -1,3 +1,4 @@
+import type { RefundPreviewResponse } from '../../payments/types/payment.types';
 import { apiClient } from '../../../lib/axios';
 import { SpringPage } from '../../../types/api.types';
 import {
@@ -106,6 +107,9 @@ export const bookingsApi = {
       { signal }
     );
   },
+
+  getRefundPreview: async (bookingId: number | string, signal?: AbortSignal): Promise<RefundPreviewResponse> =>
+    apiClient.get<RefundPreviewResponse>(`/api/v1/bookings/${bookingId}/refund-preview`, { signal }),
 
   getRefundStatus: async (bookingId: number | string, signal?: AbortSignal): Promise<RefundResponse | null> =>
     apiClient.get<RefundResponse | null>(`/api/v1/bookings/${bookingId}/refund`, { signal }),
