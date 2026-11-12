@@ -43,6 +43,12 @@ export const TourCreateForm: React.FC<TourCreateFormProps> = ({ initialData, onC
   const [includedServices, setIncludedServices] = useState(initialData?.includedServices || '');
   const [excludedServices, setExcludedServices] = useState(initialData?.excludedServices || '');
   const [routeFileUrl, setRouteFileUrl] = useState(initialData?.routeFileUrl || '');
+  const [capacity, setCapacity] = useState('10');
+  const [basePriceVnd, setBasePriceVnd] = useState('');
+  const [equipmentFeeVnd, setEquipmentFeeVnd] = useState('0');
+  const [depositPercent, setDepositPercent] = useState('30');
+  const [meetingPoint, setMeetingPoint] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
   const [locations, setLocations] = useState<LocationOption[]>([]);
   const [policyVersions, setPolicyVersions] = useState<PolicyVersionOption[]>([]);
   const [cancellationVersions, setCancellationVersions] = useState<PolicyVersionOption[]>([]);
@@ -80,6 +86,19 @@ export const TourCreateForm: React.FC<TourCreateFormProps> = ({ initialData, onC
   };
 
   useEffect(() => { void loadOptions(); }, []);
+
+  useEffect(() => {
+    if (!initialData?.id) return;
+    toursApi.getScheduleDefaults(initialData.id).then((defaults) => {
+      if (!defaults) return;
+      setCapacity(String(defaults.capacity));
+      setBasePriceVnd(String(defaults.basePriceVnd));
+      setEquipmentFeeVnd(String(defaults.equipmentFeeVnd));
+      setDepositPercent(String(defaults.depositPercent));
+      setMeetingPoint(defaults.meetingPoint || '');
+      setContactPhone(defaults.contactPhone || '');
+    }).catch(() => setSubmitError('Không tải được cấu hình giá hiện tại của tour.'));
+  }, [initialData?.id]);
 
   const availableLocations = useMemo(() => {
     const query = locationSearch.trim().toLocaleLowerCase('vi');
@@ -121,6 +140,17 @@ export const TourCreateForm: React.FC<TourCreateFormProps> = ({ initialData, onC
       setSubmitError('Thời lượng phải là số nguyên dương.');
       return;
     }
+    const seats = Number(capacity);
+    const price = Number(basePriceVnd);
+    const equipmentFee = Number(equipmentFeeVnd);
+    const deposit = Number(depositPercent);
+    if (!Number.isSafeInteger(seats) || seats < 1
+      || basePriceVnd.trim() === '' || !Number.isSafeInteger(price) || price < 0 || price > 1_000_000_000_000
+      || equipmentFeeVnd.trim() === '' || !Number.isSafeInteger(equipmentFee) || equipmentFee < 0 || equipmentFee > 1_000_000_000_000
+      || !Number.isFinite(deposit) || deposit <= 0 || deposit > 100 || !/^\d+(\.\d{1,2})?$/.test(depositPercent)) {
+      setSubmitError('Vui lòng nhập số chỗ, giá tour, phụ phí và tỷ lệ đặt cọc hợp lệ.');
+      return;
+    }
     if (routeFileUrl.trim()) {
       try {
         const url = new URL(routeFileUrl.trim());
@@ -160,6 +190,14 @@ export const TourCreateForm: React.FC<TourCreateFormProps> = ({ initialData, onC
       }
 
       await Promise.all([
+        toursApi.saveScheduleDefaults(tour.id, {
+          capacity: seats,
+          basePriceVnd: price,
+          equipmentFeeVnd: equipmentFee,
+          depositPercent: deposit,
+          meetingPoint: meetingPoint.trim() || undefined,
+          contactPhone: contactPhone.trim() || undefined,
+        }),
         apiClient.put(`/api/v1/tours/${tour.id}/terms`, {
           versionIds: selectedTerms,
           ...(policyId ? { cancellationPolicyVersionId: Number(policyId) } : { removeCancellationPolicy: true }),
@@ -220,6 +258,19 @@ export const TourCreateForm: React.FC<TourCreateFormProps> = ({ initialData, onC
                 <div><label htmlFor="tour-duration" className={labelClass}>Thời lượng (ngày)</label><input id="tour-duration" type="number" min={1} step={1} value={durationDays} onChange={(event) => setDurationDays(event.target.value)} className={fieldClass} /></div>
               </div>
               <div><label htmlFor="tour-experience" className={labelClass}>Kinh nghiệm yêu cầu</label><textarea id="tour-experience" value={requiredExperience} onChange={(event) => setRequiredExperience(event.target.value)} rows={2} placeholder="VD: Thể lực cơ bản, quen đi bộ đường dài…" className={`${fieldClass} resize-y`} /></div>
+            </div>
+          </section>
+
+          <section className={panelClass} aria-labelledby="tour-pricing-heading">
+            <div className="border-b border-[#e1e6df] bg-[#fbfcfa] px-5 py-3"><h2 id="tour-pricing-heading" className="flex items-center gap-2 text-lg font-bold text-[#153a2b]">Cấu hình giá và lịch khởi hành</h2></div>
+            <div className="grid gap-4 p-5 sm:grid-cols-2">
+              <label className={labelClass}>Số chỗ mặc định *<input required type="number" min="1" step="1" value={capacity} onChange={(event) => setCapacity(event.target.value)} className={fieldClass} /></label>
+              <label className={labelClass}>Giá tour / khách (đ) *<input required type="number" min="0" max="1000000000000" step="1" value={basePriceVnd} onChange={(event) => setBasePriceVnd(event.target.value)} className={fieldClass} placeholder="VD: 1.500.000" /></label>
+              <label className={labelClass}>Phụ phí thiết bị (đ)<input required type="number" min="0" max="1000000000000" step="1" value={equipmentFeeVnd} onChange={(event) => setEquipmentFeeVnd(event.target.value)} className={fieldClass} /></label>
+              <label className={labelClass}>Tiền cọc (%) *<input required type="number" min="0.01" max="100" step="0.01" value={depositPercent} onChange={(event) => setDepositPercent(event.target.value)} className={fieldClass} /></label>
+              <label className={labelClass}>Điểm tập trung<input value={meetingPoint} onChange={(event) => setMeetingPoint(event.target.value)} className={fieldClass} /></label>
+              <label className={labelClass}>Số điện thoại liên hệ<input type="tel" maxLength={30} value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} className={fieldClass} /></label>
+              <p className="sm:col-span-2 text-xs text-[#66766c]">Giá và thông tin này được lưu làm mặc định cho tour; khi tạo lịch khởi hành, bạn có thể chỉnh riêng cho từng đợt.</p>
             </div>
           </section>
 
@@ -286,3 +337,4 @@ export const TourCreateForm: React.FC<TourCreateFormProps> = ({ initialData, onC
 };
 
 export default TourCreateForm;
+

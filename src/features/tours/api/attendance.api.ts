@@ -60,7 +60,8 @@ function readLocalOperationsReportsMap(): Record<string, ScheduleOperationsRepor
 
 function writeLocalOperationsReport(
   scheduleId: number | string,
-  updater: (prev: ScheduleOperationsReport | undefined) => ScheduleOperationsReport
+  updater: (prev: ScheduleOperationsReport | undefined) => ScheduleOperationsReport,
+  notify = true
 ): ScheduleOperationsReport {
   const key = String(scheduleId);
   const map = readLocalOperationsReportsMap();
@@ -68,7 +69,7 @@ function writeLocalOperationsReport(
   map[key] = next;
   try {
     localStorage.setItem(LOCAL_SCHEDULE_OPERATIONS_REPORTS_KEY, JSON.stringify(map));
-    if (typeof window !== 'undefined') {
+    if (notify && typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('wetrek-operations-report-updated', {
           detail: { scheduleId: Number(scheduleId) },
@@ -167,6 +168,15 @@ export function evaluateCheckInTimeWindow(
 
   const unlockAtMs = startsAtMs - 60 * 60 * 1000; // Đúng 1 giờ trước startsAt
   const unlockAtIso = new Date(unlockAtMs).toISOString();
+  if (nowMs > startsAtMs) {
+    return {
+      allowed: false,
+      unlockAtIso,
+      referenceAtIso: startsAt,
+      remainingMs: 0,
+      message: `Khung giờ check-in đã đóng lúc ${formatVietnamDateTime(startsAt)}.`,
+    };
+  }
   const remainingMs = Math.max(0, unlockAtMs - nowMs);
   const allowed = nowMs >= unlockAtMs;
 
@@ -634,7 +644,7 @@ export const attendanceApi = {
           updatedAt: remote.updatedAt || localReport?.updatedAt || new Date().toISOString(),
         };
 
-        writeLocalOperationsReport(scheduleId, () => merged);
+        writeLocalOperationsReport(scheduleId, () => merged, false);
         return merged;
       }
     } catch {
