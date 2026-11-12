@@ -45,6 +45,25 @@ export interface UpdatePassengerRequest {
 
 export interface CancelBookingRequest {
   reason: string;
+  refundRequest?: RefundSubmissionRequest;
+}
+
+export interface RefundSubmissionRequest {
+  bankBin: string;
+  accountNumber: string;
+  accountHolderName: string;
+}
+
+export interface RefundResponse {
+  id: number;
+  bookingId: number;
+  requestedAmountVnd: number;
+  approvedAmountVnd: number | null;
+  status: 'requested' | 'approved' | 'processing' | 'completed' | 'failed' | 'rejected';
+  recipientAccountLast4: string | null;
+  recipientVerification: 'verified' | 'manual_review';
+  createdAt: string;
+  payoutReferenceId: string | null;
 }
 
 export interface BookingPassengerResponse {
@@ -164,6 +183,7 @@ export interface BookingCancellationResponse {
   paidAmountVnd: number;
   refundedAmountVnd: number;
   refundRequired: boolean;
+  refundRequest: RefundResponse | null;
 }
 
 /** Filters for GET /api/v1/bookings. All optional; createdFrom/createdTo are ISO date-time, interval [from, to). */

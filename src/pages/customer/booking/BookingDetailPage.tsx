@@ -30,12 +30,14 @@ import type {
   BookingPassengerResponse,
   BookingCancellationResponse,
   BookingPassengerRequest,
+  RefundResponse,
 } from '../../../features/bookings/types/booking.types';
 import type { PaymentPurpose, PaymentLinkResponse } from '../../../features/payments/types/payment.types';
 import type { ApiError } from '../../../types/api.types';
 import { BookingStepper } from '../../../features/bookings/components/BookingStepper';
 import { PriceSummary } from '../../../features/bookings/components/PriceSummary';
 import { PassengerForm, validatePassengers } from '../../../features/bookings/components/PassengerForm';
+import { RefundDestinationFields } from '../../../features/bookings/components/RefundDestinationFields';
 import { StatusBadge } from '../../../components/ui/StatusBadge';
 import { formatDate, formatDateTime, formatVND } from '../../../lib/utils';
 import { toast } from '../../../components/ui/Toast';
@@ -265,8 +267,13 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
   const [isCancelModalOpen, setIsCancelModalOpen] = useState<boolean>(false);
   const [cancelReason, setCancelReason] = useState<string>('');
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
+  const [requestRefund, setRequestRefund] = useState<boolean>(true);
+  const [refundBankBin, setRefundBankBin] = useState('');
+  const [refundAccountNumber, setRefundAccountNumber] = useState('');
+  const [refundAccountHolder, setRefundAccountHolder] = useState('');
   const [cancellationResult, setCancellationResult] =
     useState<BookingCancellationResponse | null>(null);
+  const [refundStatus, setRefundStatus] = useState<RefundResponse | null>(null);
 
   // Redirect unauthenticated users to login
   useEffect(() => {
@@ -295,6 +302,15 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
       try {
         const data = await bookingsApi.getBookingDetail(resolvedBookingId);
         setBooking(data);
+        if (data.status === 'CANCELLED') {
+          try {
+            setRefundStatus(await bookingsApi.getRefundStatus(data.id));
+          } catch {
+            setRefundStatus(null);
+          }
+        } else {
+          setRefundStatus(null);
+        }
 
         // Set default payment purpose based on booking status and remaining balance
         if (data.status === 'PENDING_PAYMENT') {
@@ -449,6 +465,16 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
         booking.status === 'CONFIRMED')
   );
 
+  const displayedRefund = cancellationResult?.refundRequest || refundStatus;
+  const refundStatusLabel = displayedRefund ? ({
+    requested: 'đang chờ nhân viên duyệt',
+    approved: 'đã duyệt, đang chuẩn bị chuyển khoản',
+    processing: 'đang chuyển tiền',
+    completed: 'đã hoàn tiền',
+    failed: 'chưa chuyển được, vui lòng liên hệ hỗ trợ',
+    rejected: 'đã từ chối',
+  } as Record<string, string>)[displayedRefund.status] || displayedRefund.status : '';
+
   const handleCreatePaymentLink = async () => {
     if (!booking || !canInitiatePayment) return;
 
@@ -578,6 +604,15 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
     try {
       const res = await bookingsApi.cancelBooking(booking.id, {
         reason: cancelReason.trim() || 'Khách hàng yêu cầu hủy đặt chỗ',
+        ...(requestRefund && isBeforeStartsAt && booking.price.paidAmountVnd > booking.price.refundedAmountVnd
+          ? {
+              refundRequest: {
+                bankBin: refundBankBin.trim(),
+                accountNumber: refundAccountNumber.trim(),
+                accountHolderName: refundAccountHolder.trim(),
+              },
+            }
+          : {}),
       });
       setCancellationResult(res);
       setIsCancelModalOpen(false);
@@ -858,21 +893,28 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
           <div className="mb-6 rounded-2xl bg-stone-100 border border-stone-300 p-5 space-y-2">
             <div className="flex items-center gap-2 text-sm font-bold text-stone-900">
               <PhoneCall className="w-4 h-4 text-[#1F4E43]" />
-              <span>Thông tin đối soát & hỗ trợ hoàn tiền</span>
+              <span>Thông tin yêu cầu hoàn tiền</span>
             </div>
             {cancellationResult && (
               <p className="text-xs text-stone-700">
                 Trạng thái hoàn tiền:{' '}
                 <strong>
                   {cancellationResult.refundRequired
-                    ? 'Cần đối soát hoàn tiền theo chính sách'
+                    ? cancellationResult.refundRequest ? 'Đã gửi yêu cầu hoàn tiền' : 'Đã thanh toán nhưng chưa gửi yêu cầu hoàn tiền'
                     : 'Không phát sinh hoàn tiền'}
                 </strong>{' '}
                 • Số tiền đã ghi nhận: <strong>{formatVND(cancellationResult.paidAmountVnd)}</strong>.
               </p>
             )}
+            {displayedRefund && (
+              <p className="text-xs text-stone-700">
+                Yêu cầu #{displayedRefund.id}: <strong>{refundStatusLabel}</strong>
+                {' '}· Số tiền <strong>{formatVND(displayedRefund.approvedAmountVnd ?? displayedRefund.requestedAmountVnd)}</strong>
+                {' '}· Tài khoản ····{displayedRefund.recipientAccountLast4 || '—'}.
+              </p>
+            )}
             <p className="text-xs text-stone-600 leading-relaxed">
-              Nếu giao dịch thanh toán được thực hiện sau khi đặt chỗ đã bị hủy hoặc hết hạn giữ chỗ, hoặc cần đối soát hoàn tiền, vui lòng liên hệ bộ phận điều phối WeTrek kèm mã đặt chỗ{' '}
+              Nếu chưa gửi yêu cầu hoàn tiền hoặc cần hỗ trợ kiểm tra khoản thanh toán, vui lòng liên hệ WeTrek và cho biết mã đặt chỗ{' '}
               <strong className="font-mono">#{booking.bookingCode}</strong> để được kiểm tra và xử lý chính thức.
             </p>
           </div>
@@ -1424,7 +1466,21 @@ export const BookingDetailPage: React.FC<BookingDetailPageProps> = ({ bookingIdP
         onClose={() => setIsCancelModalOpen(false)}
         onSubmit={handleConfirmCancelBooking}
         isSubmitting={isCancelling}
-      />
+      >
+        {booking.price.paidAmountVnd > booking.price.refundedAmountVnd && isBeforeStartsAt && (
+          <RefundDestinationFields
+            idPrefix="booking-refund"
+            enabled={requestRefund}
+            setEnabled={setRequestRefund}
+            bankBin={refundBankBin}
+            setBankBin={setRefundBankBin}
+            accountNumber={refundAccountNumber}
+            setAccountNumber={setRefundAccountNumber}
+            accountHolderName={refundAccountHolder}
+            setAccountHolderName={setRefundAccountHolder}
+          />
+        )}
+      </CancelBookingDialog>
     </div>
   );
 };

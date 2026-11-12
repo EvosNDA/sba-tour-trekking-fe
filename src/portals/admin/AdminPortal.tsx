@@ -17,6 +17,7 @@ import AdminEquipmentPage from '../../pages/admin/equipment/AdminEquipmentPage';
 import AdminAccountListPage from '../../pages/admin/user-management/AdminAccountListPage';
 import AdminReviewListPage from '../../pages/admin/reviews/AdminReviewListPage';
 import AdminBookingListPage from '../../pages/admin/bookings/AdminBookingListPage';
+import AdminRefundsPage from '../../pages/admin/refunds/AdminRefundsPage';
 
 import { Compass } from 'lucide-react';
 
@@ -30,6 +31,8 @@ export const AdminPortal: React.FC = () => {
     if (pathname === ROUTES.ADMIN.REVIEWS || pathname === '/admin/reviews' || pathname === '/admin/reviews/') return <AdminReviewListPage />;
 
     if (pathname === ROUTES.ADMIN.POLICIES || pathname === '/admin/policies/') return <AdminPoliciesPage />;
+
+    if (pathname === ROUTES.ADMIN.REFUNDS || pathname === '/admin/refunds/') return <AdminRefundsPage />;
 
     // Equipment & Combos `/admin/equipment`
     if (pathname === ROUTES.ADMIN.EQUIPMENT || pathname.startsWith('/admin/equipment')) {

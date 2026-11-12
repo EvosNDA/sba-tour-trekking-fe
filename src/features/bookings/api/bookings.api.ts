@@ -9,6 +9,7 @@ import {
   BookingSummaryResponse,
   BookingCancellationResponse,
   BookingStatus,
+  RefundResponse,
 } from '../types/booking.types';
 import { INITIAL_BOOKING } from '../../../data/mockData';
 import { Booking } from '../../../types/expedition';
@@ -105,6 +106,9 @@ export const bookingsApi = {
       { signal }
     );
   },
+
+  getRefundStatus: async (bookingId: number | string, signal?: AbortSignal): Promise<RefundResponse | null> =>
+    apiClient.get<RefundResponse | null>(`/api/v1/bookings/${bookingId}/refund`, { signal }),
 
   // Legacy helpers kept for reference compatibility
   getCurrentBooking: async (): Promise<Booking> => {

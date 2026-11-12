@@ -42,6 +42,7 @@ export const ROUTES = {
     SCHEDULE_DETAIL: (scheduleId: string | number = ':scheduleId') => `/admin/schedules/${scheduleId}`,
     EQUIPMENT: '/admin/equipment',
     POLICIES: '/admin/policies',
+    REFUNDS: '/admin/refunds',
     TOUR_NEW: '/admin/tours/new',
     TOUR_DETAIL: (tourId: string | number = ':tourId') => `/admin/tours/${tourId}`,
     TOUR_EDIT: (tourId: string | number = ':tourId') => `/admin/tours/${tourId}/edit`,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mountain, LogOut, Calendar, FileText, Boxes, LayoutDashboard, Users, Star, Menu, Ticket, Search, Bell, ChevronDown, UserRound } from 'lucide-react';
+import { Mountain, LogOut, Calendar, FileText, Boxes, LayoutDashboard, Users, Star, Menu, Ticket, Banknote, Search, Bell, ChevronDown, UserRound } from 'lucide-react';
 import { useAuthStore } from '../../stores/auth.store';
 import { authApi } from '../../features/auth/api/auth.api';
 import { useLocation, navigateTo } from '../../lib/navigation';
@@ -30,6 +30,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({ children }
     { label: 'Tour trekking', path: ROUTES.ADMIN.TOURS, icon: Mountain, active: pathname.startsWith('/admin/tours') },
     { label: 'Lịch khởi hành', path: ROUTES.ADMIN.SCHEDULES, icon: Calendar, active: pathname.startsWith('/admin/schedules') },
     { label: 'Đặt chỗ', path: ROUTES.ADMIN.BOOKINGS, icon: Ticket, active: pathname.startsWith('/admin/bookings') },
+    { label: 'Hoàn tiền', path: ROUTES.ADMIN.REFUNDS, icon: Banknote, active: pathname.startsWith('/admin/refunds') },
     { label: 'Thiết bị & tồn kho', path: ROUTES.ADMIN.EQUIPMENT, icon: Boxes, active: pathname.startsWith('/admin/equipment') },
     { label: 'Điều khoản', path: ROUTES.ADMIN.POLICIES, icon: FileText, active: pathname.startsWith('/admin/policies') },
     { label: 'Đánh giá', path: ROUTES.ADMIN.REVIEWS, icon: Star, active: pathname.startsWith('/admin/reviews') },
