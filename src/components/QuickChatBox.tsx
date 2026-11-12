@@ -248,14 +248,28 @@ export const QuickChatBox: React.FC = () => {
                           // Code block
                           pre: ({ children }) => <pre className="bg-stone-100 p-2 rounded text-xs overflow-x-auto my-1">{children}</pre>,
                           // Images
-                          img: ({ src, alt }) => (
-                            <img
-                              src={src}
-                              alt={alt || 'Tour image'}
-                              className="w-full max-h-48 object-cover rounded-lg my-2 border border-stone-200 shadow-sm"
-                              loading="lazy"
-                            />
-                          ),
+                          img: ({ src, alt }) => {
+                            if (!src) return null;
+                            return (
+                              <span className="block my-2">
+                                <img
+                                  src={src}
+                                  alt={alt || 'Tour image'}
+                                  className="w-full max-h-56 object-cover rounded-xl border border-stone-200 shadow-sm transition-opacity duration-200"
+                                  loading="lazy"
+                                  onError={(e) => {
+                                    // Hide broken/fake image URLs gracefully
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                                {alt && alt !== 'Tour image' && (
+                                  <span className="block text-[11px] text-stone-500 mt-1 italic text-center">
+                                    📸 {alt}
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          },
                         }}
                       >
                         {msg.content}
