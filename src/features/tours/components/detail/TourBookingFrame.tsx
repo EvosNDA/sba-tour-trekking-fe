@@ -68,6 +68,9 @@ export const TourBookingFrame: React.FC<TourBookingFrameProps> = ({
   const [isVerifyingHold, setIsVerifyingHold] = useState<boolean>(false);
   const [showHoldModal, setShowHoldModal] = useState<boolean>(false);
 
+  // Last error from the booking CTA, shown inline above the button (toasts disappear too fast)
+  const [bookingError, setBookingError] = useState<string | null>(null);
+
   const fetchActiveHoldsSilently = useCallback(async () => {
     if (!isAuthenticated) {
       setActiveHolds([]);
@@ -188,6 +191,21 @@ export const TourBookingFrame: React.FC<TourBookingFrameProps> = ({
   const activeAvailabilityError = selectedScheduleId ? availabilityErrors[selectedScheduleId] : null;
   const isCheckingAvailability = selectedScheduleId ? !!loadingAvailability[selectedScheduleId] : false;
 
+  // bookable=false does not always mean sold out: the backend also closes booking when the schedule
+  // has started/closed or the tour has no effective cancellation policy.
+  const isSoldOut = Boolean(activeAvailability && activeAvailability.availableSeats <= 0);
+  const isClosed = Boolean(activeAvailability && !activeAvailability.bookable);
+  const unavailableReason = !activeAvailability || !isClosed
+    ? null
+    : isSoldOut
+    ? 'Lịch khởi hành này đã hết chỗ. Vui lòng chọn ngày khác.'
+    : `Lịch này còn ${activeAvailability.availableSeats} chỗ nhưng chưa mở nhận đặt. Tour có thể chưa áp dụng chính sách huỷ hoặc lịch đã đóng đặt chỗ. Vui lòng chọn ngày khác hoặc liên hệ ban tổ chức.`;
+  const inlineError = unavailableReason ?? bookingError;
+
+  useEffect(() => {
+    setBookingError(null);
+  }, [selectedScheduleId, guestCount]);
+
   // Max selectable guests
   const maxSeats = useMemo(() => {
     if (activeAvailability && activeAvailability.availableSeats !== undefined) {
@@ -223,9 +241,15 @@ export const TourBookingFrame: React.FC<TourBookingFrameProps> = ({
     });
   };
 
+  const failBooking = (message: string) => {
+    setBookingError(message);
+    toast.error(message);
+  };
+
   const handleProceedBooking = async () => {
+    setBookingError(null);
     if (!activeSchedule) {
-      toast.error('Vui lòng chọn một lịch khởi hành phù hợp.');
+      failBooking('Vui lòng chọn một lịch khởi hành phù hợp.');
       return;
     }
 
@@ -251,12 +275,12 @@ export const TourBookingFrame: React.FC<TourBookingFrameProps> = ({
     }
 
     if (activeAvailabilityError?.is403) {
-      toast.error(activeAvailabilityError.message);
+      failBooking(activeAvailabilityError.message);
       return;
     }
 
-    if (activeAvailability && (!activeAvailability.bookable || activeAvailability.availableSeats <= 0)) {
-      toast.error('Lịch khởi hành này hiện đã hết chỗ hoặc đã đóng đặt chỗ.');
+    if (unavailableReason) {
+      failBooking(unavailableReason);
       return;
     }
 
@@ -270,7 +294,7 @@ export const TourBookingFrame: React.FC<TourBookingFrameProps> = ({
         return;
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Không thể kiểm tra trạng thái giữ chỗ. Vui lòng thử lại.');
+      failBooking(err?.message || 'Không thể kiểm tra trạng thái giữ chỗ. Vui lòng thử lại.');
       return;
     } finally {
       setIsVerifyingHold(false);
@@ -393,6 +417,11 @@ export const TourBookingFrame: React.FC<TourBookingFrameProps> = ({
                   <CheckCircle2 className="w-3 h-3" />
                   <span>Còn {activeAvailability.availableSeats} chỗ</span>
                 </span>
+              ) : !isSoldOut ? (
+                <span className="inline-flex items-center gap-1 font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                  <AlertCircle className="w-3 h-3" />
+                  <span>Chưa mở đặt</span>
+                </span>
               ) : (
                 <span className="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200">
                   <AlertCircle className="w-3 h-3" />
@@ -508,17 +537,26 @@ export const TourBookingFrame: React.FC<TourBookingFrameProps> = ({
       </>}
       {/* Action CTA Button */}
       <div className="space-y-2">
+        {inlineError && (
+          <p
+            role="alert"
+            className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-800"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-700" aria-hidden="true" />
+            <span>{inlineError}</span>
+          </p>
+        )}
         <button
           type="button"
           onClick={handleProceedBooking}
           disabled={
             isVerifyingHold ||
             !activeSchedule ||
-            Boolean(activeAvailability && (!activeAvailability.bookable || activeAvailability.availableSeats <= 0))
+            isClosed
           }
           className={`w-full py-4 px-6 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
             !activeSchedule ||
-            (activeAvailability && (!activeAvailability.bookable || activeAvailability.availableSeats <= 0))
+            isClosed
               ? 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none'
               : !isAuthenticated
               ? 'bg-[#C2410C] hover:bg-[#9A3412] text-white'
@@ -534,8 +572,8 @@ export const TourBookingFrame: React.FC<TourBookingFrameProps> = ({
             </>
           ) : !activeSchedule ? (
             <span>Chưa có lịch khởi hành</span>
-          ) : activeAvailability && (!activeAvailability.bookable || activeAvailability.availableSeats <= 0) ? (
-            <span>Lịch khởi hành này đã hết chỗ</span>
+          ) : isClosed ? (
+            <span>{isSoldOut ? 'Lịch khởi hành này đã hết chỗ' : 'Lịch này chưa mở đặt chỗ'}</span>
           ) : !isAuthenticated ? (
             <>
               <span>Đăng nhập để đặt tour</span>
